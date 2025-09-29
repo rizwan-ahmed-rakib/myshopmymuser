@@ -64,7 +64,7 @@
 
 import React, {useState} from "react";
 import axios from "axios";
-import {Navigate, useNavigate,Link} from "react-router-dom";
+import {Navigate, useNavigate, Link} from "react-router-dom";
 import BASE_URL from "../config";
 import {useAuth} from "../context_or_provider/AuthContext";
 
@@ -90,10 +90,15 @@ const Login = () => {
             setIsAuthenticated(true); // ✅ এখানে user কে authenticated করে দাও
 
 
-            navigate("/"); // Login successful, go to Home
+            // navigate("/"); // Login successful, go to Home
+
+            // ✅ Home এ নিয়ে গিয়ে একবার reload দাও
+            navigate("/", {replace: true});
+            window.location.reload();
         } catch (err) {
             alert("Login failed!");
         }
+
     };
 
     return (
@@ -123,10 +128,14 @@ const Login = () => {
 
                 {/*<button onClick={() => navigate("/")}>Home</button>*/}
 
-                <Link to="/"><button>Home</button></Link>
+                <button onClick={() => window.location.href = "/"}>
+                    Home
+                </button>
 
                 <br/>
-                <Link to="/register"><button>Create New Account</button></Link>
+                <Link to="/register">
+                    <button>Create New Account</button>
+                </Link>
 
 
                 {/*/!*<Navigate to="/"/>*!/    direct kono page e niye jawar ability rakhe*/}

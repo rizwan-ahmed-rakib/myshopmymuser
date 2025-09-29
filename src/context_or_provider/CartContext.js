@@ -1,4 +1,3 @@
-
 import {createContext, useContext, useState, useEffect} from "react";
 import {useNavigate} from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
@@ -70,6 +69,28 @@ export const CartProvider = ({children}) => {
 
 
     // ✅ Add to cart
+    
+    // const addToCart = async (product) => {
+    //     const headers = getAuthHeaders();
+    //     if (!headers) {
+    //         alert("Please login to add items to cart");
+    //         navigate("/login");
+    //         return;
+    //     }
+    //
+    //     try {
+    //         await axiosInstance.post(
+    //             `/api/order-app/carts/`,
+    //             {item: product.id, quantity: 1},
+    //             headers
+    //         );
+    //         fetchCart();
+    //     } catch (error) {
+    //         console.error("Add to cart error:", error.response?.data || error.message);
+    //     }
+    // };
+
+
     const addToCart = async (product) => {
         const headers = getAuthHeaders();
         if (!headers) {
@@ -79,16 +100,32 @@ export const CartProvider = ({children}) => {
         }
 
         try {
-            await axiosInstance.post(
-                `/api/order-app/carts/`,
-                {item: product.id, quantity: 1},
-                headers
-            );
+            // Step 1: Check if product already in cart
+            const existingItem = cart.find((c) => c.item === product.id);
+
+            if (existingItem) {
+                // Step 2: Increase qty
+                await axiosInstance.patch(
+                    `/api/order-app/carts/${existingItem.id}/`,
+                    {quantity: existingItem.quantity + 1},
+                    headers
+                );
+            } else {
+                // Step 3: Add new product
+                await axiosInstance.post(
+                    `/api/order-app/carts/`,
+                    {item: product.id, quantity: 1},
+                    headers
+                );
+            }
+
+            // Refresh cart
             fetchCart();
         } catch (error) {
             console.error("Add to cart error:", error.response?.data || error.message);
         }
     };
+
 
     // ✅ Checkout (create order)
     // const checkout = async () => {

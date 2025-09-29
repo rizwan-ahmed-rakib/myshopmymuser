@@ -53,14 +53,14 @@ const Footer = () => {
             </li>
           </ul>
           <p className="mt-4 text-sm font-medium text-black">
-            DBID ID : 123456789
+            {/*DBID ID : 123456789*/}
           </p>
         </div>
       </div>
 
       {/* Bottom Bar */}
       <div className= "max-w-7xl mx-auto bg-orange-500 text-white text-center py-3 text-sm">
-        © MyShop 2024
+        © MyShop 2025
       </div>
     </footer>
   );

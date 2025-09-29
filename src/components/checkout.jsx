@@ -213,10 +213,14 @@ import React, {useState, useEffect} from "react";
 import {useCart} from "../context_or_provider/CartContext";
 import {Link, useNavigate} from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
+import BillingAddress from "./BillingAddress";
+import ProfileUpdate from "./ProfileUpdate";
 
 const Checkout = () => {
     const {cart, checkout} = useCart();
     const navigate = useNavigate();
+    const [showBillingForm, setShowBillingForm] = useState(false);
+
 
     const [billingAddress, setBillingAddress] = useState(null);
     const [shippingInfo, setShippingInfo] = useState({
@@ -279,6 +283,52 @@ const Checkout = () => {
         setShowConfirm(true);
     };
 
+    // const confirmOrder = async () => {
+    //     setShowConfirm(false);
+    //     try {
+    //         const orderPayload = {
+    //             receiver_name: shippingInfo.name,
+    //             receiver_email: shippingInfo.email,
+    //             receiver_phone_number: shippingInfo.phone,
+    //             receiver_address: shippingInfo.address,
+    //             receiver_city: shippingInfo.city,
+    //             receiver_zip_code: shippingInfo.postalCode,
+    //             receiver_country: shippingInfo.country,
+    //             order_type: paymentMethod,
+    //             delivery_type: deliveryType,
+    //         };
+    //
+    //         const order = await checkout(orderPayload);
+    //
+    //         if (!order || !order.id) {
+    //             alert("Order creation failed");
+    //             return;
+    //         }
+    //
+    //         if (paymentMethod === "ONLINE") {
+    //             const token = localStorage.getItem("access");
+    //             const headers = {headers: {Authorization: `Bearer ${token}`}};
+    //             const res = await axiosInstance.get(
+    //                 `/api/payment-app/orders/${order.id}/initiate_payment/`,
+    //                 headers
+    //             );
+    //             if (res.data.payment_url) {
+    //                 window.location.href = res.data.payment_url;
+    //             } else {
+    //                 alert("Payment URL not received");
+    //             }
+    //         } else {
+    //             alert("Order placed successfully! Cash on Delivery selected.");
+    //             navigate("/order");
+    //         }
+    //
+    //     } catch (err) {
+    //         console.error("Checkout error:", err.response?.data || err.message);
+    //         alert("Something went wrong while placing order");
+    //     }
+    // };
+
+
     const confirmOrder = async () => {
         setShowConfirm(false);
         try {
@@ -303,7 +353,7 @@ const Checkout = () => {
 
             if (paymentMethod === "ONLINE") {
                 const token = localStorage.getItem("access");
-                const headers = { headers: { Authorization: `Bearer ${token}` } };
+                const headers = {headers: {Authorization: `Bearer ${token}`}};
                 const res = await axiosInstance.get(
                     `/api/payment-app/orders/${order.id}/initiate_payment/`,
                     headers
@@ -317,71 +367,13 @@ const Checkout = () => {
                 alert("Order placed successfully! Cash on Delivery selected.");
                 navigate("/order");
             }
-
         } catch (err) {
             console.error("Checkout error:", err.response?.data || err.message);
-            alert("Something went wrong while placing order");
+            // alert("Something went wrong while placing order");
+            alert(err.error);
+            alert(err.message);
         }
     };
-
-
-    // const confirmOrder = async () => {
-    //     setShowConfirm(false);
-    //
-    //     try {
-    //         if (paymentMethod === "COD") {
-    //             // ✅ COD হলে সরাসরি order create করো
-    //             const orderPayload = {
-    //                 receiver_name: shippingInfo.name,
-    //                 receiver_email: shippingInfo.email,
-    //                 receiver_phone_number: shippingInfo.phone,
-    //                 receiver_address: shippingInfo.address,
-    //                 receiver_city: shippingInfo.city,
-    //                 receiver_zip_code: shippingInfo.postalCode,
-    //                 receiver_country: shippingInfo.country,
-    //                 order_type: "COD",
-    //                 delivery_type: deliveryType,
-    //             };
-    //
-    //             const order = await checkout(orderPayload);
-    //
-    //             if (!order || !order.id) {
-    //                 alert("Order creation failed");
-    //                 return;
-    //             }
-    //
-    //             alert("✅ Order placed successfully! Cash on Delivery selected.");
-    //             navigate("/order");
-    //         }
-    //
-    //         if (paymentMethod === "ONLINE") {
-    //             // ✅ ONLINE হলে এখনো order create করব না
-    //             const token = localStorage.getItem("access");
-    //             const headers = {headers: {Authorization: `Bearer ${token}`}};
-    //
-    //             const res = await axiosInstance.post(
-    //                 `/api/payment-app/initiate_payment/`,
-    //                 {
-    //                     cart: cart.map((c) => c.id), // cart ids পাঠাচ্ছি
-    //                     total: total,
-    //                     shipping: shippingInfo,
-    //                     delivery_type: deliveryType,
-    //                 },
-    //                 headers
-    //             );
-    //
-    //             if (res.data.payment_url) {
-    //                 // SSLCommerz এ redirect করো
-    //                 window.location.href = res.data.payment_url;
-    //             } else {
-    //                 alert("❌ Payment URL not received");
-    //             }
-    //         }
-    //     } catch (err) {
-    //         console.error("Checkout error:", err.response?.data || err.message);
-    //         alert("Something went wrong while placing order");
-    //     }
-    // };
 
 
     return (
@@ -391,14 +383,59 @@ const Checkout = () => {
                 {/* Shipping Info */}
                 <div className="bg-white p-6 rounded-lg shadow-md dark:bg-gray-800">
                     <h2 className="text-xl font-semibold mb-2">Shipping Information</h2>
+
+                    <button
+                        onClick={() => setShowBillingForm(true)}
+                        // className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg"
+                        className="mb-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-blue-600"
+                    >
+                        {billingAddress ? "Edit Regular Shipping Address" : "+ Add Regular Shipping Address"}
+                    </button>
+
+
+                    {showBillingForm && (
+                        <div>
+                            <BillingAddress
+                                existingAddress={billingAddress}
+                                onSubmit={(newAddress) => {
+                                    setBillingAddress(newAddress);
+                                    setShowBillingForm(false);
+                                }}
+                            />
+
+                            <button
+                                onClick={() => setShowBillingForm(false)}
+                                className="mt-2 px-4 py-2 bg-red-400 text-white rounded-lg"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    )}
+
+
                     {billingAddress && (
+
                         <button
                             onClick={useRegularShipping}
-                            className="mb-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                            className="mb-4 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-blue-600"
                         >
                             Use Regular Shipping Address
                         </button>
                     )}
+
+
+                    {showBillingForm && (
+                        <BillingAddress
+                            existingAddress={billingAddress}
+                            onSubmit={(newAddress) => {
+                                setBillingAddress(newAddress);   // update state
+                                setShowBillingForm(false);       // form বন্ধ করো
+                            }}
+                            onCancel={() => setShowBillingForm(false)}
+                        />
+                    )}
+
+
                     {["name", "email", "phone", "address", "city", "postalCode", "country"].map((field) => (
                         <input
                             key={field}
@@ -442,7 +479,12 @@ const Checkout = () => {
                     <div className="divide-y divide-gray-200 dark:divide-gray-700">
                         {cart.map((item) => (
                             <div key={item.id} className="flex justify-between py-2 items-center">
-                                <span>{item.item_name} x {item.quantity}</span>
+                                <img
+                                    src={item.product_image || "/default-avatar.png"}
+                                    alt={item.item_name}
+                                    className="w-16 h-16 object-cover rounded"
+                                />
+                                <span>{item.item_name} {item.item_price} x {item.quantity}</span>
                                 <span>${item.total}</span>
                             </div>
                         ))}
@@ -478,43 +520,52 @@ const Checkout = () => {
                 </div>
             </div>
 
-            {/* Confirmation Modal */}
-            {showConfirm && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-                    <div className="bg-white p-6 rounded-lg max-w-md w-full">
-                        <h2 className="text-xl font-semibold mb-4">Confirm Your Order</h2>
-                        <div className="mb-4">
-                            {cart.map((item) => (
-                                <div key={item.id} className="flex justify-between py-1">
-                                    <span>{item.item_name} x {item.quantity}</span>
-                                    <span>${item.total}</span>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="mb-4 font-semibold">
-                            <p>Payment Method: {paymentMethod === "COD" ? "Cash on Delivery" : "Online Payment"}</p>
-                            <p>Delivery Type: {deliveryType === "HOME_DELIVERY" ? "Home Delivery" : "Store Pickup"}</p>
-                            <p>Total: ${total.toFixed(2)}</p>
-                        </div>
-                        <div className="flex justify-end space-x-2">
-                            <button
-                                onClick={() => setShowConfirm(false)}
-                                className="px-4 py-2 rounded-lg border border-gray-400"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={confirmOrder}
-                                className="px-4 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600"
-                            >
-                                Confirm
-                            </button>
+            {/* Confirmation Modal */
+            }
+            {
+                showConfirm && (
+                    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                        <div className="bg-white p-6 rounded-lg max-w-md w-full">
+                            <h2 className="text-xl font-semibold mb-4">Confirm Your Order</h2>
+                            <div className="mb-4">
+                                {cart.map((item) => (
+                                    <div key={item.id} className="flex justify-between py-1">
+                                        <img
+                                            src={item.product_image || "/default-avatar.png"}
+                                            alt={item.item_name}
+                                            className="w-16 h-16 object-cover rounded"
+                                        />
+                                        <span>{item.item_name} x {item.quantity}</span>
+                                        <span>${item.total}</span>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="mb-4 font-semibold">
+                                <p>Payment Method: {paymentMethod === "COD" ? "Cash on Delivery" : "Online Payment"}</p>
+                                <p>Delivery Type: {deliveryType === "HOME_DELIVERY" ? "Home Delivery" : "Store Pickup"}</p>
+                                <p>Total: ${total.toFixed(2)}</p>
+                            </div>
+                            <div className="flex justify-end space-x-2">
+                                <button
+                                    onClick={() => setShowConfirm(false)}
+                                    className="px-4 py-2 rounded-lg border border-gray-400"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmOrder}
+                                    className="px-4 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600"
+                                >
+                                    Confirm
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
         </div>
-    );
+    )
+        ;
 };
 
 export default Checkout;

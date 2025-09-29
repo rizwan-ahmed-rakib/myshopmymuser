@@ -98,8 +98,13 @@
 import React, {useState} from "react";
 import {Link, useNavigate} from "react-router-dom";
 import {useCategory} from "../context_or_provider/CategoryContext";
+import {ShoppingBag} from "lucide-react";
+import Cart from "../pages/Cart";
+import {useCart} from "../context_or_provider/CartContext";
 
 const Navbar = () => {
+    const [isCartOpen, setIsCartOpen] = useState(false);
+    const {cart} = useCart();
     const {category} = useCategory(); // API থেকে আসা ডাটা
     const navigate = useNavigate();
 
@@ -210,8 +215,8 @@ const Navbar = () => {
                                             onClick={() => handleParentClick(cate)} // ✅ শুধু টাইটেলে ক্লিক করলে যাবে Products পেজে
                                             className="cursor-pointer"
                                         >
-    {cate.title}
-  </span>
+                                        {cate.title}
+                                        </span>
 
                                         {/* Arrow Icon (mobile only) */}
                                         {cate.children?.length > 0 && (
@@ -275,7 +280,34 @@ const Navbar = () => {
                         </ul>
                     </div>
                 </div>
+
             </div>
+
+            {/*/////////////////nav e cart icon number soho//////////////////////////////*/}
+
+            {/*<button*/}
+            {/*    onClick={() => setIsCartOpen(true)}*/}
+            {/*    className="flex flex-col items-center group relative"*/}
+            {/*>*/}
+            {/*    <ShoppingBag className="text-orange-500 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 dark:text-orange-400"/>*/}
+            {/*    {cart.length > 0 && (*/}
+            {/*        <span*/}
+            {/*            className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">*/}
+            {/*      {cart.length}*/}
+            {/*    </span>*/}
+            {/*    )}*/}
+            {/*    <span*/}
+            {/*        className="hidden md:block text-xs text-orange-500 opacity-0 group-hover:opacity-100 transition dark:text-orange-400">*/}
+            {/*    Cart*/}
+            {/*  </span>*/}
+            {/*</button>*/}
+
+            {/*/!* Cart Sidebar *!/*/}
+            {/*<Cart isCartOpen={isCartOpen} setIsCartOpen={setIsCartOpen}/>*/}
+
+
+            {/*////////////////////////////////////////////////////////*/}
+
         </nav>
     );
 };

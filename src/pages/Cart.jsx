@@ -190,11 +190,16 @@ const Cart = ({isCartOpen, setIsCartOpen}) => {
                                         className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
                                     >
                                         <div>
+                                            <img
+                                                src={item.product_image || "/default-avatar.png"}
+                                                alt={item.item_name}
+                                                className="w-16 h-16 object-cover rounded"
+                                            />
                                             <h3 className="font-medium text-gray-800">
                                                 {item.item_name}
                                             </h3>
                                             <p className="text-blue-600 font-semibold">
-                                                Tk {item.item_price}
+                                                unit-price {item.item_price} x quantity {item.quantity} = total  {item.item_price * item.quantity}
                                             </p>
                                         </div>
 
@@ -261,7 +266,7 @@ const Cart = ({isCartOpen, setIsCartOpen}) => {
 
                                 <Link
                                     to="/checkout"
-                                  className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors font-medium"
+                                    className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors font-medium"
                                 >
                                     Checkout
                                 </Link>

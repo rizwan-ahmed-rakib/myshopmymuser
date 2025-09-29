@@ -21,6 +21,7 @@ import About from "./components/About";
 import CustomerService from "./components/CustomerService";
 import Register from "./pages/Register";
 import ProfileUpdate from "./components/ProfileUpdate";
+import BillingAddress from "./components/BillingAddress";
 
 // import {CartProvider} from "./context_or_provider/CartContext";
 
@@ -92,6 +93,11 @@ function App() {
                         <Route path="/cart" element={
                             <ProtectedRoute>
                                 <Cart/>
+                            </ProtectedRoute>
+                        }/>
+                        <Route path="/billing-address" element={
+                            <ProtectedRoute>
+                                <BillingAddress/>
                             </ProtectedRoute>
                         }/>
 

@@ -40,19 +40,21 @@ const Header = () => {
   };
 
   return (
-    <header className="max-w-7xl mx-auto bg-gray-100 w-full dark:bg-gray-800 dark:text-white">
+    // <header className="max-w-7xl mx-auto bg-gray-100 w-full dark:bg-gray-800 dark:text-white">
+    <header className="max-w-7xl mx-auto bg-green-100 w-full dark:bg-black-800 dark:text-white">
       <div className="px-4 sm:px-6 py-1">
         <div className="flex items-center justify-between">
 
           {/* Desktop Search */}
           <div className="hidden md:flex items-center space-x-2 relative">
-            <Search className="text-orange-500 w-5 h-5 dark:text-orange-400" />
+            <Search className="text-green-500 w-5 h-5 dark:text-orange-400" />
             <input
               type="text"
               value={searchTerm}
               onChange={handleSearch}
               placeholder="Search products..."
-              className="border rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-orange-400 w-40 lg:w-64 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              // className="border rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-orange-400 w-40 lg:w-64 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              className="border rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-green-400 w-40 lg:w-64 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             />
             {filteredProducts.length > 0 && (
               <div className="absolute top-full left-0 mt-1 bg-white border rounded-lg shadow-lg w-64 max-h-60 overflow-y-auto dark:bg-gray-700 dark:border-gray-600 z-50">
@@ -78,7 +80,8 @@ const Header = () => {
             onClick={() => setIsSearchOpen(!isSearchOpen)}
             className="md:hidden"
           >
-            <Search className="text-orange-500 w-6 h-6 dark:text-orange-400" />
+            {/*<Search className="text-orange-500 w-6 h-6 dark:text-orange-400" />*/}
+            <Search className="text-green-500 w-6 h-6 dark:text-orange-400" />
           </button>
 
           {/* Middle: Logo */}
@@ -100,15 +103,19 @@ const Header = () => {
               aria-label="Toggle dark mode"
             >
               {isDarkMode ? (
-                <Sun className="text-orange-500 w-5 h-5 dark:text-orange-400" />
+                // <Sun className="text-orange-500 w-5 h-5 dark:text-orange-400" />
+                <Sun className="text-green-500 w-5 h-5 dark:text-orange-400" />
               ) : (
-                <Moon className="text-orange-500 w-5 h-5 dark:text-orange-400" />
+                // <Moon className="text-orange-500 w-5 h-5 dark:text-orange-400" />
+                <Moon className="text-green-500 w-5 h-5 dark:text-orange-400" />
               )}
             </button>
 
             <Link to="/profile" className="flex flex-col items-center group">
-              <User className="text-orange-500 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 dark:text-orange-400" />
-              <span className="hidden md:block text-xs text-orange-500 opacity-0 group-hover:opacity-100 transition dark:text-orange-400">
+              {/*<User className="text-orange-500 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 dark:text-orange-400" />*/}
+              <User className="text-green-500 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 dark:text-orange-400" />
+              {/*<span className="hidden md:block text-xs text-orange-500 opacity-0 group-hover:opacity-100 transition dark:text-orange-400">*/}
+              <span className="hidden md:block text-xs text-green-500 opacity-0 group-hover:opacity-100 transition dark:text-orange-400">
                 Account
               </span>
             </Link>
@@ -117,13 +124,16 @@ const Header = () => {
               onClick={() => setIsCartOpen(true)}
               className="flex flex-col items-center group relative"
             >
-              <ShoppingBag className="text-orange-500 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 dark:text-orange-400" />
+              {/*<ShoppingBag className="text-orange-500 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 dark:text-orange-400" />*/}
+              <ShoppingBag className="text-green-500 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 dark:text-orange-400" />
               {cart.length > 0 && (
-                <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                // <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
                   {cart.length}
                 </span>
               )}
-              <span className="hidden md:block text-xs text-orange-500 opacity-0 group-hover:opacity-100 transition dark:text-orange-400">
+              {/*<span className="hidden md:block text-xs text-orange-500 opacity-0 group-hover:opacity-100 transition dark:text-orange-400">*/}
+              <span className="hidden md:block text-xs text-green-500 opacity-0 group-hover:opacity-100 transition dark:text-orange-400">
                 Cart
               </span>
             </button>
@@ -139,11 +149,13 @@ const Header = () => {
                 value={searchTerm}
                 onChange={handleSearch}
                 placeholder="Search products..."
-                className="border flex-1 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                // className="border flex-1 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-400 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="border flex-1 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               />
               <button
                 onClick={() => setIsSearchOpen(false)}
-                className="text-orange-500 p-2 dark:text-orange-400"
+                // className="text-orange-500 p-2 dark:text-orange-400"
+                className="text-green-500 p-2 dark:text-orange-400"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -155,7 +167,8 @@ const Header = () => {
                   <Link
                     key={product.id}
                     to={`/products/${product.id}`}
-                    className="block px-4 py-2 hover:bg-orange-100 dark:hover:bg-gray-600 dark:text-white"
+                    // className="block px-4 py-2 hover:bg-orange-100 dark:hover:bg-gray-600 dark:text-white"
+                    className="block px-4 py-2 hover:bg-green-100 dark:hover:bg-gray-600 dark:text-white"
                     onClick={() => {
                       setSearchTerm("");
                       setFilteredProducts([]);

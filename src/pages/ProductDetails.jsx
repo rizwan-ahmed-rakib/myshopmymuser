@@ -237,7 +237,8 @@ const ProductDetails = () => {
                                 key={i}
                                 onClick={() => setMainImageIndex(i)}
                                 className={`border rounded overflow-hidden p-1 transition-shadow ${
-                                    i === mainImageIndex ? "ring-2 ring-orange-400" : "hover:shadow-md"
+                                    // i === mainImageIndex ? "ring-2 ring-orange-400" : "hover:shadow-md"
+                                    i === mainImageIndex ? "ring-2 ring-green-400" : "hover:shadow-md"
                                 }`}
                             >
                                 <img src={img} alt={`${name}-${i}`} className="w-full h-20 object-cover"/>
@@ -265,7 +266,8 @@ const ProductDetails = () => {
                                 <div className="text-sm line-through text-gray-400">
                                     Tk {old_price.toLocaleString()}
                                 </div>
-                                <div className="ml-auto bg-orange-500 text-white text-xs px-2 py-1 rounded">
+                                {/*<div className="ml-auto bg-orange-500 text-white text-xs px-2 py-1 rounded">*/}
+                                <div className="ml-auto bg-green-500 text-white text-xs px-2 py-1 rounded">
                                     SAVE Tk {discountAmount}
                                 </div>
                             </>
@@ -317,7 +319,8 @@ const ProductDetails = () => {
 
                         <button
                             onClick={handleBuyNow}
-                            className="w-full bg-orange-500 text-black py-3 rounded font-medium"
+                            // className="w-full bg-orange-500 text-black py-3 rounded font-medium"
+                            className="w-full bg-green-500 text-black py-3 rounded font-medium"
                         >
                             Cash on Delivery - Order Now
                         </button>

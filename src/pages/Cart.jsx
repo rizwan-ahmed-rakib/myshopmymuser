@@ -62,7 +62,8 @@ const Cart = ({isCartOpen, setIsCartOpen}) => {
                                             <h3 className="font-medium text-gray-800">
                                                 {item.item_name}
                                             </h3>
-                                            <p className="text-blue-600 font-semibold">
+                                            {/*<p className="text-blue-600 font-semibold">*/}
+                                            <p className="text-green-500 font-semibold">
                                                 unit-price {item.item_price} x quantity {item.quantity} = total  {item.item_price * item.quantity}
                                             </p>
                                         </div>
@@ -71,7 +72,8 @@ const Cart = ({isCartOpen, setIsCartOpen}) => {
                                             {/* Qty - */}
                                             <button
                                                 onClick={() => decreaseQuantity(item.id)}
-                                                className="h-8 w-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
+                                                // className="h-8 w-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
+                                                className="h-8 w-8 flex items-center justify-center rounded-full bg-blue-200 hover:bg-blue-300 transition-colors"
                                                 disabled={item.quantity <= 1}
                                             >
                                                 -
@@ -84,7 +86,8 @@ const Cart = ({isCartOpen, setIsCartOpen}) => {
                                             {/* Qty + */}
                                             <button
                                                 onClick={() => increaseQuantity(item.id)}
-                                                className="h-8 w-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
+                                                // className="h-8 w-8 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 transition-colors"
+                                                className="h-8 w-8 flex items-center justify-center rounded-full bg-green-200 hover:bg-green-500 transition-colors"
                                             >
                                                 +
                                             </button>
@@ -92,9 +95,11 @@ const Cart = ({isCartOpen, setIsCartOpen}) => {
                                             {/* Remove */}
                                             <button
                                                 onClick={() => removeFromCart(item.id)}
+                                                // className="ml-2 text-red-500 hover:text-red-700 transition-colors"
                                                 className="ml-2 text-red-500 hover:text-red-700 transition-colors"
                                             >
-                                                🗑
+                                                remove
+                                                {/*<span className="text-4xl pb-1 font-bold">x</span>*/}
                                             </button>
                                         </div>
                                     </div>
@@ -108,7 +113,8 @@ const Cart = ({isCartOpen, setIsCartOpen}) => {
                         <div className="border-t p-4">
                             <div className="flex justify-between mb-4">
                                 <span className="font-semibold text-gray-700">Total:</span>
-                                <span className="font-bold text-lg text-blue-600">
+                                {/*<span className="font-bold text-lg text-blue-600">*/}
+                                <span className="font-bold text-lg text-green-600">
                   Tk {totalPrice.toFixed(2)}
                 </span>
                             </div>
@@ -130,7 +136,8 @@ const Cart = ({isCartOpen, setIsCartOpen}) => {
 
                                 <Link
                                     to="/checkout"
-                                    className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors font-medium"
+                                    // className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors font-medium"
+                                    className="flex-1 py-2 px-4 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors font-medium"
                                 >
                                     Checkout
                                 </Link>

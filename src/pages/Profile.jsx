@@ -116,7 +116,8 @@ const Profile = () => {
                                 onClick={() => setActiveTab(tab)}
                                 className={`py-3 px-2 border-b-2 font-medium text-sm capitalize ${
                                     activeTab === tab
-                                        ? "border-orange-500 text-orange-600"
+                                        // ? "border-orange-500 text-orange-600"
+                                        ? "border-green-500 text-green-600"
                                         : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
                                 }`}
                             >
@@ -176,7 +177,8 @@ const Profile = () => {
                                 </p>
                                 <button
                                     onClick={() => setIsEditing(true)}
-                                    className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg"
+                                    // className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg"
+                                    className="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg"
                                 >
                                     Edit Profile
                                 </button>
@@ -264,7 +266,8 @@ const Profile = () => {
                                             {/* Details Button */}
                                             <button
                                                 onClick={() => setSelectedOrder(order)}
-                                                className="mt-4 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg"
+                                                // className="mt-4 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg"
+                                                className="mt-4 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
                                             >
                                                 View Details
                                             </button>

@@ -277,7 +277,8 @@ const Contact = () => {
             <Header/>
             <Navbar/>
             <div
-                className="max-w-7xl mx-auto min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+                // className="max-w-7xl mx-auto min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+                className="max-w-7xl mx-auto min-h-screen bg-gradient-to-br from-green-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-12">
                         <h1 className="text-4xl font-bold text-gray-900 mb-4">Get in Touch</h1>
@@ -291,7 +292,8 @@ const Contact = () => {
                         <div className="md:flex">
                             {/* Contact Information */}
                             {contactInfo && (
-                                <div className="md:w-2/5 bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-10">
+                                // <div className="md:w-2/5 bg-gradient-to-br from-blue-600 to-indigo-700 text-white p-10">
+                                <div className="md:w-2/5 bg-gradient-to-br from-green-600 to-indigo-700 text-white p-10">
                                     <h2 className="text-2xl font-bold mb-6">Contact Information</h2>
                                     <div className="space-y-6">
                                         <p><strong>Address:</strong> {contactInfo.address}</p>
@@ -339,7 +341,8 @@ const Contact = () => {
                                               className="w-full mb-4 border p-2 rounded" required/>
 
                                     <button type="submit"
-                                            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+                                            // className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+                                            className="w-full bg-green-600 text-white py-2 rounded hover:bg-blue-700">
                                         Send Message
                                     </button>
                                 </form>

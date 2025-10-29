@@ -190,7 +190,8 @@ const Products = () => {
       setSearchParams({ category: cat });
     }
     if (window.innerWidth < 768) {
-      setIsSidebarOpen(false); // mobile sidebar close after selection
+      // setIsSidebarOpen(false); // mobile sidebar close after selection
+      setIsSidebarOpen(true); // mobile sidebar close after selection
     }
   };
 
@@ -235,7 +236,8 @@ const Products = () => {
                           onClick={() =>
                             handleCategoryClick(cat.title, child.title)
                           }
-                          className="hover:text-orange-600 text-left w-full"
+                          // className="hover:text-orange-600 text-left w-full"
+                          className="hover:text-green-600 text-left w-full"
                         >
                           {child.title}
                         </button>

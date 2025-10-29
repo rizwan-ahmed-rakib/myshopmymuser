@@ -140,7 +140,8 @@ const Navbar = () => {
     const mainCategories = category.filter((cat) => !cat.parent);
 
     return (
-        <nav className="max-w-7xl mx-auto sticky top-0 left-0 w-full bg-orange-400 shadow-xl z-40 font-sans">
+        // <nav className="max-w-7xl mx-auto sticky top-0 left-0 w-full bg-orange-400 shadow-xl z-40 font-sans">
+        <nav className="max-w-7xl mx-auto sticky top-0 left-0 w-full bg-green-400 shadow-xl z-40 font-sans">
             <div className="">
                 <div className="px-4 py-3 flex justify-between items-center">
                     {/* Mobile menu button */}
@@ -168,7 +169,8 @@ const Navbar = () => {
 
                     {/* Menu */}
                     <div
-                        className={`absolute md:static top-full left-0 w-full md:w-auto bg-orange-600 md:bg-transparent shadow-lg md:shadow-none ${
+                        // className={`absolute md:static top-full left-0 w-full md:w-auto bg-orange-600 md:bg-transparent shadow-lg md:shadow-none ${
+                        className={`absolute md:static top-full left-0 w-full md:w-auto bg-green-600 md:bg-transparent shadow-lg md:shadow-none ${
                             isMenuOpen ? "block" : "hidden"
                         } md:block`}
                     >
@@ -255,7 +257,8 @@ const Navbar = () => {
                                                 <li key={sub.id}>
                                                     <Link
                                                         to={`/products?category=${cate.title}&subcategory=${sub.title}`}
-                                                        className="block px-6 py-3 hover:bg-orange-50 text-gray-800 border-b border-gray-100"
+                                                        // className="block px-6 py-3 hover:bg-orange-50 text-gray-800 border-b border-gray-100"
+                                                        className="block px-6 py-3 hover:bg-green-50 text-gray-800 border-b border-gray-100"
                                                         onClick={handleLinkClick}
                                                     >
                                                         {sub.title}

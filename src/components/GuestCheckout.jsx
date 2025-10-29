@@ -8,12 +8,12 @@ const GuestCheckout = () => {
     const [orderSuccess, setOrderSuccess] = useState(false);
     const [formData, setFormData] = useState({
         name: "",
-        email: "",
+        // email: "",
         phone: "",
         address: "",
-        city: "",
-        zipcode: "",
-        country: "",
+        // city: "",
+        // zipcode: "",
+        // country: "",
     });
 
     // 🔹 localStorage থেকে cart load করো
@@ -50,12 +50,12 @@ const GuestCheckout = () => {
             // ✅ form reset করো
             setFormData({
                 name: "",
-                email: "",
+                // email: "",
                 phone: "",
                 address: "",
-                city: "",
-                zipcode: "",
-                country: "",
+                // city: "",
+                // zipcode: "",
+                // country: "",
             });
 
             // ✅ success alert
@@ -136,14 +136,14 @@ const GuestCheckout = () => {
                     className="w-full border rounded p-2"
                     required
                 />
-                <input
-                    type="email"
-                    name="email"
-                    placeholder="Email Address"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="w-full border rounded p-2"
-                />
+                {/*<input*/}
+                {/*    type="email"*/}
+                {/*    name="email"*/}
+                {/*    placeholder="Email Address"*/}
+                {/*    value={formData.email}*/}
+                {/*    onChange={handleChange}*/}
+                {/*    className="w-full border rounded p-2"*/}
+                {/*/>*/}
                 <input
                     type="text"
                     name="phone"
@@ -161,32 +161,33 @@ const GuestCheckout = () => {
                     className="w-full border rounded p-2"
                     required
                 />
-                <div className="grid grid-cols-2 gap-4">
-                    <input
-                        type="text"
-                        name="city"
-                        placeholder="City"
-                        value={formData.city}
-                        onChange={handleChange}
-                        className="w-full border rounded p-2"
-                    />
-                    <input
-                        type="text"
-                        name="zipcode"
-                        placeholder="ZIP Code"
-                        value={formData.zipcode}
-                        onChange={handleChange}
-                        className="w-full border rounded p-2"
-                    />
-                </div>
-                <input
-                    type="text"
-                    name="country"
-                    placeholder="Country"
-                    value={formData.country}
-                    onChange={handleChange}
-                    className="w-full border rounded p-2"
-                />
+                {/*<div className="grid grid-cols-2 gap-4">*/}
+                {/*    <input*/}
+                {/*        type="text"*/}
+                {/*        name="city"*/}
+                {/*        placeholder="City"*/}
+                {/*        value={formData.city}*/}
+                {/*        onChange={handleChange}*/}
+                {/*        className="w-full border rounded p-2"*/}
+                {/*    />*/}
+                {/*    <input*/}
+                {/*        type="text"*/}
+                {/*        name="zipcode"*/}
+                {/*        placeholder="ZIP Code"*/}
+                {/*        value={formData.zipcode}*/}
+                {/*        onChange={handleChange}*/}
+                {/*        className="w-full border rounded p-2"*/}
+                {/*    />*/}
+                {/*</div>*/}
+
+                {/*<input*/}
+                {/*    type="text"*/}
+                {/*    name="country"*/}
+                {/*    placeholder="Country"*/}
+                {/*    value={formData.country}*/}
+                {/*    onChange={handleChange}*/}
+                {/*    className="w-full border rounded p-2"*/}
+                {/*/>*/}
 
                 <button
                     type="submit"

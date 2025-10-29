@@ -15,7 +15,8 @@ const ProductCard = ({product}) => {
             {/* Sale Badge */}
             {product.isOnSale && (
                 <span
-                    className="absolute top-2 left-2 bg-orange-500 text-white text-xs sm:text-sm px-2 py-1 rounded-tr-lg rounded-bl-lg shadow-md">
+                    // className="absolute top-2 left-2 bg-orange-500 text-white text-xs sm:text-sm px-2 py-1 rounded-tr-lg rounded-bl-lg shadow-md">
+                    className="absolute top-2 left-2 bg-green-500 text-white text-xs sm:text-sm px-2 py-1 rounded-tr-lg rounded-bl-lg shadow-md">
           SALE
         </span>
             )}
@@ -35,7 +36,8 @@ const ProductCard = ({product}) => {
             {/* Product Name */}
             <h3
                 onClick={() => navigate(`/products/${product.id}`)}
-                className="mt-3 text-sm sm:text-base font-medium text-gray-800 text-center line-clamp-1 cursor-pointer hover:text-orange-500"
+                // className="mt-3 text-sm sm:text-base font-medium text-gray-800 text-center line-clamp-1 cursor-pointer hover:text-orange-500"
+                className="mt-3 text-sm sm:text-base font-medium text-gray-800 text-center line-clamp-1 cursor-pointer hover:text-green-500"
             >
                 {product.name}
             </h3>
@@ -59,7 +61,8 @@ const ProductCard = ({product}) => {
                     addToCart(product);
                     setIsCartOpen(true);
                 }}
-                className="mt-4 w-full bg-orange-500 text-white text-sm sm:text-base px-4 py-2 rounded-xl hover:bg-orange-600 transition duration-300 shadow-md"
+                // className="mt-4 w-full bg-orange-500 text-white text-sm sm:text-base px-4 py-2 rounded-xl hover:bg-orange-600 transition duration-300 shadow-md"
+                className="mt-4 w-full bg-green-500 text-white text-sm sm:text-base px-4 py-2 rounded-xl hover:bg-green-600 transition duration-300 shadow-md"
             >
                 Quick Add
             </button>

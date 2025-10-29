@@ -389,7 +389,7 @@ const Checkout = () => {
                     <button
                         onClick={() => setShowBillingForm(true)}
                         // className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg"
-                        className="mb-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-blue-600"
+                        className="mb-4 px-4 py-2 bg-green-400 text-white rounded-lg hover:bg-blue-600"
                     >
                         {billingAddress ? "Edit Regular Shipping Address" : "+ Add Regular Shipping Address"}
                     </button>
@@ -510,7 +510,8 @@ const Checkout = () => {
 
                     <button
                         onClick={handlePlaceOrder}
-                        className="mt-6 w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-lg transition"
+                        // className="mt-6 w-full bg-green-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-lg transition"
+                        className="mt-6 w-full bg-green-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-lg transition"
                     >
                         Place Order
                     </button>
@@ -527,7 +528,8 @@ const Checkout = () => {
                         onClick={() => {
                             setIsCartOpen(true);
                         }}
-                        className="mt-4 w-full bg-orange-500 text-white text-sm sm:text-base px-4 py-2 rounded-xl hover:bg-orange-600 transition duration-300 shadow-md"
+                        // className="mt-4 w-full bg-orange-500 text-white text-sm sm:text-base px-4 py-2 rounded-xl hover:bg-orange-600 transition duration-300 shadow-md"
+                        className="mt-4 w-full bg-green-400 text-white text-sm sm:text-base px-4 py-2 rounded-xl hover:bg-green-600 transition duration-300 shadow-md"
                     >
                         Back to Cart
                     </button>

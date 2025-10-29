@@ -34,7 +34,7 @@ const Hero = () => {
                 {sliderBanners.map((banner) => (
 
                     <div>
-                        <img src={banner.image} alt="Hero 1" className="w-full h-[600px] object-cover"/>
+                        <img src={banner.image} alt="Hero 1" className="w-full md:h-[400px] lg:h-[500px] sm:h-[200px] object-cover"/>
                     </div>
                 ))}
             </Slider>

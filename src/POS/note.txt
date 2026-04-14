@@ -1,0 +1,16 @@
+src/
+ ├─ assets/
+ │    ├─ img/
+ │    │    └─ rizwan.jpg
+ │    └─ (other images)
+ └─ pos/
+      └─ hrm/
+          └─ employee.jsx
+এখন employee.jsx থেকে assets/img/rizwan.jpg নিতে চাইলে path হবে:
+
+✅ Option 1: Direct Import (Best Practice)
+employee.jsx এর উপরে:
+
+jsx
+Copy code
+import rizwan from '../../../assets/img/rizwan.jpg';

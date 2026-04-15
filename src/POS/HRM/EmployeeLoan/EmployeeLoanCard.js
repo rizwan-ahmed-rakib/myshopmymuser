@@ -246,7 +246,7 @@ const EmployeeLoanCard = ({advance, onEdit, onDelete}) => {
                             <div className="text-center">
                                 <div className="text-xs text-gray-600 mb-1">Request Date</div>
                                 <div className="text-sm font-medium text-gray-900">
-                                    {formatDate(advance.request_date)}
+                                    {formatDate(advance.loan_date)}
                                 </div>
                             </div>
                             {advance.is_approved && (

@@ -3,6 +3,7 @@ import AsyncSelect from "react-select/async";
 import {posProductAPI} from "../../../context_or_provider/pos/products/productAPI";
 import {posCustomerAPI} from "../../../context_or_provider/pos/Sale/customer/PosCustomerAPI";
 import {posSaleProductAPI} from "../../../context_or_provider/pos/Sale/saleProduct/productSaleAPI";
+import BASE_URL_of_POS from "../../../posConfig";
 
 const emptyItem = {
     product: null,
@@ -10,53 +11,59 @@ const emptyItem = {
     unit_price: 0,
     quantity: 1,
     total_price: 0,
+    unique_serial: "", 
+    is_unique: false,
+    stock: 0,
+    success_msg: "",
+    error_msg: ""
 };
 
 const AddSaleModal = ({isOpen, onClose, onSuccess}) => {
-    /* ---------------- STATE ---------------- */
-    const [invoiceNo, setInvoiceNo] = useState("");
     const [supplier, setSupplier] = useState(null);
     const [items, setItems] = useState([{...emptyItem}]);
-
     const [paidAmount, setPaidAmount] = useState(0);
     const [paymentMethod, setPaymentMethod] = useState("cash");
-
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
 
-    const barcodeRef = useRef(null);
-
-    useEffect(() => {
-        if (isOpen && barcodeRef.current) {
-            barcodeRef.current.focus();
-        }
-    }, [isOpen]);
-
     if (!isOpen) return null;
 
-    /* ---------------- SUPPLIER SEARCH ---------------- */
     const loadSupplierOptions = async (inputValue) => {
         const res = await posCustomerAPI.search(inputValue || "");
         return res.data.map(s => ({
             value: s.id,
             label: s.name,
-            image: s.image,
         }));
     };
 
-    /* ---------------- PRODUCT SEARCH ---------------- */
     const loadProductOptions = async (inputValue) => {
         if (!inputValue) return [];
         const res = await posProductAPI.search(inputValue);
         return res.data.map(p => ({
             value: p.id,
             label: `${p.name} (${p.product_code})`,
-            unit_price: Number(p.purchase_price),
+            unit_price: Number(p.selling_price), 
             product_name: p.name,
+            stock: p.stock
         }));
     };
 
+    const isProductDuplicate = (productId, currentIndex) => {
+        return items.some((item, index) => index !== currentIndex && item.product === productId);
+    };
+
+    const isSerialDuplicate = (serial, currentIndex) => {
+        return items.some((item, index) => index !== currentIndex && item.unique_serial === serial);
+    };
+
     const selectProduct = (option, index) => {
+        if (isProductDuplicate(option.value, index)) {
+            const updated = [...items];
+            updated[index].error_msg = "Product already added in another row!";
+            setItems(updated);
+            return;
+        }
+
         const updated = [...items];
         updated[index] = {
             ...updated[index],
@@ -65,238 +72,281 @@ const AddSaleModal = ({isOpen, onClose, onSuccess}) => {
             unit_price: option.unit_price,
             quantity: 1,
             total_price: option.unit_price,
+            is_unique: false, 
+            unique_serial: "",
+            stock: option.stock,
+            error_msg: "",
+            success_msg: ""
         };
         setItems(updated);
     };
 
-    /* ---------------- BARCODE SCAN ---------------- */
-    const handleBarcodeScan = async (e) => {
-        if (e.key !== "Enter") return;
+    const handleSerialVerify = async (serial, index) => {
+        if (!serial || serial.length < 3) return;
 
-        const code = e.target.value.trim();
-        if (!code) return;
-
-        try {
-            const res = await posProductAPI.search(code);
-            if (res.data.length) {
-                const p = res.data[0];
-                selectProduct(
-                    {
-                        value: p.id,
-                        label: p.name,
-                        product_name: p.name,
-                        unit_price: Number(p.purchase_price),
-                    },
-                    0
-                );
-            }
-        } catch (err) {
-            console.error("Barcode scan failed", err);
+        if (isSerialDuplicate(serial, index)) {
+            const updated = [...items];
+            updated[index].error_msg = "This serial is already scanned!";
+            setItems(updated);
+            return;
         }
+        
+        try {
+            const response = await fetch(`${BASE_URL_of_POS}/api/bar-qr/verify/verify/?serial=${serial}`);
+            const data = await response.json();
 
-        e.target.value = "";
+            const updated = [...items];
+            if (data.valid && data.status_code === 'in_stock') {
+                if (isProductDuplicate(data.product_id, index)) {
+                    updated[index].error_msg = "Product model already added in another row!";
+                    updated[index].success_msg = "";
+                    setItems(updated);
+                    return;
+                }
+
+                updated[index] = {
+                    ...updated[index],
+                    product: data.product_id, 
+                    product_name: data.product.name,
+                    unit_price: Number(data.product.selling_price),
+                    quantity: 1,
+                    total_price: Number(data.product.selling_price),
+                    unique_serial: serial,
+                    is_unique: true,
+                    stock: data.product.stock,
+                    success_msg: "Valid & Ready",
+                    error_msg: ""
+                };
+                setItems(updated);
+            } else {
+                updated[index].is_unique = false;
+                updated[index].error_msg = !data.valid ? "Invalid Serial" : `Status: ${data.status}`;
+                updated[index].success_msg = "";
+                setItems(updated);
+            }
+        } catch (error) {
+            console.error("Verification error:", error);
+        }
     };
 
-    /* ---------------- ITEM HANDLERS ---------------- */
     const updateQty = (index, qty) => {
         const updated = [...items];
-        updated[index].quantity = qty;
-        updated[index].total_price = qty * updated[index].unit_price;
+        if (updated[index].is_unique) return;
+
+        const maxStock = updated[index].stock || 0;
+        let finalQty = qty;
+
+        if (qty > maxStock) {
+            finalQty = maxStock;
+            updated[index].error_msg = `Only ${maxStock} in stock!`;
+        } else if (qty < 1) {
+            finalQty = 1;
+        } else {
+            updated[index].error_msg = "";
+        }
+        
+        updated[index].quantity = finalQty;
+        updated[index].total_price = finalQty * updated[index].unit_price;
         setItems(updated);
     };
 
-    const addRow = () => setItems([...items, {...emptyItem}]);
-    const removeRow = (index) =>
-        setItems(items.filter((_, i) => i !== index));
+    const addRow = () => {
+        // Prevent adding new row if last row is empty
+        const lastItem = items[items.length - 1];
+        if (!lastItem.product && !lastItem.unique_serial) return;
+        setItems([...items, {...emptyItem}]);
+    };
 
-    /* ---------------- CALCULATIONS ---------------- */
+    const removeRow = (index) => {
+        if (items.length === 1) setItems([{...emptyItem}]);
+        else setItems(items.filter((_, i) => i !== index));
+    };
+
     const subtotal = items.reduce((sum, i) => sum + i.total_price, 0);
     const dueAmount = subtotal - paidAmount;
 
-    /* ---------------- SUBMIT ---------------- */
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setErrors({});
+        if (!supplier) return alert("Please select a customer");
+        
+        const validItems = items.filter(i => i.product);
+        if (validItems.length === 0) return alert("Please add at least one product");
 
-        // if (!invoiceNo) {
-        //     setErrors({invoice_no: "Invoice number required"});
-        //     return;
-        // }
+        const payloadItems = [];
+        const processedProducts = {};
 
-        if (!supplier) {
-            setErrors({supplier: "Customer required"});
-            return;
-        }
-
-        if (items.some(i => !i.product)) {
-            setErrors({items: "All product rows must be filled"});
-            return;
-        }
+        validItems.forEach(item => {
+            const key = item.product;
+            if (!processedProducts[key]) {
+                processedProducts[key] = {
+                    product: item.product,
+                    quantity: 0,
+                    unit_price: item.unit_price,
+                    serials: []
+                };
+                payloadItems.push(processedProducts[key]);
+            }
+            processedProducts[key].quantity += item.quantity;
+            if (item.is_unique) processedProducts[key].serials.push(item.unique_serial);
+        });
 
         const payload = {
-            // invoice_no: invoiceNo,
             customer: supplier.value,
             paid_amount: paidAmount,
             payment_method: paymentMethod,
-            items: items.map(i => ({
-                product: i.product,
-                quantity: i.quantity,
-                unit_price: i.unit_price,
-            })),
+            items: payloadItems,
         };
 
         try {
             setLoading(true);
-            console.log(
-                "SALE PAYLOAD 👉",
-                JSON.parse(JSON.stringify(payload))
-            );
-
-            const res = await posSaleProductAPI.create(payload);
-            onSuccess?.(res.data);
+            await posSaleProductAPI.create(payload);
+            onSuccess?.();
             onClose();
         } catch (err) {
-            setErrors(err.response?.data || {});
-            console.error("SALE ERROR 👉", err.response?.data);
-
+            console.error("SALE ERROR:", err.response?.data);
+            alert("Could not save sale. Check stock or try again.");
         } finally {
             setLoading(false);
         }
     };
 
-    /* ---------------- UI ---------------- */
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-            <div className="bg-white w-full max-w-5xl rounded-xl shadow-lg max-h-[90vh] overflow-y-auto">
-
-                {/* Barcode hidden input */}
-                <input
-                    ref={barcodeRef}
-                    onKeyDown={handleBarcodeScan}
-                    className="absolute opacity-0"
-                />
-
-                <div className="p-6 border-b flex justify-between">
-                    <h2 className="text-2xl font-bold">New Sale</h2>
-                    <button onClick={onClose} className="text-xl">×</button>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+            <div className="bg-white w-full max-w-6xl rounded-xl shadow-lg max-h-[95vh] overflow-y-auto">
+                <div className="p-6 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
+                    <h2 className="text-2xl font-bold text-gray-800">Create Sale Invoice</h2>
+                    <button onClick={onClose} type="button" className="text-3xl font-light hover:text-red-500 transition-colors">×</button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
-
-                    {/* Invoice */}
-
-                    {/*<div>*/}
-                    {/*    <label className="font-medium">Invoice No *</label>*/}
-                    {/*    <input*/}
-                    {/*        className="w-full border p-2 rounded"*/}
-                    {/*        value={invoiceNo}*/}
-                    {/*        onChange={(e) => setInvoiceNo(e.target.value)}*/}
-                    {/*    />*/}
-                    {/*    {errors.invoice_no && (*/}
-                    {/*        <p className="text-red-500 text-sm">{errors.invoice_no}</p>*/}
-                    {/*    )}*/}
-                    {/*</div>*/}
-
-                    {/* Customer */}
-                    <div>
-                        <label className="font-medium">Customer *</label>
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                        <label className="block text-sm font-semibold text-blue-900 mb-2">Customer *</label>
                         <AsyncSelect
                             cacheOptions
                             defaultOptions
                             loadOptions={loadSupplierOptions}
                             value={supplier}
                             onChange={setSupplier}
-                            placeholder="Search customer..."
+                            placeholder="Select customer..."
                         />
                     </div>
 
-                    {/* Items */}
-                    <div className="space-y-3">
-                        {items.map((item, index) => (
-                            <div key={index} className="grid grid-cols-12 gap-2">
-                                <div className="col-span-5">
-                                    <AsyncSelect
-                                        loadOptions={loadProductOptions}
-                                        defaultOptions={false}
-                                        onChange={(opt) => selectProduct(opt, index)}
-                                        value={
-                                            item.product
-                                                ? {value: item.product, label: item.product_name}
-                                                : null
-                                        }
-                                        placeholder="Search / scan product"
-                                    />
+                    <div className="space-y-4">
+                        <div className="hidden lg:grid grid-cols-12 gap-4 px-2 text-sm font-bold text-gray-600">
+                            <div className="col-span-3">Unique Serial Scan</div>
+                            <div className="col-span-3">Product Model</div>
+                            <div className="col-span-2">Unit Price</div>
+                            <div className="col-span-1">Qty</div>
+                            <div className="col-span-2">Total</div>
+                            <div className="col-span-1">Action</div>
+                        </div>
+
+                        <div className="space-y-3">
+                            {items.map((item, index) => (
+                                <div key={index} className="lg:grid lg:grid-cols-12 gap-4 bg-white p-3 border rounded-lg shadow-sm">
+                                    <div className="col-span-3">
+                                        <input
+                                            type="text"
+                                            placeholder="Scan/Paste Serial..."
+                                            className={`w-full border p-2 rounded text-sm font-mono outline-none ${item.error_msg ? 'border-red-500' : 'focus:border-blue-500'}`}
+                                            value={item.unique_serial}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                const updated = [...items];
+                                                updated[index].unique_serial = val;
+                                                setItems(updated);
+                                                if (val.length >= 3) handleSerialVerify(val, index);
+                                            }}
+                                        />
+                                        {item.error_msg && <p className="text-red-500 text-[10px] mt-1 font-semibold">{item.error_msg}</p>}
+                                        {item.success_msg && <p className="text-green-600 text-[10px] mt-1 font-semibold">{item.success_msg}</p>}
+                                    </div>
+
+                                    <div className="col-span-3">
+                                        <AsyncSelect
+                                            loadOptions={loadProductOptions}
+                                            defaultOptions={false}
+                                            onChange={(opt) => selectProduct(opt, index)}
+                                            value={item.product ? {value: item.product, label: item.product_name} : null}
+                                            placeholder="Search product..."
+                                            isDisabled={item.is_unique}
+                                        />
+                                        {item.product && !item.is_unique && <p className="text-blue-500 text-[10px] mt-1">Available Stock: {item.stock}</p>}
+                                    </div>
+
+                                    <div className="col-span-2">
+                                        <input className="w-full border p-2 rounded bg-gray-50 text-right font-mono" value={item.unit_price} disabled/>
+                                    </div>
+
+                                    <div className="col-span-1">
+                                        <input
+                                            className={`w-full border p-2 rounded text-center font-bold ${item.is_unique ? 'bg-yellow-50 cursor-not-allowed' : 'bg-white'}`}
+                                            type="number"
+                                            value={item.quantity}
+                                            min="1"
+                                            disabled={item.is_unique}
+                                            onKeyDown={(e) => {
+                                                // Prevent typing if unique
+                                                if (item.is_unique) e.preventDefault();
+                                            }}
+                                            onChange={(e) => updateQty(index, Number(e.target.value))}
+                                        />
+                                    </div>
+
+                                    <div className="col-span-2">
+                                        <input className="w-full border p-2 rounded bg-gray-50 text-right font-bold font-mono text-blue-700" value={item.total_price.toFixed(2)} disabled/>
+                                    </div>
+
+                                    <div className="col-span-1 flex justify-center">
+                                        <button type="button" onClick={() => removeRow(index)} className="text-red-400 hover:text-red-600 p-2 text-2xl">×</button>
+                                    </div>
                                 </div>
+                            ))}
+                            <button type="button" onClick={addRow} className="flex items-center gap-2 text-blue-600 font-bold px-4 py-2 border-2 border-dashed border-blue-200 rounded-lg hover:bg-blue-50 transition-colors w-full justify-center">
+                                + Add Another Product
+                            </button>
+                        </div>
+                    </div>
 
-                                <input className="col-span-2 border p-2 rounded" value={item.unit_price} disabled/>
-                                <input
-                                    className="col-span-2 border p-2 rounded"
-                                    type="number"
-                                    value={item.quantity}
-                                    onChange={(e) => updateQty(index, Number(e.target.value))}
-                                />
-                                <input
-                                    className="col-span-2 border p-2 rounded bg-gray-100"
-                                    value={item.total_price}
-                                    disabled
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => removeRow(index)}
-                                    className="col-span-1 text-red-600"
-                                >
-                                    ×
-                                </button>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-6 border-t">
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">Payment Method</label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {['cash', 'bcash', 'bank'].map(method => (
+                                    <button
+                                        key={method}
+                                        type="button"
+                                        onClick={() => setPaymentMethod(method)}
+                                        className={`py-2 rounded capitalize text-sm font-semibold transition-all ${paymentMethod === method ? 'bg-blue-600 text-white shadow-md' : 'bg-white border text-gray-600 hover:bg-gray-100'}`}
+                                    >
+                                        {method === 'bcash' ? 'bKash' : method}
+                                    </button>
+                                ))}
                             </div>
-                        ))}
-                        <button type="button" onClick={addRow} className="text-blue-600">
-                            + Add Item
-                        </button>
-                    </div>
+                        </div>
 
-                    {/* Payment */}
-                    <div className="grid grid-cols-3 gap-4">
-                        <div>
-                            <label>Subtotal</label>
-                            <input className="w-full border p-2 bg-gray-100" value={subtotal} disabled/>
-                        </div>
-                        <div>
-                            <label>Paid</label>
-                            <input
-                                className="w-full border p-2"
-                                type="number"
-                                value={paidAmount}
-                                onChange={(e) => setPaidAmount(Number(e.target.value))}
-                            />
-                        </div>
-                        <div>
-                            <label>Due</label>
-                            <input className="w-full border p-2 bg-gray-100" value={dueAmount} disabled/>
+                        <div className="bg-gray-800 text-white p-6 rounded-xl space-y-3 shadow-xl">
+                            <div className="flex justify-between items-center text-lg">
+                                <span className="text-gray-400 font-medium">Subtotal</span>
+                                <span className="font-mono text-xl font-bold">৳ {subtotal.toFixed(2)}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-gray-400 font-medium">Paid Amount</span>
+                                <input className="bg-gray-700 border border-gray-600 rounded px-3 py-1 text-right w-32 outline-none font-bold text-white focus:border-blue-400" type="number" value={paidAmount} onChange={(e) => setPaidAmount(Number(e.target.value))}/>
+                            </div>
+                            <div className="flex justify-between items-center pt-3 border-t border-gray-700">
+                                <span className="text-xl font-bold text-gray-300">Total Due</span>
+                                <span className={`text-2xl font-bold font-mono ${dueAmount > 0 ? 'text-red-400' : 'text-green-400'}`}>৳ {dueAmount.toFixed(2)}</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div>
-                        <label>Payment Method</label>
-                        <select
-                            className="w-full border p-2 rounded"
-                            value={paymentMethod}
-                            onChange={(e) => setPaymentMethod(e.target.value)}
-                        >
-                            <option value="cash">Cash</option>
-                            <option value="bcash">bKash</option>
-                            <option value="bank">Bank</option>
-                        </select>
-                    </div>
-
-                    <div className="flex justify-end gap-3">
-                        <button type="button" onClick={onClose} className="border px-6 py-2 rounded">
-                            Cancel
-                        </button>
-                        <button disabled={loading} className="bg-blue-600 text-white px-6 py-2 rounded">
-                            {loading ? "Saving..." : "Save Sale"}
+                    <div className="flex justify-end gap-4 pt-4">
+                        <button type="button" onClick={onClose} className="px-8 py-3 border border-gray-300 rounded-lg text-gray-700 font-bold hover:bg-gray-50">Discard</button>
+                        <button disabled={loading} className="px-12 py-3 bg-blue-600 text-white rounded-lg font-black shadow-lg hover:bg-blue-700 disabled:bg-blue-300 transition-all uppercase tracking-wider">
+                            {loading ? "Saving Invoice..." : "Confirm & Save"}
                         </button>
                     </div>
-
                 </form>
             </div>
         </div>
@@ -304,4 +354,3 @@ const AddSaleModal = ({isOpen, onClose, onSuccess}) => {
 };
 
 export default AddSaleModal;
-

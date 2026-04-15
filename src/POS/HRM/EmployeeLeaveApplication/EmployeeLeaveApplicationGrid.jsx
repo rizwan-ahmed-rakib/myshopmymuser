@@ -555,3 +555,280 @@ const EmployeeLeaveApplicationGrid = () => {
 };
 
 export default EmployeeLeaveApplicationGrid;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// import React, { useState, useEffect, useMemo, useCallback } from 'react';
+// import EmployeeLeaveApplicationHeader from "./EmployeeLeaveApplicationHeader";
+// import EmployeeStats from "./EmployeeStats";
+// import EmployeeLeaveApplicationSearchFilter from "./EmployeeLeaveApplicationSearchFilter";
+// import EmployeeLeaveApplicationCard from "./EmployeeLeaveApplicationCard";
+// import EmployeeLeaveApplicationList from "./EmployeeLeaveApplicationList";
+// import AddEmployeeLeaveApplicationModal from "./AddEmployeeLeaveApplicationModal";
+// import SuccessModal from "./SuccessModal";
+// import LoadingSpinner from "./LoadingSpinner";
+// import { leaveApplicationAPI } from "../../../context_or_provider/pos/EmployeeLeaveApplicaations/leave_applicationAPI";
+// import { useLeaveApplications } from "../../../context_or_provider/pos/EmployeeLeaveApplicaations/leave_applications_provider";
+
+// const EmployeeLeaveApplicationGrid = () => {
+
+//     const { leaveApplication, setLeaveApplication } = useLeaveApplications();
+
+//     const [viewType, setViewType] = useState("grid");
+//     const [isAddOpen, setIsAddOpen] = useState(false);
+//     const [successData, setSuccessData] = useState(null);
+//     const [successType, setSuccessType] = useState('create');
+//     const [loading, setLoading] = useState(true);
+
+//     const [stats, setStats] = useState({
+//         total: 0,
+//         approved: 0,
+//         pending: 0,
+//         totalAmount: 0
+//     });
+
+//     const [searchQuery, setSearchQuery] = useState("");
+
+//     const [filters, setFilters] = useState({
+//         designation: "all",
+//         status: "all",
+//         dateRange: "all",
+//         sortBy: "name_asc",
+//         customDateRange: null,
+//         amountRange: null
+//     });
+
+//     // ================= FETCH =================
+//     useEffect(() => {
+//         fetchData();
+//     }, []);
+
+//     const fetchData = async (showLoading = true) => {
+//         if (showLoading) setLoading(true);
+//         try {
+//             const res = await leaveApplicationAPI.getAll();
+//             setLeaveApplication(res.data);
+//             calculateStats(res.data);
+//         } catch (err) {
+//             console.error(err);
+//         } finally {
+//             if (showLoading) setLoading(false);
+//         }
+//     };
+
+//     const calculateStats = (data) => {
+//         const total = data.length;
+//         const approved = data.filter(d => d.status === "approved").length;
+//         const pending = data.filter(d => d.status !== "approved").length;
+//         const totalAmount = data.reduce((sum, d) => sum + (parseFloat(d.amount) || 0), 0);
+
+//         setStats({ total, approved, pending, totalAmount });
+//     };
+
+//     // ================= SEARCH =================
+//     const handleSearch = useCallback((query) => {
+//         setSearchQuery(query);
+//     }, []);
+
+//     const handleFilter = useCallback((newFilters) => {
+//         setFilters(prev => ({ ...prev, ...newFilters }));
+//     }, []);
+
+//     // ================= FILTER =================
+//     const filteredData = useMemo(() => {
+//         if (!leaveApplication) return [];
+
+//         let result = [...leaveApplication];
+
+//         // search
+//         if (searchQuery.trim()) {
+//             const q = searchQuery.toLowerCase();
+//             result = result.filter(item =>
+//                 item.user_name?.toLowerCase().includes(q) ||
+//                 item.reason?.toLowerCase().includes(q) ||
+//                 item.leave_type?.toLowerCase().includes(q)
+//             );
+//         }
+
+//         // status
+//         if (filters.status !== "all") {
+//             result = result.filter(item => item.status === filters.status);
+//         }
+
+//         // designation
+//         if (filters.designation !== "all") {
+//             result = result.filter(item =>
+//                 item.user_designation?.toLowerCase() === filters.designation.toLowerCase()
+//             );
+//         }
+
+//         // sort
+//         result.sort((a, b) => {
+//             switch (filters.sortBy) {
+//                 case "date_desc":
+//                     return new Date(b.applied_on) - new Date(a.applied_on);
+//                 case "date_asc":
+//                     return new Date(a.applied_on) - new Date(b.applied_on);
+//                 case "name_asc":
+//                     return (a.user_name || "").localeCompare(b.user_name || "");
+//                 default:
+//                     return 0;
+//             }
+//         });
+
+//         return result;
+//     }, [leaveApplication, searchQuery, filters]);
+
+//     // ================= ADD =================
+//     const handleEmployeeAdded = (newData) => {
+//         setLeaveApplication(prev => [...prev, newData]);
+//         setSuccessType("create");
+//         setSuccessData(newData);
+//         setIsAddOpen(false);
+//         fetchData(false);
+//     };
+
+//     const handleEmployeeUpdated = () => {
+//         fetchData(false);
+//     };
+
+//     // ================= STATS UI =================
+//     const displayStats = [
+//         {
+//             title: "Total",
+//             count: stats.total,
+//             bgColor: "bg-purple-600",
+//             icon: "💼"
+//         },
+//         {
+//             title: "Approved",
+//             count: stats.approved,
+//             bgColor: "bg-green-500",
+//             icon: "✅"
+//         },
+//         {
+//             title: "Pending",
+//             count: stats.pending,
+//             bgColor: "bg-yellow-500",
+//             icon: "⏳"
+//         },
+//         {
+//             title: "Total Amount",
+//             count: `৳ ${stats.totalAmount}`,
+//             bgColor: "bg-blue-500",
+//             icon: "💰"
+//         }
+//     ];
+
+//     // ================= LOADING =================
+//     if (loading) {
+//         return (
+//             <div className="flex items-center justify-center min-h-screen">
+//                 <LoadingSpinner />
+//             </div>
+//         );
+//     }
+
+//     return (
+//         <div className="p-4">
+
+//             <EmployeeLeaveApplicationHeader
+//                 viewType={viewType}
+//                 setViewType={setViewType}
+//                 onAddClick={() => setIsAddOpen(true)}
+//             />
+
+//             <EmployeeStats stats={displayStats} />
+
+//             <EmployeeLeaveApplicationSearchFilter
+//                 onSearch={handleSearch}
+//                 onFilter={handleFilter}
+//             />
+
+//             <div className="bg-white p-4 rounded-xl shadow">
+
+//                 <div className="flex justify-between mb-4">
+//                     <h2 className="font-semibold text-lg">
+//                         {viewType === "grid" ? "Grid View" : "List View"}
+//                     </h2>
+
+//                     <span className="text-sm text-gray-500">
+//                         {filteredData.length} items
+//                     </span>
+//                 </div>
+
+//                 {viewType === "grid" ? (
+//                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+//                         {filteredData.map(item => (
+//                             <EmployeeLeaveApplicationCard
+//                                 key={item.id}
+//                                 advance={item}
+//                                 onEdit={handleEmployeeUpdated}
+//                                 onDelete={handleEmployeeUpdated}
+//                             />
+//                         ))}
+
+//                     </div>
+//                 ) : (
+//                     <EmployeeLeaveApplicationList
+//                         advance={filteredData}
+//                         onEdit={handleEmployeeUpdated}
+//                     />
+//                 )}
+
+//                 {filteredData.length === 0 && (
+//                     <div className="text-center py-10 text-gray-500">
+//                         No data found
+//                     </div>
+//                 )}
+
+//             </div>
+
+//             <AddEmployeeLeaveApplicationModal
+//                 isOpen={isAddOpen}
+//                 onClose={() => setIsAddOpen(false)}
+//                 onSuccess={handleEmployeeAdded}
+//             />
+
+//             <SuccessModal
+//                 isOpen={!!successData}
+//                 employee={successData}
+//                 type={successType}
+//                 onClose={() => setSuccessData(null)}
+//             />
+
+//         </div>
+//     );
+// };
+
+// export default EmployeeLeaveApplicationGrid;

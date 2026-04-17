@@ -1,6 +1,6 @@
 // import React from "react";
 //
-// const ProductStats = ({ stats }) => (
+// const WarrantyPeriodStats = ({ stats }) => (
 //             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
 //                 {stats.map((stat, index) => (
 //                     <div key={index} className={`${stat.bgColor} ${stat.textColor} rounded-lg shadow-sm border-0`}>
@@ -20,7 +20,7 @@
 //             </div>
 // );
 //
-// export default ProductStats;
+// export default WarrantyPeriodStats;
 
 
 //////////////////////////////////////////

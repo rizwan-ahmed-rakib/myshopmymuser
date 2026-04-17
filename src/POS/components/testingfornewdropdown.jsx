@@ -171,7 +171,7 @@ export default AddNewDropdown;
 
 // import React from "react";
 // import { Link } from "react-router-dom";
-// import AddProductModal from "../Inventory/ProductList/AddProductModal";
+// import AddProductModal from "../Inventory/WarrantyPeriodList/AddProductModal";
 // import AddSizeModal from "../Inventory/SizeList/AddSizeModal";
 // import AddBrandModal from "../Inventory/BrandList/AddBrandModal";
 // import AddCategoryModal from "../Inventory/CategoryList/AddCategoryModal";

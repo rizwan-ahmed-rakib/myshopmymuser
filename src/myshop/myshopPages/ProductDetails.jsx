@@ -25,7 +25,7 @@
 //     if (!product) {
 //         return (
 //             <div className="container mx-auto py-20 px-4">
-//                 <p className="text-center text-lg">ProductList not found or loading...</p>
+//                 <p className="text-center text-lg">WarrantyPeriodList not found or loading...</p>
 //             </div>
 //         );
 //     }

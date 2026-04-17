@@ -23,6 +23,8 @@ import {LeaveApplicationProvider} from "./pos/EmployeeLeaveApplicaations/leave_a
 import {EmployeeLoanProvider} from "./pos/EmployeeLoan/employee_loan_provider";
 import {SalaryPaySlipProvider} from "./pos/EmployeeSalaryPayslip/salary_payslip_provider";
 import {EmployeeAttendanceProvider} from "./pos/EmployeeAttendance/employee_attendance_provider";
+import {PosUniqueProductInstanceProvider} from "./pos/UniqueProductInstance/UniqueProductInstanceProvider";
+import {PosWarrantyPeriodProvider} from "./pos/warrantyPeriod/WarrantyPeriodProvider";
 // import {ContactWithMeProvider} from './ContactContext';
 // import {ServiceProvider} from './ServiceContext';
 // import {ImageGalleryProvider} from './GalleryContext';
@@ -57,11 +59,13 @@ const RootProvider = ({children}) => {
                                                                                             <EmployeeLoanProvider>
                                                                                                 <SalaryPaySlipProvider>
                                                                                                     <EmployeeAttendanceProvider>
-                                                                                                    {/*<QRcodeProvider>*/}
+                                                                                                    <PosUniqueProductInstanceProvider>
+                                                                                                    <PosWarrantyPeriodProvider>
                                                                                                     {/*<QRcodeProvider>*/}
                                                                                                     {children}
                                                                                                     {/*</QRcodeProvider>*/}
-                                                                                                    {/*</QRcodeProvider>*/}
+                                                                                                    </PosWarrantyPeriodProvider>
+                                                                                                    </PosUniqueProductInstanceProvider>
                                                                                                     </EmployeeAttendanceProvider>
                                                                                                 </SalaryPaySlipProvider>
                                                                                             </EmployeeLoanProvider>

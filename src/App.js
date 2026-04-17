@@ -7,7 +7,7 @@
 // import Refund from "./myshopcomponents/Refund";
 // import Return from "./myshopcomponents/Return";
 // // import Products from "./myshopPages/Products";
-// import ProductList from "./myshopPages/ProductList";
+// import WarrantyPeriodList from "./myshopPages/WarrantyPeriodList";
 // import ProductDetail from "./myshopPages/ProductDetail";
 // import RootProvider from "./context_or_provider/RootProvider";
 // import {AuthProvider} from "./context_or_provider/AuthContext";
@@ -48,19 +48,19 @@
 //                         {/*        </ProtectedRoute>*/}
 //                         {/*    }*/}
 //                         {/*/>*/}
-//                         <Route path="/products" element={<ProductList/>}/>
+//                         <Route path="/products" element={<WarrantyPeriodList/>}/>
 //                         <Route path="/products/:id" element={<ProductDetail/>}/>
 //
-//                         <Route path="/products?category=fish&subcategory=sea" element={<ProductList/>}/>
-//                         <Route path="//products?category=fish&subcategory=river" element={<ProductList/>}/>
-//                         <Route path="/products?category=mangsho&subcategory=goru" element={<ProductList/>}/>
-//                         <Route path="/products?category=mangsho&subcategory=chagol" element={<ProductList/>}/>
-//                         <Route path="/products?category=mangsho&subcategory=murgi" element={<ProductList/>}/>
+//                         <Route path="/products?category=fish&subcategory=sea" element={<WarrantyPeriodList/>}/>
+//                         <Route path="//products?category=fish&subcategory=river" element={<WarrantyPeriodList/>}/>
+//                         <Route path="/products?category=mangsho&subcategory=goru" element={<WarrantyPeriodList/>}/>
+//                         <Route path="/products?category=mangsho&subcategory=chagol" element={<WarrantyPeriodList/>}/>
+//                         <Route path="/products?category=mangsho&subcategory=murgi" element={<WarrantyPeriodList/>}/>
 //
-//                         <Route path="/products?category=electronics&subcategory=blender" element={<ProductList/>}/>
-//                         <Route path="/products?category=electronics&subcategory=rice-cooker" element={<ProductList/>}/>
-//                         <Route path="/products?category=electronics&subcategory=fridge" element={<ProductList/>}/>
-//                         <Route path="/products?category=electronics&subcategory=glider" element={<ProductList/>}/>
+//                         <Route path="/products?category=electronics&subcategory=blender" element={<WarrantyPeriodList/>}/>
+//                         <Route path="/products?category=electronics&subcategory=rice-cooker" element={<WarrantyPeriodList/>}/>
+//                         <Route path="/products?category=electronics&subcategory=fridge" element={<WarrantyPeriodList/>}/>
+//                         <Route path="/products?category=electronics&subcategory=glider" element={<WarrantyPeriodList/>}/>
 //
 //
 //                         <Route path="/about" element={<About/>}/>

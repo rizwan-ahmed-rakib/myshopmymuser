@@ -76,11 +76,11 @@ graph TD;
 এখানে "Product" মডিউল তৈরির উদাহরণ দেওয়া হলো।
 
 **ধাপ ১-২: ফাইল এবং ফোল্ডার কপি ও নাম পরিবর্তন**
-1.  `src/POS/HRM/EmployeeSalaryAdvanceList` ফোল্ডারটি কপি করে `src/POS/Inventory/`-এর ভেতরে পেস্ট করুন এবং এর নাম দিন **`ProductList`**।
-2.  `ProductList` ফোল্ডারের ভেতরের ফাইলগুলোর নামে `Employee`-এর জায়গায় `Product` লিখুন (যেমন: `EmployeeSalaryAdvanceGrid.jsx` → `ProductGrid.jsx`)।
+1.  `src/POS/HRM/EmployeeSalaryAdvanceList` ফোল্ডারটি কপি করে `src/POS/Inventory/`-এর ভেতরে পেস্ট করুন এবং এর নাম দিন **`WarrantyPeriodList`**।
+2.  `WarrantyPeriodList` ফোল্ডারের ভেতরের ফাইলগুলোর নামে `Employee`-এর জায়গায় `Product` লিখুন (যেমন: `EmployeeSalaryAdvanceGrid.jsx` → `ProductGrid.jsx`)।
 
 **ধাপ ৩: কোডের ভেতরে Find & Replace**
-আপনার কোড এডিটরে `ProductList` ফোল্ডারের ওপর রাইট-ক্লিক করে "Replace in Files" অপশন ব্যবহার করুন এবং নিচের পরিবর্তনগুলো করুন:
+আপনার কোড এডিটরে `WarrantyPeriodList` ফোল্ডারের ওপর রাইট-ক্লিক করে "Replace in Files" অপশন ব্যবহার করুন এবং নিচের পরিবর্তনগুলো করুন:
 
 | খুঁজুন (Find)         | প্রতিস্থাপন করুন (Replace with) |
 | :-------------------- | :------------------------------ |

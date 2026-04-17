@@ -65,17 +65,18 @@ const AddSaleModal = ({isOpen, onClose, onSuccess}) => {
         }
 
         const updated = [...items];
+        const stock = option.stock || 0;
         updated[index] = {
             ...updated[index],
             product: option.value,
             product_name: option.product_name,
             unit_price: option.unit_price,
-            quantity: 1,
-            total_price: option.unit_price,
+            quantity: stock > 0 ? 1 : 0,
+            total_price: stock > 0 ? option.unit_price : 0,
             is_unique: false, 
             unique_serial: "",
-            stock: option.stock,
-            error_msg: "",
+            stock: stock,
+            error_msg: stock > 0 ? "" : "Product is out of stock!",
             success_msg: ""
         };
         setItems(updated);
@@ -120,7 +121,7 @@ const AddSaleModal = ({isOpen, onClose, onSuccess}) => {
                 setItems(updated);
             } else {
                 updated[index].is_unique = false;
-                updated[index].error_msg = !data.valid ? "Invalid Serial" : `Status: ${data.status}`;
+                updated[index].error_msg = !data.valid ? "Invalid Serial" : `Status: ${data.status || 'Not in stock'}`;
                 updated[index].success_msg = "";
                 setItems(updated);
             }
@@ -136,11 +137,15 @@ const AddSaleModal = ({isOpen, onClose, onSuccess}) => {
         const maxStock = updated[index].stock || 0;
         let finalQty = qty;
 
-        if (qty > maxStock) {
+        if (maxStock <= 0) {
+            finalQty = 0;
+            updated[index].error_msg = "Out of stock!";
+        } else if (qty > maxStock) {
             finalQty = maxStock;
             updated[index].error_msg = `Only ${maxStock} in stock!`;
         } else if (qty < 1) {
             finalQty = 1;
+            updated[index].error_msg = "";
         } else {
             updated[index].error_msg = "";
         }
@@ -172,6 +177,19 @@ const AddSaleModal = ({isOpen, onClose, onSuccess}) => {
         const validItems = items.filter(i => i.product);
         if (validItems.length === 0) return alert("Please add at least one product");
 
+        // Stock check
+        for (const item of validItems) {
+            if (item.stock <= 0) {
+                return alert(`Product "${item.product_name}" is out of stock!`);
+            }
+            if (item.quantity > item.stock) {
+                return alert(`Product "${item.product_name}" exceeds available stock (${item.stock})!`);
+            }
+            if (item.quantity <= 0) {
+                return alert(`Product "${item.product_name}" must have a quantity of at least 1!`);
+            }
+        }
+
         const payloadItems = [];
         const processedProducts = {};
 
@@ -199,12 +217,12 @@ const AddSaleModal = ({isOpen, onClose, onSuccess}) => {
 
         try {
             setLoading(true);
-            await posSaleProductAPI.create(payload);
-            onSuccess?.();
+            const response = await posSaleProductAPI.create(payload);
+            onSuccess?.(response.data);
             onClose();
         } catch (err) {
             console.error("SALE ERROR:", err.response?.data);
-            alert("Could not save sale. Check stock or try again.");
+            alert(err.response?.data?.error || "Could not save sale. Check stock or try again.");
         } finally {
             setLoading(false);
         }

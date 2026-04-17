@@ -15,7 +15,7 @@ const ProductCard = ({ product, setIsCartOpen }) => {
         </span>
       )}
 
-      {/* ProductList image */}
+      {/* WarrantyPeriodList image */}
       <div
         className="flex items-center justify-center cursor-pointer"
         onClick={() => navigate(`/products/${product.id}`)}
@@ -27,7 +27,7 @@ const ProductCard = ({ product, setIsCartOpen }) => {
         />
       </div>
 
-      {/* ProductList name */}
+      {/* WarrantyPeriodList name */}
       <h3
         onClick={() => navigate(`/products/${product.id}`)}
         className="mt-3 text-sm sm:text-base font-medium text-gray-800 text-center line-clamp-1 cursor-pointer hover:text-green-500"
@@ -89,7 +89,7 @@ export default ProductCard;
 //         </span>
 //             )}
 //
-//             {/* ProductList Image */}
+//             {/* WarrantyPeriodList Image */}
 //             <div
 //                 className="flex items-center justify-center cursor-pointer"
 //                 onClick={() => navigate(`/products/${product.id}`)}
@@ -101,7 +101,7 @@ export default ProductCard;
 //                 />
 //             </div>
 //
-//             {/* ProductList Name */}
+//             {/* WarrantyPeriodList Name */}
 //             <h3
 //                 onClick={() => navigate(`/products/${product.id}`)}
 //                 // className="mt-3 text-sm sm:text-base font-medium text-gray-800 text-center line-clamp-1 cursor-pointer hover:text-orange-500"
@@ -187,7 +187,7 @@ export default ProductCard;
 //         </span>
 //       )}
 //
-//       {/* ProductList Image */}
+//       {/* WarrantyPeriodList Image */}
 //       <div
 //         className="flex items-center justify-center cursor-pointer"
 //         onClick={() => navigate(`/products/${product.id}`)}
@@ -199,7 +199,7 @@ export default ProductCard;
 //         />
 //       </div>
 //
-//       {/* ProductList Name */}
+//       {/* WarrantyPeriodList Name */}
 //       <h3
 //         onClick={() => navigate(`/products/${product.id}`)}
 //         className="mt-3 text-sm sm:text-base font-medium text-gray-800 text-center line-clamp-1 cursor-pointer hover:text-orange-500"

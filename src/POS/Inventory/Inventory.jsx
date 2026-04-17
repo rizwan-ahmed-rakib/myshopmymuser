@@ -12,6 +12,10 @@ import SizeGrid from "./SizeList/SizeGrid";
 import DamageProductGrid from "./DamageProductList/DamageProductGrid"
 import DamageStockGrid from "./DamageProductList/DamageStockGrid";
 import BarcodeQRList from './BarcodeQRList';
+import ProducLowstocktGrid from "./LowStock/ProducLowstocktGrid";
+import ExpiredProducts from "./Expeired products/ExpiredProducts";
+import Warranties from "./Warranties/Warranties";
+import WarrantyPeriodsGrid from "./WarrantyPeriod/WarrantyPeriodsGrid";
 
 const Inventory = () => {
     const [activeSection, setActiveSection] = useState('product_list');
@@ -24,6 +28,7 @@ const Inventory = () => {
         {id: 'Brands', name: 'Brands', icon: '👥'},
         {id: 'Units', name: 'Units', icon: '👥'},
         {id: 'Size', name: 'Size', icon: '👥'},
+        {id: 'WarrantyPeriods', name: 'Warranty', icon: '👥'},
         {id: 'Print_Barcode', name: 'Print Barcode', icon: '👥'},
         {id: 'Print_QRrcode', name: 'Print QR Code', icon: '👥'},
         {id: 'Expired_products', name: 'Expired Products', icon: '👥'},
@@ -48,6 +53,8 @@ const Inventory = () => {
                 return <SizeGrid/>;
             case 'Brands':
                 return <BrandsGrid/>;
+            case 'WarrantyPeriods':
+                return <WarrantyPeriodsGrid/>;
             case 'create_product':
                 return <AddPurchase/>;
             case 'suppliers':
@@ -56,10 +63,16 @@ const Inventory = () => {
                 return <DamageProductGrid/>;
             case 'DamageStock':
                 return <DamageStockGrid/>;
+            case 'Low_stocks':
+                return <ProducLowstocktGrid/>;
             case 'Print_Barcode':
                 return <BarcodeQRList type="barcode"/>;
             case 'Print_QRrcode':
                 return <BarcodeQRList type="qr"/>;
+            case 'Expired_products':
+                return <ExpiredProducts type="expire"/>;
+            case 'Warranties':
+                return <Warranties type="warranties"/>;
             default:
                 return <PurchaseList/>;
         }

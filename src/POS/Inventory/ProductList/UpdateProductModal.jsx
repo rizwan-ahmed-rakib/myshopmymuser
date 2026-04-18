@@ -1,27 +1,75 @@
 import React, { useState, useEffect } from "react";
-// import { posProductAPI } from "../../../context_or_provider/pos/products/updateProduct"; // Assuming this is your product API service
+import Select from "react-select";
+import { Plus, X, Loader2 } from "lucide-react";
 import { posProductAPI } from "../../../context_or_provider/pos/products/productAPI";
+import { posCategoryAPI } from "../../../context_or_provider/pos/categories/categoryAPI";
+import { posSubCategoryAPI } from "../../../context_or_provider/pos/subcategories/subCategoryApi";
+import { posBrandAPI } from "../../../context_or_provider/pos/brands/brandAPI";
+import { posUnitAPI } from "../../../context_or_provider/pos/units/unitAPI";
+import { posSizeAPI } from "../../../context_or_provider/pos/sizes/sizeAPI";
+import { posWarrantyPeriodAPI } from "../../../context_or_provider/pos/warrantyPeriod/WarrantyPeriodAPI";
 
 const UpdateProductModal = ({ isOpen, onClose, onSuccess, productData }) => {
-
     const initialFormState = {
         name: "",
         product_code: "",
         purchase_price: "",
         selling_price: "",
         stock: "",
+        alarm_when_stock_is_lessthanOrEqualto: 0,
         category: "",
         sub_category: "",
         brand: "",
         size: "",
         unit: "",
+        warranty_status: false,
+        warranty_period: null,
+        has_expiry: false,
     };
 
     const [form, setForm] = useState(initialFormState);
-    const [imageFile, setImageFile] = useState(null);
     const [previewImage, setPreviewImage] = useState(null);
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState({});
+
+    // Options for dropdowns
+    const [categories, setCategories] = useState([]);
+    const [subCategories, setSubCategories] = useState([]);
+    const [brands, setBrands] = useState([]);
+    const [units, setUnits] = useState([]);
+    const [sizes, setSizes] = useState([]);
+    const [warrantyPeriods, setWarrantyPeriods] = useState([]);
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchOptions();
+        }
+    }, [isOpen]);
+
+    const fetchOptions = async () => {
+        try {
+            const [catRes, subCatRes, brandRes, unitRes, sizeRes, warrantyRes] = await Promise.all([
+                posCategoryAPI.getAll(),
+                posSubCategoryAPI.getAll(),
+                posBrandAPI.getAll(),
+                posUnitAPI.getAll(),
+                posSizeAPI.getAll(),
+                posWarrantyPeriodAPI.getAll()
+            ]);
+
+            setCategories(catRes.data.map(item => ({ value: item.id, label: item.title })));
+            setSubCategories(subCatRes.data.map(item => ({ value: item.id, label: item.title, categoryId: item.category })));
+            setBrands(brandRes.data.map(item => ({ value: item.id, label: item.title })));
+            setUnits(unitRes.data.map(item => ({ value: item.id, label: item.title })));
+            setSizes(sizeRes.data.map(item => ({ value: item.id, label: item.title })));
+            setWarrantyPeriods(warrantyRes.data.map(item => ({
+                value: item.id,
+                label: `${item.name} (${item.duration} ${item.period_type}${item.duration > 1 ? 's' : ''})`
+            })));
+        } catch (err) {
+            console.error("Error fetching options:", err);
+        }
+    };
 
     useEffect(() => {
         if (productData && isOpen) {
@@ -31,20 +79,23 @@ const UpdateProductModal = ({ isOpen, onClose, onSuccess, productData }) => {
                 purchase_price: productData.purchase_price || "",
                 selling_price: productData.selling_price || "",
                 stock: productData.stock || "",
+                alarm_when_stock_is_lessthanOrEqualto: productData.alarm_when_stock_is_lessthanOrEqualto || 0,
                 category: productData.category || "",
                 sub_category: productData.sub_category || "",
                 brand: productData.brand || "",
                 size: productData.size || "",
                 unit: productData.unit || "",
+                warranty_status: productData.warranty_status || false,
+                warranty_period: productData.warranty_period || null,
+                has_expiry: productData.has_expiry || false,
+                image: null,
             });
             if (productData.image) {
                 setPreviewImage(productData.image);
             }
         } else {
-            // Reset form when modal is closed
             setForm(initialFormState);
             setPreviewImage(null);
-            setImageFile(null);
             setErrors({});
         }
     }, [productData, isOpen]);
@@ -53,27 +104,33 @@ const UpdateProductModal = ({ isOpen, onClose, onSuccess, productData }) => {
     if (!isOpen) return null;
 
     const handleChange = (e) => {
-        const { name, value, files } = e.target;
-
+        const { name, value, files, type, checked } = e.target;
         if (name === "image") {
             const file = files[0];
-            setImageFile(file); // Keep the file object separate
-
+            setForm(prev => ({ ...prev, image: file }));
             if (file) {
                 const reader = new FileReader();
-                reader.onloadend = () => {
-                    setPreviewImage(reader.result);
-                };
+                reader.onloadend = () => setPreviewImage(reader.result);
                 reader.readAsDataURL(file);
             } else {
-                setPreviewImage(productData.image); // Revert to original if cancelled
+                setPreviewImage(productData.image);
+            }
+        } else if (type === "checkbox") {
+            setForm(prev => ({ ...prev, [name]: checked }));
+            if (name === "warranty_status" && !checked) {
+                setForm(prev => ({ ...prev, warranty_period: null }));
             }
         } else {
-            setForm(prev => ({
-                ...prev,
-                [name]: value
-            }));
+            setForm(prev => ({ ...prev, [name]: value }));
         }
+    };
+
+    const handleSelectChange = (selectedOption, actionMeta) => {
+        const { name } = actionMeta;
+        setForm(prev => ({
+            ...prev,
+            [name]: selectedOption ? selectedOption.value : ""
+        }));
     };
 
     const handleSubmit = async (e) => {
@@ -81,26 +138,23 @@ const UpdateProductModal = ({ isOpen, onClose, onSuccess, productData }) => {
         setLoading(true);
         setErrors({});
 
-        // Create a plain data object
-        const data = { ...form };
-        if (imageFile) {
-            data.image = imageFile;
-        }
-
         try {
-            // Pass the plain data object to the API
-            const res = await posProductAPI.update(productData.id, data);
+            const payload = {
+                ...form,
+                purchase_price: parseFloat(form.purchase_price) || 0,
+                selling_price: parseFloat(form.selling_price) || 0,
+                stock: parseInt(form.stock) || 0,
+                alarm_when_stock_is_lessthanOrEqualto: parseInt(form.alarm_when_stock_is_lessthanOrEqualto) || 0,
+                warranty_period: form.warranty_status ? (form.warranty_period || null) : null,
+            };
 
-            if (onSuccess) {
-                onSuccess(res.data);
-            }
+            const res = await posProductAPI.update(productData.id, payload);
+            if (onSuccess) onSuccess(res.data);
             onClose();
-
         } catch (err) {
             console.error("API Error:", err);
             if (err.response?.data) {
                 setErrors(err.response.data);
-                alert("Error updating product: " + JSON.stringify(err.response.data));
             } else {
                 alert("An unknown error occurred. Please try again.");
             }
@@ -108,111 +162,164 @@ const UpdateProductModal = ({ isOpen, onClose, onSuccess, productData }) => {
             setLoading(false);
         }
     };
-    
-    const handleImageUploadClick = () => {
-        document.getElementById("product-image-upload-update").click();
+
+    const filteredSubCategories = subCategories.filter(
+        sub => !form.category || sub.categoryId === form.category
+    );
+
+    const customSelectStyles = {
+        control: (provided) => ({
+            ...provided,
+            borderRadius: '0.5rem',
+            padding: '1px',
+            borderColor: '#D1D5DB',
+            '&:hover': { borderColor: '#3B82F6' }
+        }),
+        menu: (provided) => ({ ...provided, zIndex: 9999 })
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center z-10">
-                    <h2 className="text-2xl font-bold text-gray-800">Update Product</h2>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] overflow-hidden flex flex-col">
+                <div className="px-6 py-4 border-b flex justify-between items-center bg-white sticky top-0 z-20">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-800">Update Product</h2>
+                        <p className="text-sm text-gray-500">Edit product details and settings</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                        <X size={24} className="text-gray-500" />
+                    </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Left Column - Image and Core Info */}
-                        <div className="space-y-4">
-                            <div className="bg-gray-50 p-4 rounded-lg text-center">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Product Image</label>
-                                <div className="mx-auto w-40 h-40 rounded-lg overflow-hidden bg-gray-200 flex items-center justify-center border">
-                                    {previewImage ? (
-                                        <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <span className="text-gray-400">No Image</span>
-                                    )}
+                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Left Column: Classification & Settings */}
+                        <div className="space-y-6">
+                            <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-100 space-y-4">
+                                <h3 className="text-xs font-bold text-blue-600 uppercase tracking-wider">Classification</h3>
+                                <div className="space-y-3">
+                                    <div>
+                                        <label className="text-xs font-medium text-gray-700">Category *</label>
+                                        <Select
+                                            name="category"
+                                            options={categories}
+                                            value={categories.find(opt => opt.value === form.category)}
+                                            onChange={handleSelectChange}
+                                            styles={customSelectStyles}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-medium text-gray-700">Sub-Category</label>
+                                        <Select
+                                            name="sub_category"
+                                            options={filteredSubCategories}
+                                            value={subCategories.find(opt => opt.value === form.sub_category)}
+                                            onChange={handleSelectChange}
+                                            styles={customSelectStyles}
+                                            isDisabled={!form.category}
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-700">Brand</label>
+                                            <Select
+                                                name="brand"
+                                                options={brands}
+                                                value={brands.find(opt => opt.value === form.brand)}
+                                                onChange={handleSelectChange}
+                                                styles={customSelectStyles}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-xs font-medium text-gray-700">Unit</label>
+                                            <Select
+                                                name="unit"
+                                                options={units}
+                                                value={units.find(opt => opt.value === form.unit)}
+                                                onChange={handleSelectChange}
+                                                styles={customSelectStyles}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
-                                <input id="product-image-upload-update" type="file" name="image" accept="image/*" onChange={handleChange} className="hidden" />
-                                <button type="button" onClick={handleImageUploadClick} className="mt-2 text-sm text-blue-600 hover:underline">
-                                    Change Image
-                                </button>
-                                {errors.image && <p className="text-red-500 text-xs mt-1">{errors.image}</p>}
-                            </div>
-                            
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Product Name *</label>
-                                <input className="w-full p-2 border border-gray-300 rounded-lg" name="name" placeholder="e.g., Click Fan" value={form.name} onChange={handleChange} required />
-                                {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Product Code/SKU *</label>
-                                <input className="w-full p-2 border border-gray-300 rounded-lg" name="product_code" placeholder="e.g., CKF-001" value={form.product_code} onChange={handleChange} required />
-                                {errors.product_code && <p className="text-red-500 text-xs mt-1">{errors.product_code}</p>}
+                            <div className="bg-amber-50/30 p-4 rounded-xl border border-amber-100 space-y-4">
+                                <h3 className="text-xs font-bold text-amber-600 uppercase tracking-wider">Warranty & Expiry</h3>
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-3">
+                                        <input type="checkbox" id="warranty_status_update" name="warranty_status" checked={form.warranty_status} onChange={handleChange} />
+                                        <label htmlFor="warranty_status_update" className="text-sm text-gray-700">Enable Warranty</label>
+                                    </div>
+                                    {form.warranty_status && (
+                                        <Select
+                                            name="warranty_period"
+                                            options={warrantyPeriods}
+                                            value={warrantyPeriods.find(opt => opt.value === form.warranty_period)}
+                                            onChange={handleSelectChange}
+                                            styles={customSelectStyles}
+                                            placeholder="Select period..."
+                                        />
+                                    )}
+                                    <div className="flex items-center gap-3">
+                                        <input type="checkbox" id="has_expiry_update" name="has_expiry" checked={form.has_expiry} onChange={handleChange} />
+                                        <label htmlFor="has_expiry_update" className="text-sm text-gray-700">Has Expiry Date</label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Right Column - Pricing, Stock, and IDs */}
-                        <div className="space-y-4">
-                             <div className="grid grid-cols-2 gap-4">
+                        {/* Right Column: Core Details & Image */}
+                        <div className="space-y-6">
+                            <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Purchase Price *</label>
-                                    <input type="number" step="0.01" className="w-full p-2 border border-gray-300 rounded-lg" name="purchase_price" placeholder="0.00" value={form.purchase_price} onChange={handleChange} required />
-                                    {errors.purchase_price && <p className="text-red-500 text-xs mt-1">{errors.purchase_price}</p>}
+                                    <label className="text-sm font-medium text-gray-700">Product Name *</label>
+                                    <input className="w-full p-2 border border-gray-300 rounded-lg" name="name" value={form.name} onChange={handleChange} required />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Selling Price *</label>
-                                    <input type="number" step="0.01" className="w-full p-2 border border-gray-300 rounded-lg" name="selling_price" placeholder="0.00" value={form.selling_price} onChange={handleChange} required />
-                                    {errors.selling_price && <p className="text-red-500 text-xs mt-1">{errors.selling_price}</p>}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-700">Purchase Price</label>
+                                        <input type="number" className="w-full p-2 border border-gray-300 rounded-lg" name="purchase_price" value={form.purchase_price} onChange={handleChange} />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-700">Selling Price</label>
+                                        <input type="number" className="w-full p-2 border border-gray-300 rounded-lg" name="selling_price" value={form.selling_price} onChange={handleChange} />
+                                    </div>
                                 </div>
-                             </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Stock *</label>
-                                <input type="number" className="w-full p-2 border border-gray-300 rounded-lg" name="stock" placeholder="0" value={form.stock} onChange={handleChange} required />
-                                {errors.stock && <p className="text-red-500 text-xs mt-1">{errors.stock}</p>}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-700">Stock</label>
+                                        <input type="number" className="w-full p-2 border border-gray-300 rounded-lg" name="stock" value={form.stock} onChange={handleChange} />
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-700">Low Stock Alert</label>
+                                        <input type="number" className="w-full p-2 border border-gray-300 rounded-lg" name="alarm_when_stock_is_lessthanOrEqualto" value={form.alarm_when_stock_is_lessthanOrEqualto} onChange={handleChange} />
+                                    </div>
+                                </div>
                             </div>
-                            
-                            <p className="text-xs text-gray-500 pt-2">Enter the corresponding IDs. These can be replaced with dropdowns later.</p>
-                            
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Category ID *</label>
-                                    <input type="number" className="w-full p-2 border border-gray-300 rounded-lg" name="category" placeholder="e.g., 2" value={form.category} onChange={handleChange} required />
-                                    {errors.category && <p className="text-red-500 text-xs mt-1">{errors.category}</p>}
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Sub-Category ID</label>
-                                    <input type="number" className="w-full p-2 border border-gray-300 rounded-lg" name="sub_category" placeholder="e.g., 3" value={form.sub_category} onChange={handleChange} />
-                                    {errors.sub_category && <p className="text-red-500 text-xs mt-1">{errors.sub_category}</p>}
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Brand ID</label>
-                                    <input type="number" className="w-full p-2 border border-gray-300 rounded-lg" name="brand" placeholder="e.g., 2" value={form.brand} onChange={handleChange} />
-                                    {errors.brand && <p className="text-red-500 text-xs mt-1">{errors.brand}</p>}
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Unit ID</label>
-                                    <input type="number" className="w-full p-2 border border-gray-300 rounded-lg" name="unit" placeholder="e.g., 1" value={form.unit} onChange={handleChange} />
-                                    {errors.unit && <p className="text-red-500 text-xs mt-1">{errors.unit}</p>}
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Size ID</label>
-                                    <input type="number" className="w-full p-2 border border-gray-300 rounded-lg" name="size" placeholder="e.g., 1" value={form.size} onChange={handleChange} />
-                                    {errors.size && <p className="text-red-500 text-xs mt-1">{errors.size}</p>}
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-gray-700">Product Image</label>
+                                <div className="relative h-48 bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl overflow-hidden group cursor-pointer" onClick={() => document.getElementById("update-image-upload").click()}>
+                                    {previewImage ? (
+                                        <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                                            <Plus size={32} />
+                                            <p className="text-xs mt-2">Click to upload</p>
+                                        </div>
+                                    )}
+                                    <input id="update-image-upload" type="file" name="image" accept="image/*" onChange={handleChange} className="hidden" />
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="mt-8 pt-6 border-t flex justify-end space-x-3">
-                        <button type="button" onClick={onClose} className="px-6 py-2 border rounded-lg hover:bg-gray-50" disabled={loading}>
-                            Cancel
-                        </button>
-                        <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50" disabled={loading}>
-                            {loading ? "Updating..." : "Update Product"}
+                    <div className="flex justify-end gap-3 pt-6 border-t">
+                        <button type="button" onClick={onClose} className="px-6 py-2 border rounded-xl hover:bg-gray-50 transition-all">Cancel</button>
+                        <button type="submit" disabled={loading} className="px-10 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 flex items-center gap-2 font-bold shadow-lg shadow-blue-100 disabled:opacity-50">
+                            {loading && <Loader2 className="animate-spin" size={18} />}
+                            Update Product
                         </button>
                     </div>
                 </form>

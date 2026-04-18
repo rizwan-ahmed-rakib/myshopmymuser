@@ -19,6 +19,18 @@ const PRODUCT_SORT_OPTIONS = [
     { value: "stock_asc", label: "Stock: Low to High" },
 ];
 
+const WARRANTY_OPTIONS = [
+    { value: "all", label: "All Products" },
+    { value: "has-warranty", label: "With Warranty" },
+    { value: "no-warranty", label: "No Warranty" },
+];
+
+const EXPIRY_OPTIONS = [
+    { value: "all", label: "All Products" },
+    { value: "has-expiry", label: "Has Expiry" },
+    { value: "no-expiry", label: "No Expiry" },
+];
+
 const FilterDropdown = ({ label, options = [], onSelect, selectedValue }) => {
     const [isOpen, setIsOpen] = useState(false);
     const ref = useRef(null);
@@ -72,6 +84,8 @@ const ProductSearchFilter = ({ onSearch, onFilter, dynamicOptions = {} }) => {
         unit: "all",
         size: "all",
         status: "all",
+        warranty: "all",
+        expiry: "all",
         sortBy: "name_asc"
     });
 
@@ -101,6 +115,8 @@ const ProductSearchFilter = ({ onSearch, onFilter, dynamicOptions = {} }) => {
             unit: "all",
             size: "all",
             status: "all",
+            warranty: "all",
+            expiry: "all",
             sortBy: "name_asc"
         });
     };
@@ -168,6 +184,20 @@ const ProductSearchFilter = ({ onSearch, onFilter, dynamicOptions = {} }) => {
                     options={[{value: 'all', label: 'All Sizes'}, ...sizes]} 
                     selectedValue={filters.size} 
                     onSelect={(v) => handleFilterChange("size", v)} 
+                />
+
+                <FilterDropdown 
+                    label="Warranty" 
+                    options={WARRANTY_OPTIONS} 
+                    selectedValue={filters.warranty} 
+                    onSelect={(v) => handleFilterChange("warranty", v)} 
+                />
+
+                <FilterDropdown 
+                    label="Expiry" 
+                    options={EXPIRY_OPTIONS} 
+                    selectedValue={filters.expiry} 
+                    onSelect={(v) => handleFilterChange("expiry", v)} 
                 />
 
                 <FilterDropdown 

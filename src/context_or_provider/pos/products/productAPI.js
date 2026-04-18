@@ -45,16 +45,19 @@ export const posProductAPI = {
         Object.keys(data).forEach(key => {
             if (key === 'user' && typeof data[key] === 'object') {
                 Object.keys(data[key]).forEach(userKey => {
-                    formData.append(`user.${userKey}`, data[key][userKey]);
+                    if (data[key][userKey] !== null && data[key][userKey] !== undefined) {
+                        formData.append(`user.${userKey}`, data[key][userKey]);
+                    }
                 });
             } else if (key === 'image' && data[key]) {
                 formData.append(key, data[key]);
             } else {
-                formData.append(key, data[key]);
+                if (data[key] !== null && data[key] !== undefined && data[key] !== "") {
+                    formData.append(key, data[key]);
+                }
             }
         });
         return api.post("/api/products/product/", formData, {
-        // return api.post("/api/products/category/", formData, {
             headers: { "Content-Type": "multipart/form-data" }
         });
     },
@@ -65,7 +68,7 @@ export const posProductAPI = {
         Object.keys(data).forEach(key => {
             if (key === 'image' && data[key]) {
                 formData.append(key, data[key]);
-            } else if (data[key] !== null && data[key] !== undefined) {
+            } else if (data[key] !== null && data[key] !== undefined && data[key] !== "") {
                 formData.append(key, data[key]);
             }
         });

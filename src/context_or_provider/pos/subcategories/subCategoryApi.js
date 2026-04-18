@@ -39,7 +39,9 @@ export const posSubCategoryAPI = {
             if (key === 'image' && data[key]) {
                 formData.append(key, data[key]);
             } else {
-                formData.append(key, data[key]);
+                if (data[key] !== null && data[key] !== undefined && data[key] !== "") {
+                    formData.append(key, data[key]);
+                }
             }
         });
         return api.post("/api/products/subcategory/", formData, {
@@ -53,7 +55,7 @@ export const posSubCategoryAPI = {
         Object.keys(data).forEach(key => {
             if (key === 'image' && data[key]) {
                 formData.append(key, data[key]);
-            } else if (data[key] !== null && data[key] !== undefined) {
+            } else if (data[key] !== null && data[key] !== undefined && data[key] !== "") {
                 formData.append(key, data[key]);
             }
         });

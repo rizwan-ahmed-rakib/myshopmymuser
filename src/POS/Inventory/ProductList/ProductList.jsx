@@ -4,6 +4,7 @@ import LoadingSpinner from "./LoadingSpinner";
 import UpdateProductModal from "./UpdateProductModal";
 import {posProductAPI} from "../../../context_or_provider/pos/products/productAPI";
 import SuccessPopup from "./SuccessPopup";
+import { Edit, Trash2, Eye, ShieldCheck, CalendarClock, Package, Tag, AlertCircle } from "lucide-react";
 
 const ProductList = ({products, onUpdate}) => {
     const navigate = useNavigate();
@@ -15,8 +16,6 @@ const ProductList = ({products, onUpdate}) => {
 
     const handleViewDetails = (product) => {
         navigate(`/inventory/product/details/${product.id}`);
-        // navigate(`/inventory/products/${product.id}`);
-
     };
 
     const handleEdit = (product) => {
@@ -34,10 +33,7 @@ const ProductList = ({products, onUpdate}) => {
             await posProductAPI.delete(product.id);
             setSuccessMessage(`${product.name} deleted successfully!`);
             setShowSuccess(true);
-
-            if (onUpdate) {
-                onUpdate();
-            }
+            if (onUpdate) onUpdate();
         } catch (error) {
             console.error("Delete error:", error);
             alert("Failed to delete product.");
@@ -50,153 +46,128 @@ const ProductList = ({products, onUpdate}) => {
         setShowEditModal(false);
         setSuccessMessage("Product updated successfully!");
         setShowSuccess(true);
-
-        if (onUpdate) {
-            onUpdate();
-        }
+        if (onUpdate) onUpdate();
     };
 
     return (
         <>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
-                    <div className="grid grid-cols-12 gap-4">
-                        <div className="col-span-4">
-                            <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                                Product
-                            </span>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-gray-50/50 border-b border-gray-100">
+                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Product Info</th>
+                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Category & Brand</th>
+                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Pricing</th>
+                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Stock Status</th>
+                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Settings</th>
+                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50">
+                            {products?.filter(p => p).map((product) => {
+                                const isLowStock = Number(product.stock) <= Number(product.alarm_when_stock_is_lessthanOrEqualto);
+                                return (
+                                    <tr key={product.id} className="hover:bg-blue-50/30 transition-colors group">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-4">
+                                                <div className="relative h-12 w-12 flex-shrink-0">
+                                                    <img
+                                                        className="h-full w-full rounded-xl object-cover border border-gray-100 shadow-sm"
+                                                        src={product.image || "https://via.placeholder.com/150"}
+                                                        alt={product.name}
+                                                        onError={(e) => { e.target.src = "https://via.placeholder.com/150"; }}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-gray-800 group-hover:text-blue-600 transition-colors cursor-pointer" onClick={() => handleViewDetails(product)}>
+                                                        {product.name}
+                                                    </p>
+                                                    <p className="text-[10px] text-gray-400 font-medium flex items-center gap-1 mt-0.5">
+                                                        <Package size={10} /> {product.product_code || '---'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="space-y-1.5">
+                                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-600 uppercase tracking-wider">
+                                                    <Tag size={10} /> {product.category_name || "N/A"}
+                                                </span>
+                                                <p className="text-[11px] text-gray-500 font-medium ml-1">
+                                                    Brand: <span className="text-gray-700">{product.brand_name || "N/A"}</span>
+                                                </p>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="space-y-0.5">
+                                                <p className="text-sm font-black text-gray-800">৳{Number(product.selling_price).toLocaleString()}</p>
+                                                <p className="text-[10px] text-gray-400 font-medium">Cost: ৳{Number(product.purchase_price).toLocaleString()}</p>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col gap-1.5">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`h-2 w-2 rounded-full ${product.stock > 0 ? (isLowStock ? 'bg-amber-500' : 'bg-emerald-500') : 'bg-rose-500'}`}></span>
+                                                    <p className={`text-sm font-bold ${isLowStock ? 'text-amber-600' : 'text-gray-700'}`}>
+                                                        {product.stock} <span className="text-[10px] font-medium text-gray-400 uppercase tracking-tighter">{product.unit_name || 'pcs'}</span>
+                                                    </p>
+                                                </div>
+                                                {isLowStock && product.stock > 0 && (
+                                                    <span className="flex items-center gap-1 text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded w-fit uppercase">
+                                                        <AlertCircle size={8} /> Low Stock
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex gap-2">
+                                                {product.warranty_status && (
+                                                    <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg" title="Warranty Available">
+                                                        <ShieldCheck size={14} />
+                                                    </div>
+                                                )}
+                                                {product.has_expiry && (
+                                                    <div className="p-1.5 bg-rose-50 text-rose-600 rounded-lg" title="Expiry Tracking">
+                                                        <CalendarClock size={14} />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                                <button onClick={() => handleViewDetails(product)} className="p-2 text-blue-600 hover:bg-blue-100 rounded-xl transition-colors" title="View Details">
+                                                    <Eye size={18} />
+                                                </button>
+                                                <button onClick={() => handleEdit(product)} className="p-2 text-emerald-600 hover:bg-emerald-100 rounded-xl transition-colors" title="Edit Product">
+                                                    <Edit size={18} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDelete(product)} 
+                                                    className="p-2 text-rose-600 hover:bg-rose-100 rounded-xl transition-colors" 
+                                                    title="Delete Product"
+                                                    disabled={loadingId === product.id}
+                                                >
+                                                    {loadingId === product.id ? <LoadingSpinner size="xs"/> : <Trash2 size={18} />}
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+
+                {(!products || products.length === 0) && (
+                    <div className="px-6 py-20 text-center">
+                        <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-gray-50 text-gray-300 mb-4">
+                            <Package size={32} />
                         </div>
-                        <div className="col-span-2">
-                            <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                                Category
-                            </span>
-                        </div>
-                        <div className="col-span-2">
-                            <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                                Price
-                            </span>
-                        </div>
-                        <div className="col-span-2">
-                            <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                                Stock
-                            </span>
-                        </div>
-                        <div className="col-span-2 text-right">
-                            <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                                Actions
-                            </span>
-                        </div>
+                        <h3 className="text-lg font-bold text-gray-800">No products found</h3>
+                        <p className="text-sm text-gray-400 mt-1 max-w-xs mx-auto">Try adjusting your filters or search terms to find what you're looking for.</p>
                     </div>
-                </div>
-
-                <div className="divide-y divide-gray-100">
-                    {products?.filter(p => p).map((product) => (
-                        <div
-                            key={product.id}
-                            className="px-6 py-4 hover:bg-gray-50 transition-colors duration-150"
-                        >
-                            <div className="grid grid-cols-12 gap-4 items-center">
-                                <div className="col-span-4">
-                                    <div className="flex items-center">
-                                        <div className="flex-shrink-0">
-                                            <img
-                                                className="h-10 w-10 rounded-lg border border-gray-200"
-                                                src={product.image || "https://via.placeholder.com/150"}
-                                                alt={product.name}
-                                                onError={(e) => {
-                                                    e.target.src = "https://via.placeholder.com/150";
-                                                }}
-                                            />
-                                        </div>
-                                        <div className="ml-4">
-                                            <p className="text-sm font-medium text-gray-900">
-                                                {product.name}
-                                            </p>
-                                            <p className="text-xs text-gray-500">
-                                                Code: {product.product_code}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="col-span-2">
-                                    <span
-                                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                        {product.category_name || "N/A"}
-                                    </span>
-                                </div>
-
-                                <div className="col-span-2">
-                                    <p className="text-sm text-gray-900">৳{product.selling_price}</p>
-                                </div>
-
-                                <div className="col-span-2">
-                                    <p className="text-sm text-gray-900">{product.stock}</p>
-                                </div>
-
-                                <div className="col-span-2">
-                                    <div className="flex items-center justify-end space-x-2">
-                                        <button
-                                            onClick={() => handleViewDetails(product)}
-                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                            title="View Details"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor"
-                                                 viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                            </svg>
-                                        </button>
-
-                                        <button
-                                            onClick={() => handleEdit(product)}
-                                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                            title="Edit"
-                                            disabled={loadingId === product.id}
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor"
-                                                 viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                            </svg>
-                                        </button>
-
-                                        <button
-                                            onClick={() => handleDelete(product)}
-                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                            title="Delete"
-                                            disabled={loadingId === product.id}
-                                        >
-                                            {loadingId === product.id ? (
-                                                <LoadingSpinner size="xs"/>
-                                            ) : (
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor"
-                                                     viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                                </svg>
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-
-                    {(!products || products.length === 0) && (
-                        <div className="px-6 py-12 text-center">
-                            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24"
-                                 stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                      d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
-                            </svg>
-                            <h3 className="mt-2 text-sm font-medium text-gray-900">No products</h3>
-                            <p className="mt-1 text-sm text-gray-500">Get started by creating a new product.</p>
-                        </div>
-                    )}
-                </div>
+                )}
             </div>
 
             {showEditModal && selectedProduct && (

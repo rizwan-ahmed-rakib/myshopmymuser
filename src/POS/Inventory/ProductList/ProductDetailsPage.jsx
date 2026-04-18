@@ -4,7 +4,7 @@ import axios from "axios";
 import BASE_URL_of_POS from "../../../posConfig";
 import SuccessPopup from "./SuccessPopup";
 import UpdateProductModal from "./UpdateProductModal";
-import { FaBoxOpen, FaDollarSign, FaShoppingCart, FaWarehouse, FaTag, FaInfoCircle } from 'react-icons/fa';
+import { FaBoxOpen, FaDollarSign, FaShoppingCart, FaWarehouse, FaTag, FaInfoCircle, FaShieldAlt, FaCalendarTimes } from 'react-icons/fa';
 
 const ProductDetailsPage = () => {
     const { id } = useParams();
@@ -104,7 +104,7 @@ const ProductDetailsPage = () => {
                             <div className="md:w-1/3">
                                 <div className="w-full h-80 rounded-lg bg-gray-200 shadow-inner flex items-center justify-center">
                                     <img
-                                        src={product.image || "https://via.placeholder.com/300"}
+                                        src={product.image || "https://assets.turbologo.com/blog/en/2021/09/10093610/photo-camera-958x575.png"}
                                         alt={product.name}
                                         className="w-full h-full object-cover rounded-lg"
                                         onError={(e) => { e.target.src = "https://via.placeholder.com/300"; }}
@@ -136,9 +136,26 @@ const ProductDetailsPage = () => {
                                         <InfoCard icon={<FaShoppingCart className="text-blue-500" />} title="Selling Price" value={`৳${product.selling_price}`} />
                                         <InfoCard icon={<FaDollarSign className="text-green-500" />} title="Purchase Price" value={`৳${product.purchase_price}`} />
                                         <InfoCard icon={<FaWarehouse className="text-purple-500" />} title="Stock" value={product.stock} />
-                                        <InfoCard icon={<FaBoxOpen className="text-yellow-500" />} title="Unit ID" value={product.unit || 'N/A'} />
-                                        <InfoCard icon={<FaTag className="text-red-500" />} title="Brand ID" value={product.brand || 'N/A'} />
-                                        <InfoCard icon={<FaInfoCircle className="text-indigo-500" />} title="Category ID" value={product.category || 'N/A'} />
+                                        <InfoCard icon={<FaBoxOpen className="text-yellow-500" />} title="Unit" value={product.unit_name || product.unit || 'N/A'} />
+                                        <InfoCard icon={<FaTag className="text-red-500" />} title="Brand" value={product.brand_name || product.brand || 'N/A'} />
+                                        <InfoCard icon={<FaInfoCircle className="text-indigo-500" />} title="Category" value={product.category_name || product.category || 'N/A'} />
+                                        
+                                        {/* New Warranty & Expiry Info Cards */}
+                                        <InfoCard 
+                                            icon={<FaShieldAlt className={product.warranty_status ? "text-green-500" : "text-gray-400"} />} 
+                                            title="Warranty" 
+                                            value={product.warranty_status ? (product.warranty_period_name || "Enabled") : "Disabled"} 
+                                        />
+                                        <InfoCard 
+                                            icon={<FaCalendarTimes className={product.has_expiry ? "text-red-500" : "text-gray-400"} />} 
+                                            title="Has Expiry" 
+                                            value={product.has_expiry ? "Yes" : "No"} 
+                                        />
+                                        <InfoCard 
+                                            icon={<FaInfoCircle className="text-blue-400" />} 
+                                            title="Low Stock Alert" 
+                                            value={product.alarm_when_stock_is_lessthanOrEqualto || 0} 
+                                        />
                                     </div>
                                 </div>
                             </div>

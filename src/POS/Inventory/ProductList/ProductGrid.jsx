@@ -47,6 +47,8 @@ const ProductGrid = () => {
         unit: "all",
         size: "all",
         status: "all",
+        warranty: "all",
+        expiry: "all",
         sortBy: "name_asc",
         priceRange: null
     });
@@ -150,6 +152,18 @@ const ProductGrid = () => {
                 result = result.filter(p => String(p[key]) === String(filters[key]));
             }
         });
+
+        // 3.1 Warranty Filter
+        if (filters.warranty !== "all") {
+            const hasWarranty = filters.warranty === "has-warranty";
+            result = result.filter(p => p.warranty_status === hasWarranty);
+        }
+
+        // 3.2 Expiry Filter
+        if (filters.expiry !== "all") {
+            const hasExpiry = filters.expiry === "has-expiry";
+            result = result.filter(p => p.has_expiry === hasExpiry);
+        }
 
         // 4. Price Range Filter
         if (filters.priceRange) {

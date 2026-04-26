@@ -1,6 +1,6 @@
 //////////////////////////****3***//////////////////////////////
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, {useState, useEffect, useMemo, useCallback} from 'react';
 import CustomerHeader from "./CustomerHeader";
 import CustomerStats from "./CustomerStats";
 import CustomerSearchFilter from "./CustomerSearchFilter";
@@ -12,9 +12,10 @@ import SuccessModal from "./SuccessModal";
 import LoadingSpinner from "./LoadingSpinner";
 import {posCustomerAPI} from "../../../context_or_provider/pos/Sale/customer/PosCustomerAPI";
 import {usePosCustomers} from "../../../context_or_provider/pos/Sale/customer/PosCustomerProvider";
+import AddCustomerDueCullectionModal from "./AddCustomerDueCollectionModal";
 
 const CustomerGrid = () => {
-    const {  posCustomers,  setPosCustomers } = usePosCustomers();
+    const {posCustomers, setPosCustomers} = usePosCustomers();
     const [viewType, setViewType] = useState("grid");
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [successData, setSuccessData] = useState(null);
@@ -36,14 +37,18 @@ const CustomerGrid = () => {
         salaryRange: null,
         customDateRange: null
     });
-
+    const [isDueCollectionOpen, setIsDueCollectionOpen] = useState(false);
+    const handleDueCollectionSuccess = () => {
+        // setIsDueCollectionOpen(false);
+        fetchEmployees(false); // ডিউ কালেকশন হলে কাস্টমারের ডিউ আপডেট দেখানোর জন্য লিস্ট রিফ্রেশ করবে (ফুল স্ক্রিন লোডিং ছাড়া)
+    };
     // Fetch employees on component mount
     useEffect(() => {
-        fetchEmployees();
+        fetchEmployees(true);
     }, []);
 
-    const fetchEmployees = async () => {
-        setLoading(true);
+    const fetchEmployees = async (showLoading = true) => {
+        if (showLoading) setLoading(true);
         try {
             const response = await posCustomerAPI.getAll();
             setPosCustomers(response.data);
@@ -51,7 +56,7 @@ const CustomerGrid = () => {
         } catch (error) {
             console.error("Error fetching employees:", error);
         } finally {
-            setLoading(false);
+            if (showLoading) setLoading(false);
         }
     };
 
@@ -67,7 +72,7 @@ const CustomerGrid = () => {
             return joinDate >= last7Days;
         }).length;
 
-        setStats({ total, active, inactive, newJoiners });
+        setStats({total, active, inactive, newJoiners});
     };
 
     // ✅ useCallback দিয়ে functions wrap করুন
@@ -245,7 +250,7 @@ const CustomerGrid = () => {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
-                    <LoadingSpinner size="lg" />
+                    <LoadingSpinner size="lg"/>
                     <p className="mt-4 text-gray-600">Loading employees...</p>
                 </div>
             </div>
@@ -263,7 +268,17 @@ const CustomerGrid = () => {
 
             {/* Stats */}
             <div className="mb-6">
-                <CustomerStats stats={displayStats} />
+                <CustomerStats stats={displayStats}/>
+            </div>
+
+            {/* এখানে একটা "Collect Due" বাটন যুক্ত করতে চাইলে এই বাটনটা ব্যবহার করতে পারো */}
+            <div className="mb-6 flex justify-end">
+                <button
+                    onClick={() => setIsDueCollectionOpen(true)}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+                >
+                    <span>💵</span> Collect Due Payment
+                </button>
             </div>
 
             {/* Search and Filter */}
@@ -273,6 +288,7 @@ const CustomerGrid = () => {
                     onFilter={handleFilter}
                 />
             </div>
+
 
             {/* Main Content - Grid or List View */}
             <div className="bg-white rounded-xl shadow-sm p-4">
@@ -317,7 +333,8 @@ const CustomerGrid = () => {
                     <div className="text-center py-12">
                         <div className="text-gray-400 mb-4">
                             <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-2.268A10.02 10.02 0 0122 12c0 3.22-1.64 6.065-4.14 7.8M3.86 19.8A10.02 10.02 0 012 12c0-3.22 1.64-6.065 4.14-7.8" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-2.268A10.02 10.02 0 0122 12c0 3.22-1.64 6.065-4.14 7.8M3.86 19.8A10.02 10.02 0 012 12c0-3.22 1.64-6.065 4.14-7.8"/>
                             </svg>
                         </div>
                         <h3 className="text-lg font-medium text-gray-900 mb-2">No employees found</h3>
@@ -357,6 +374,15 @@ const CustomerGrid = () => {
                 )}
             </div>
 
+
+            {/* Due Collection Modal */}
+            <AddCustomerDueCullectionModal
+                isOpen={isDueCollectionOpen}
+                onClose={() => setIsDueCollectionOpen(false)}
+                onSuccess={handleDueCollectionSuccess}
+                customers={posCustomers}
+            />
+
             {/* Add Employee Modal */}
             <AddCustomerModal
                 isOpen={isAddOpen}
@@ -375,3 +401,314 @@ const CustomerGrid = () => {
 };
 
 export default CustomerGrid;
+
+
+// import React, {useState, useEffect, useMemo, useCallback} from 'react';
+// import CustomerHeader from "./CustomerHeader";
+// import CustomerStats from "./CustomerStats";
+// import CustomerSearchFilter from "./CustomerSearchFilter";
+// import CustomerCard from "./CustomerCard";
+// import CustomerList from "./CustomerList";
+// import AddCustomerModal from "./AddCustomerModal";
+// import SuccessModal from "./SuccessModal";
+// import LoadingSpinner from "./LoadingSpinner";
+// import {posCustomerAPI} from "../../../context_or_provider/pos/Sale/customer/PosCustomerAPI";
+// import {usePosCustomers} from "../../../context_or_provider/pos/Sale/customer/PosCustomerProvider";
+// import AddCustomerDueCullectionModal from "./AddCustomerDueCollectionModal";
+//
+// const CustomerGrid = () => {
+//     const {posCustomers, setPosCustomers} = usePosCustomers();
+//     const [viewType, setViewType] = useState("grid");
+//     const [isAddOpen, setIsAddOpen] = useState(false);
+//     const [successData, setSuccessData] = useState(null);
+//
+//     // ✅ ১. নতুন State যুক্ত করা হয়েছে
+//     const [isDueCollectionOpen, setIsDueCollectionOpen] = useState(false);
+//
+//     const [loading, setLoading] = useState(true);
+//     const [stats, setStats] = useState({
+//         total: 0,
+//         active: 0,
+//         inactive: 0,
+//         newJoiners: 0
+//     });
+//
+//     // Search and filter states
+//     const [searchQuery, setSearchQuery] = useState("");
+//     const [filters, setFilters] = useState({
+//         designation: "all",
+//         status: "all",
+//         dateRange: "all",
+//         sortBy: "name_asc",
+//         salaryRange: null,
+//         customDateRange: null
+//     });
+//
+//     // Fetch employees on component mount
+//     useEffect(() => {
+//         fetchEmployees();
+//     }, []);
+//
+//     const fetchEmployees = async () => {
+//         setLoading(true);
+//         try {
+//             const response = await posCustomerAPI.getAll();
+//             setPosCustomers(response.data);
+//             calculateStats(response.data);
+//         } catch (error) {
+//             console.error("Error fetching employees:", error);
+//         } finally {
+//             setLoading(false);
+//         }
+//     };
+//
+//     const calculateStats = (employees) => {
+//         const today = new Date();
+//         const last7Days = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+//
+//         const total = employees.length;
+//         const active = employees.filter(emp => emp.user?.is_active !== false).length;
+//         const inactive = employees.filter(emp => emp.user?.is_active === false).length;
+//         const newJoiners = employees.filter(emp => {
+//             const joinDate = new Date(emp.date_joined);
+//             return joinDate >= last7Days;
+//         }).length;
+//
+//         setStats({total, active, inactive, newJoiners});
+//     };
+//
+//     const handleSearch = useCallback((query) => {
+//         setSearchQuery(query);
+//     }, []);
+//
+//     const handleFilter = useCallback((newFilters) => {
+//         setFilters(prev => ({
+//             ...prev,
+//             ...newFilters
+//         }));
+//     }, []);
+//
+//     // Filter employees based on search and filters
+//     const filteredEmployees = useMemo(() => {
+//         if (!posCustomers || posCustomers.length === 0) return [];
+//
+//         let result = [...posCustomers];
+//
+//         if (searchQuery.trim()) {
+//             const query = searchQuery.toLowerCase();
+//             result = result.filter(employee =>
+//                 employee.name.toLowerCase().includes(query) ||
+//                 employee.email.toLowerCase().includes(query) ||
+//                 employee.phone_number?.toLowerCase().includes(query) ||
+//                 employee.user?.phone_number?.toLowerCase().includes(query) ||
+//                 employee.id.toString().includes(query) ||
+//                 employee.role.toLowerCase().includes(query)
+//             );
+//         }
+//
+//         if (filters.designation !== "all") {
+//             result = result.filter(employee => employee.role === filters.designation);
+//         }
+//
+//         if (filters.status !== "all") {
+//             if (filters.status === "active") {
+//                 result = result.filter(employee => employee.user?.is_active !== false);
+//             } else if (filters.status === "inactive") {
+//                 result = result.filter(employee => employee.user?.is_active === false);
+//             } else if (filters.status === "present") {
+//                 result = result.filter(employee => employee.user?.is_present === true);
+//             } else if (filters.status === "absent") {
+//                 result = result.filter(employee => employee.user?.is_present === false);
+//             }
+//         }
+//
+//         if (filters.dateRange !== "all") {
+//             const today = new Date();
+//             result = result.filter(employee => {
+//                 const joinDate = new Date(employee.date_joined);
+//                 switch (filters.dateRange) {
+//                     case "today": return joinDate.toDateString() === today.toDateString();
+//                     case "week": return joinDate >= new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+//                     case "month": return joinDate >= new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+//                     case "year": return joinDate >= new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000);
+//                     default: return true;
+//                 }
+//             });
+//         }
+//
+//         if (filters.customDateRange?.from && filters.customDateRange?.to) {
+//             const fromDate = new Date(filters.customDateRange.from);
+//             const toDate = new Date(filters.customDateRange.to);
+//             result = result.filter(employee => {
+//                 const joinDate = new Date(employee.date_joined);
+//                 return joinDate >= fromDate && joinDate <= toDate;
+//             });
+//         }
+//
+//         if (filters.salaryRange) {
+//             result = result.filter(employee => {
+//                 const salary = employee.salary || 0;
+//                 const passesMin = !filters.salaryRange.min || salary >= filters.salaryRange.min;
+//                 const passesMax = !filters.salaryRange.max || salary <= filters.salaryRange.max;
+//                 return passesMin && passesMax;
+//             });
+//         }
+//
+//         result.sort((a, b) => {
+//             switch (filters.sortBy) {
+//                 case "name_asc": return a.name.localeCompare(b.name);
+//                 case "name_desc": return b.name.localeCompare(a.name);
+//                 case "date_asc": return new Date(a.date_joined) - new Date(b.date_joined);
+//                 case "date_desc": return new Date(b.date_joined) - new Date(a.date_joined);
+//                 case "salary_asc": return (a.salary || 0) - (b.salary || 0);
+//                 case "salary_desc": return (b.salary || 0) - (a.salary || 0);
+//                 default: return 0;
+//             }
+//         });
+//
+//         return result;
+//     }, [posCustomers, searchQuery, filters]);
+//
+//     const handleEmployeeAdded = (newEmp) => {
+//         setPosCustomers(prev => [...prev, newEmp]);
+//         setIsAddOpen(false);
+//         setSuccessData(newEmp);
+//         fetchEmployees();
+//     };
+//
+//     const handleEmployeeUpdated = useCallback(() => {
+//         fetchEmployees();
+//     }, []);
+//
+//     // ✅ ২. নতুন Success Handler যুক্ত করা হয়েছে
+//     const handleDueCollectionSuccess = () => {
+//         // setIsDueCollectionOpen(false);
+//         fetchEmployees();
+//     };
+//
+//     const displayStats = [
+//         { title: 'Total Employee', count: stats.total.toString(), bgColor: 'bg-purple-600', textColor: 'text-white', icon: '👥', iconBg: 'bg-purple-800' },
+//         { title: 'Active', count: stats.active.toString(), bgColor: 'bg-teal-500', textColor: 'text-white', icon: '⭐', iconBg: 'bg-teal-700' },
+//         { title: 'Inactive', count: stats.inactive.toString(), bgColor: 'bg-gray-500', textColor: 'text-white', icon: '⚠️', iconBg: 'bg-gray-700' },
+//         { title: 'New Joiners', count: stats.newJoiners.toString(), bgColor: 'bg-blue-500', textColor: 'text-white', icon: '✅', iconBg: 'bg-blue-700' }
+//     ];
+//
+//     if (loading) {
+//         return (
+//             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+//                 <div className="text-center">
+//                     <LoadingSpinner size="lg"/>
+//                     <p className="mt-4 text-gray-600">Loading employees...</p>
+//                 </div>
+//             </div>
+//         );
+//     }
+//
+//     return (
+//         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+//             <CustomerHeader
+//                 viewType={viewType}
+//                 setViewType={setViewType}
+//                 onAddClick={() => setIsAddOpen(true)}
+//             />
+//
+//             <div className="mb-6">
+//                 <CustomerStats stats={displayStats}/>
+//             </div>
+//
+//             {/* এখানে একটা "Collect Due" বাটন যুক্ত করতে চাইলে এই বাটনটা ব্যবহার করতে পারো */}
+//             <div className="mb-6 flex justify-end">
+//                 <button
+//                     onClick={() => setIsDueCollectionOpen(true)}
+//                     className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+//                 >
+//                     <span>💵</span> Collect Due Payment
+//                 </button>
+//             </div>
+//
+//             <div className="mb-6">
+//                 <CustomerSearchFilter onSearch={handleSearch} onFilter={handleFilter} />
+//             </div>
+//
+//             <div className="bg-white rounded-xl shadow-sm p-4">
+//                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+//                     <h2 className="text-lg font-semibold text-gray-800 mb-2 sm:mb-0">
+//                         {viewType === "grid" ? "Employee Directory" : "Employee List"}
+//                     </h2>
+//                     <div className="text-sm text-gray-500">
+//                         Showing {filteredEmployees.length} of {posCustomers?.length || 0} employees
+//                     </div>
+//                 </div>
+//
+//                 {viewType === "grid" ? (
+//                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+//                         {filteredEmployees.map(emp => (
+//                             <CustomerCard
+//                                 key={emp.id}
+//                                 employee={{
+//                                     ...emp,
+//                                     id: emp.id,
+//                                     name: emp.name,
+//                                     designation: emp.role,
+//                                     phone_number: emp.phone_number || "N/A",
+//                                     joinDate: emp.created_at?.split("T")[0],
+//                                     image: emp.image,
+//                                     user: emp.user
+//                                 }}
+//                                 onEdit={handleEmployeeUpdated}
+//                                 onDelete={handleEmployeeUpdated}
+//                             />
+//                         ))}
+//                     </div>
+//                 ) : (
+//                     <CustomerList employees={filteredEmployees} onUpdate={handleEmployeeUpdated} />
+//                 )}
+//
+//                 {filteredEmployees.length === 0 && (
+//                     <div className="text-center py-12">
+//                         <div className="text-gray-400 mb-4">
+//                             <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+//                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-2.268A10.02 10.02 0 0122 12c0 3.22-1.64 6.065-4.14 7.8M3.86 19.8A10.02 10.02 0 012 12c0-3.22 1.64-6.065 4.14-7.8"/>
+//                             </svg>
+//                         </div>
+//                         <h3 className="text-lg font-medium text-gray-900 mb-2">No employees found</h3>
+//                         <p className="text-gray-600 mb-4">
+//                             {searchQuery || Object.values(filters).some(f => f !== "all" && f !== null)
+//                                 ? "Try changing your search or filter criteria"
+//                                 : "Add your first employee to get started"
+//                             }
+//                         </p>
+//                         <div className="flex flex-col sm:flex-row gap-3 justify-center">
+//                             {(searchQuery || Object.values(filters).some(f => f !== "all" && f !== null)) && (
+//                                 <button onClick={() => { setSearchQuery(""); setFilters({ designation: "all", status: "all", dateRange: "all", sortBy: "name_asc", salaryRange: null, customDateRange: null }); }} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Clear Filters</button>
+//                             )}
+//                             <button onClick={() => setIsAddOpen(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Add Employee</button>
+//                         </div>
+//                     </div>
+//                 )}
+//             </div>
+//
+//             {/* ✅ ৩. মডালগুলো এখানে রাখো */}
+//             <AddCustomerDueCullectionModal
+//                 isOpen={isDueCollectionOpen}
+//                 onClose={() => setIsDueCollectionOpen(false)}
+//                 onSuccess={handleDueCollectionSuccess}
+//                 customers={posCustomers}
+//             />
+//
+//             <AddCustomerModal
+//                 isOpen={isAddOpen}
+//                 onClose={() => setIsAddOpen(false)}
+//                 onSuccess={handleEmployeeAdded}
+//             />
+//
+//             <SuccessModal
+//                 isOpen={!!successData}
+//                 employee={successData}
+//                 onClose={() => setSuccessData(null)}
+//             />
+//         </div>
+//     );
+// };
+//
+// export default CustomerGrid;

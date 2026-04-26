@@ -1,6 +1,6 @@
 //////////////////////////****3***//////////////////////////////
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, {useState, useEffect, useMemo, useCallback} from 'react';
 import SupplierHeader from "./SupplierHeader";
 import SupplierStats from "./SupplierStats";
 import SupplierSearchFilter from "./SupplierSearchFilter";
@@ -12,9 +12,10 @@ import SuccessModal from "./SuccessModal";
 import LoadingSpinner from "./LoadingSpinner";
 import {usePosSuppliers} from "../../../context_or_provider/pos/Purchase/suppliers/supplierProvider";
 import {posSupplierAPI} from "../../../context_or_provider/pos/Purchase/suppliers/supplierAPI";
+import AddSupplierDuePaymentModal from "./AddSupplierDuePaymentModal";
 
 const SupplierGrid = () => {
-    const {  posSuppliers,  setPosSuppliers } = usePosSuppliers();
+    const {posSuppliers, setPosSuppliers} = usePosSuppliers();
     const [viewType, setViewType] = useState("grid");
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [successData, setSuccessData] = useState(null);
@@ -36,14 +37,19 @@ const SupplierGrid = () => {
         salaryRange: null,
         customDateRange: null
     });
+    const [isDueCollectionOpen, setIsDueCollectionOpen] = useState(false);
+    const handleDueCollectionSuccess = () => {
+        // setIsDueCollectionOpen(false);
+        fetchEmployees(false); // ডিউ কালেকশন হলে কাস্টমারের ডিউ আপডেট দেখানোর জন্য লিস্ট রিফ্রেশ করবে (ফুল স্ক্রিন লোডিং ছাড়া)
+    };
 
-    // Fetch employees on component mount
+// Fetch employees on component mount
     useEffect(() => {
-        fetchEmployees();
+        fetchEmployees(true);
     }, []);
 
-    const fetchEmployees = async () => {
-        setLoading(true);
+    const fetchEmployees = async (showLoading = true) => {
+        if (showLoading) setLoading(true);
         try {
             const response = await posSupplierAPI.getAll();
             setPosSuppliers(response.data);
@@ -51,10 +57,9 @@ const SupplierGrid = () => {
         } catch (error) {
             console.error("Error fetching employees:", error);
         } finally {
-            setLoading(false);
+            if (showLoading) setLoading(false);
         }
     };
-
     const calculateStats = (employees) => {
         const today = new Date();
         const last7Days = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -67,7 +72,7 @@ const SupplierGrid = () => {
             return joinDate >= last7Days;
         }).length;
 
-        setStats({ total, active, inactive, newJoiners });
+        setStats({total, active, inactive, newJoiners});
     };
 
     // ✅ useCallback দিয়ে functions wrap করুন
@@ -245,7 +250,7 @@ const SupplierGrid = () => {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
-                    <LoadingSpinner size="lg" />
+                    <LoadingSpinner size="lg"/>
                     <p className="mt-4 text-gray-600">Loading employees...</p>
                 </div>
             </div>
@@ -263,7 +268,17 @@ const SupplierGrid = () => {
 
             {/* Stats */}
             <div className="mb-6">
-                <SupplierStats stats={displayStats} />
+                <SupplierStats stats={displayStats}/>
+            </div>
+
+            {/* এখানে একটা "Collect Due" বাটন যুক্ত করতে চাইলে এই বাটনটা ব্যবহার করতে পারো */}
+            <div className="mb-6 flex justify-end">
+                <button
+                    onClick={() => setIsDueCollectionOpen(true)}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
+                >
+                    <span>💵</span> Collect Due Payment
+                </button>
             </div>
 
             {/* Search and Filter */}
@@ -317,7 +332,8 @@ const SupplierGrid = () => {
                     <div className="text-center py-12">
                         <div className="text-gray-400 mb-4">
                             <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-2.268A10.02 10.02 0 0122 12c0 3.22-1.64 6.065-4.14 7.8M3.86 19.8A10.02 10.02 0 012 12c0-3.22 1.64-6.065 4.14-7.8" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-2.268A10.02 10.02 0 0122 12c0 3.22-1.64 6.065-4.14 7.8M3.86 19.8A10.02 10.02 0 012 12c0-3.22 1.64-6.065 4.14-7.8"/>
                             </svg>
                         </div>
                         <h3 className="text-lg font-medium text-gray-900 mb-2">No employees found</h3>
@@ -362,6 +378,14 @@ const SupplierGrid = () => {
                 isOpen={isAddOpen}
                 onClose={() => setIsAddOpen(false)}
                 onSuccess={handleEmployeeAdded}
+            />
+
+            {/* Due Collection Modal */}
+            <AddSupplierDuePaymentModal
+                isOpen={isDueCollectionOpen}
+                onClose={() => setIsDueCollectionOpen(false)}
+                onSuccess={handleDueCollectionSuccess}
+                suppliers={posSuppliers}
             />
 
             {/* Success Modal */}

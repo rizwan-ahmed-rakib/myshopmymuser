@@ -102,10 +102,10 @@ const SupplierCard = ({employee, onEdit, onDelete}) => {
                             {/* Status Badge */}
                             <div className="flex items-center">
                         <span className={`inline-block w-2 h-2 rounded-full mr-2 ${
-                            employee.user?.is_active !== false ? 'bg-green-500' : 'bg-red-500'
+                            employee.due_amount > 0 ? 'bg-green-400' : employee.due_amount < 0 ? 'bg-red-400' : 'bg-gray-300'
                         }`}></span>
                                 <span className="text-xs text-gray-500">
-                            {employee.user?.is_active !== false ? 'Active' : 'Inactive'}
+                            {employee.due_amount < 0 ? 'Receivable' : employee.due_amount > 0 ?'Payable':'Clear'}
                         </span>
                             </div>
 
@@ -230,7 +230,7 @@ const SupplierCard = ({employee, onEdit, onDelete}) => {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                           d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
                                 </svg>
-                                <span>{employee.phone_number || employee.user?.phone_number || "N/A"}</span>
+                                <span>{employee.phone || employee.user?.phone || "N/A"}</span>
                             </div>
                         </div>
 
@@ -240,17 +240,24 @@ const SupplierCard = ({employee, onEdit, onDelete}) => {
                                 <div className="text-center">
                                     <div className="text-xs text-gray-600 mb-1">Joined</div>
                                     <div className="text-sm font-medium text-gray-900">
-                                        {formatDate(employee.date_joined)}
+                                        {formatDate(employee.created_at)}
                                     </div>
                                 </div>
-                                <div className="text-center">
-                                    <div className="text-xs text-gray-600 mb-1">Status</div>
-                                    <div className={`text-sm font-medium ${
-                                        employee.user?.is_present ? 'text-green-600' : 'text-gray-600'
-                                    }`}>
-                                        {employee.user?.is_present ? 'Present' : 'Absent'}
-                                    </div>
+                            <div className="text-center">
+                                <div className="text-xs text-gray-600 mb-1">Status</div>
+                                <div className={`text-sm font-medium ${
+                                    employee.due_amount > 0 ?  'text-green-600':
+                                        employee.due_amount < 0 ? 'text-red-600' :
+                                            'text-gray-500'
+                                }`}>
+                                    {employee.due_amount > 0
+                                        ? `Payable: ${employee.due_amount}`
+                                        : employee.due_amount < 0
+                                            ? `Receivable: ${Math.abs(employee.due_amount)}` // Math.abs() ব্যবহার করে নেগেটিভ চিহ্ন (-) বাদ দেওয়া হয়েছে
+                                            : 'Clear'
+                                    }
                                 </div>
+                            </div>
                             </div>
                         </div>
                     </div>

@@ -202,6 +202,8 @@ import CustomerProfilePage from "./POS/Sales/CustomerList/CustomerProfilePage";
 import CustomerGrid from "./POS/Sales/CustomerList/CustomerGrid";
 import DamageProductDetailsPage from "./POS/Inventory/DamageProductList/DamageProductDetailsPage";
 import DamageProductGrid from "./POS/Inventory/DamageProductList/DamageProductGrid";
+import ReportsList from "./POS/Reports/ReportsList";
+import ReportDetail from "./POS/Reports/ReportDetail";
 
 // import {CartProvider} from "./context_or_provider/CartContext";
 
@@ -309,7 +311,7 @@ const App = () => {
                             <Route path="/dashboard" element={<Dashboard/>}/>
                             <Route path="/cashbox" element={<Cashbox/>}/>
                             <Route path="/sales" element={<Sales/>}/>
-                            <Route path="/reports" element={<Reports/>}/>
+                            {/*<Route path="/reports" element={<Reports/>}/>*/}
                             <Route path="/stock" element={<Stock/>}/>
                             <Route path="/purchase" element={<Purchase/>}/>
                             <Route path="/inventory" element={<Inventory/>}/>
@@ -319,25 +321,25 @@ const App = () => {
                             <Route path="/branches" element={<Branches/>}/>
                             <Route path="/users" element={<Users/>}/>
                             <Route path="/settings" element={<Settings/>}/>
+                            <Route path="/reports" element={<ReportsList/>}/>
+                            <Route path="/reports/detail" element={<ReportDetail/>}/>
 
                             {/*route for back track*/}
-                            <Route path="/employees" element={<EmployeeGrid />} />
-                            <Route path="/supplier" element={<SupplierGrid />} />
-                            <Route path="/customer" element={<CustomerGrid />} />
+                            <Route path="/employees" element={<EmployeeGrid/>}/>
+                            <Route path="/supplier" element={<SupplierGrid/>}/>
+                            <Route path="/customer" element={<CustomerGrid/>}/>
 
-                            <Route path="/inventoryProducts" element={<ProductGrid />} />
-                            <Route path="/inventory/DamageProducts" element={<DamageProductGrid />} />
-                            <Route path="/inventory/categories" element={<CategoryGrid />} />
-                            <Route path="/inventory/subcategories" element={<SubCateforyGrid />} />
-                            <Route path="/inventory/brands" element={<BrandsGrid />} />
-                            <Route path="/inventory/units" element={<UnitGrid />} />
-                            <Route path="/inventory/sizes" element={<SizeGrid />} />
-                            <Route path="/purchase/purchase" element={<PurchaseGrid />} />
-                            <Route path="/sale/sale" element={<SaleGrid />} />
-                            <Route path="/purchase/purchase-return" element={<PurchaseReturnGrid />} />
-                            <Route path="/sale/sale-return" element={<SaleReturnGrid />} />
-
-
+                            <Route path="/inventoryProducts" element={<ProductGrid/>}/>
+                            <Route path="/inventory/DamageProducts" element={<DamageProductGrid/>}/>
+                            <Route path="/inventory/categories" element={<CategoryGrid/>}/>
+                            <Route path="/inventory/subcategories" element={<SubCateforyGrid/>}/>
+                            <Route path="/inventory/brands" element={<BrandsGrid/>}/>
+                            <Route path="/inventory/units" element={<UnitGrid/>}/>
+                            <Route path="/inventory/sizes" element={<SizeGrid/>}/>
+                            <Route path="/purchase/purchase" element={<PurchaseGrid/>}/>
+                            <Route path="/sale/sale" element={<SaleGrid/>}/>
+                            <Route path="/purchase/purchase-return" element={<PurchaseReturnGrid/>}/>
+                            <Route path="/sale/sale-return" element={<SaleReturnGrid/>}/>
 
 
                             {/*route for details page*/}
@@ -348,16 +350,16 @@ const App = () => {
 
                             <Route path="/inventory/product/details/:id" element={<ProductDetailsPage/>}/>
                             <Route path="/inventory/damage-product/details/:id" element={<DamageProductDetailsPage/>}/>
-                            <Route path="/inventory/category/details/:id" element={<CategoryDetailsPage />} />
-                            <Route path="/inventory/subcategory/details/:id" element={<SubCategoryDetailsPage />} />
-                            <Route path="/inventory/brand/details/:id" element={<BrandDetailsPage />} />
-                            <Route path="/inventory/unit/details/:id" element={<UnitDetailsPage />} />
-                            <Route path="/inventory/size/details/:id" element={<SizeDetailsPage />} />
-                            <Route path="/Purchase/purchase/details/:id" element={<PurchaseDetailsPage />} />
-                            <Route path="/Purchase/purchase-return/details/:id" element={<PurchaseReturnDetailsPage />} />
+                            <Route path="/inventory/category/details/:id" element={<CategoryDetailsPage/>}/>
+                            <Route path="/inventory/subcategory/details/:id" element={<SubCategoryDetailsPage/>}/>
+                            <Route path="/inventory/brand/details/:id" element={<BrandDetailsPage/>}/>
+                            <Route path="/inventory/unit/details/:id" element={<UnitDetailsPage/>}/>
+                            <Route path="/inventory/size/details/:id" element={<SizeDetailsPage/>}/>
+                            <Route path="/Purchase/purchase/details/:id" element={<PurchaseDetailsPage/>}/>
+                            <Route path="/Purchase/purchase-return/details/:id" element={<PurchaseReturnDetailsPage/>}/>
 
-                            <Route path="/Sale/sale/details/:id" element={<SaleDetailsPage />} />
-                            <Route path="/Sale/sale-return/details/:id" element={<SaleReturnDetailsPage />} />
+                            <Route path="/Sale/sale/details/:id" element={<SaleDetailsPage/>}/>
+                            <Route path="/Sale/sale-return/details/:id" element={<SaleReturnDetailsPage/>}/>
 
 
                         </Routes>

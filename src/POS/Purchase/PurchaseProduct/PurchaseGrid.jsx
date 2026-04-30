@@ -26,19 +26,15 @@ const PurchaseGrid = () => {
     const [updateSuccessData, setUpdateSuccessData] = useState(null);
 
     const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({
-        total: 0,
-        inStock: 0,
-        outOfStock: 0,
-        totalValue: 0
-    });
 
     const [searchQuery, setSearchQuery] = useState("");
     const [filters, setFilters] = useState({
-        category: "all",
+        supplier: "all",
         status: "all",
-        sortBy: "name_asc",
-        priceRange: null
+        method: "all",
+        sortBy: "date_desc",
+        startDate: "",
+        endDate: ""
     });
 
     const fetchProducts = useCallback(async () => {
@@ -46,7 +42,6 @@ const PurchaseGrid = () => {
         try {
             const response = await posPurchaseProductAPI.getAll();
             setPosPurchaseProduct(response.data);
-            // You can add back calculateStats if needed
         } catch (error) {
             console.error("Error fetching products:", error);
         } finally {
@@ -70,32 +65,65 @@ const PurchaseGrid = () => {
         if (!posPurchaseProduct || posPurchaseProduct.length === 0) return [];
         let result = [...posPurchaseProduct];
 
+        // Search logic
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
-            result = result.filter(product =>
-                (product.name?.toLowerCase().includes(query) ||
-                product.product_code?.toLowerCase().includes(query))
+            result = result.filter(purchase => 
+                purchase.invoice_no?.toLowerCase().includes(query)
             );
         }
 
+        // Supplier Filter
+        if (filters.supplier && filters.supplier !== "all") {
+            result = result.filter(purchase => purchase.supplier?.toString() === filters.supplier);
+        }
+
+        // Status Filter
+        if (filters.status && filters.status !== "all") {
+            result = result.filter(purchase => purchase.payment_status === filters.status);
+        }
+
+        // Method Filter
+        if (filters.method && filters.method !== "all") {
+            result = result.filter(purchase => purchase.payment_method === filters.method);
+        }
+
+        // Date Range Filter
+        if (filters.startDate) {
+            result = result.filter(purchase => new Date(purchase.created_at) >= new Date(filters.startDate));
+        }
+        if (filters.endDate) {
+            const end = new Date(filters.endDate);
+            end.setHours(23, 59, 59, 999);
+            result = result.filter(purchase => new Date(purchase.created_at) <= end);
+        }
+
+        // Sorting logic
         result.sort((a, b) => {
             switch (filters.sortBy) {
-                case "name_asc":
-                    return (a.name || '').localeCompare(b.name || '');
-                case "name_desc":
-                    return (b.name || '').localeCompare(a.name || '');
-                default:
-                    return 0;
+                case "date_desc": return new Date(b.created_at) - new Date(a.created_at);
+                case "date_asc": return new Date(a.created_at) - new Date(b.created_at);
+                case "invoice_asc": return (a.invoice_no || '').localeCompare(b.invoice_no || '', undefined, {numeric: true});
+                case "invoice_desc": return (b.invoice_no || '').localeCompare(a.invoice_no || '', undefined, {numeric: true});
+                case "due_desc": return parseFloat(b.due_amount) - parseFloat(a.due_amount);
+                default: return new Date(b.created_at) - new Date(a.created_at);
             }
         });
         return result;
     }, [posPurchaseProduct, searchQuery, filters]);
 
-    // --- Modal Handlers ---
+    // Calculate totals for stats cards
+    const totals = useMemo(() => {
+        return filteredProducts.reduce((acc, curr) => ({
+            net_total: acc.net_total + parseFloat(curr.net_total || 0),
+            paid_amount: acc.paid_amount + parseFloat(curr.paid_amount || 0),
+            due_amount: acc.due_amount + parseFloat(curr.due_amount || 0),
+        }), { net_total: 0, paid_amount: 0, due_amount: 0 });
+    }, [filteredProducts]);
 
-    const handleAddSuccess = (newProduct) => {
+    const handleAddSuccess = (newPurchase) => {
         setIsAddOpen(false);
-        setAddSuccessData(newProduct);
+        setAddSuccessData(newPurchase);
         fetchProducts();
     };
 
@@ -113,27 +141,18 @@ const PurchaseGrid = () => {
         fetchProducts();
     }
 
-    const formatMoney = (value) =>
-        (value || 0).toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        });
-
     const displayStats = [
-        {
-            title: 'Total Products',
-            count: stats.total?.toString() || "0",
-            bgColor: 'bg-blue-600',
-            icon: '📦'
-        },
-        // Other stats can be added here
+        { title: 'Total Invoices', count: filteredProducts.length.toString(), bgColor: 'bg-blue-600', icon: '🧾' },
+        { title: 'Total Purchase', count: `৳${totals.net_total.toLocaleString(undefined, {minimumFractionDigits: 2})}`, bgColor: 'bg-indigo-600', icon: '💰' },
+        { title: 'Total Paid', count: `৳${totals.paid_amount.toLocaleString(undefined, {minimumFractionDigits: 2})}`, bgColor: 'bg-green-600', icon: '✅' },
+        { title: 'Total Due', count: `৳${totals.due_amount.toLocaleString(undefined, {minimumFractionDigits: 2})}`, bgColor: 'bg-red-600', icon: '⏳' }
     ];
 
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <LoadingSpinner size="lg"/>
-                <p className="mt-4 text-gray-600">Loading products...</p>
+                <p className="mt-4 text-gray-600">Loading purchases...</p>
             </div>
         );
     }
@@ -157,10 +176,10 @@ const PurchaseGrid = () => {
             <div className="bg-white rounded-xl shadow-sm p-4">
                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
                     <h2 className="text-lg font-semibold text-gray-800 mb-2 sm:mb-0">
-                        Product Directory
+                        Purchase History
                     </h2>
-                    <div className="text-sm text-gray-500">
-                        Showing {filteredProducts.length} of {posPurchaseProduct?.length || 0} products
+                    <div className="text-sm text-gray-500 font-bold">
+                        Showing {filteredProducts.length} of {posPurchaseProduct?.length || 0} invoices
                     </div>
                 </div>
 
@@ -184,8 +203,6 @@ const PurchaseGrid = () => {
                 )}
             </div>
 
-            {/* --- Modals --- */}
-
             <AddPurchaseModal
                 isOpen={isAddOpen}
                 onClose={() => setIsAddOpen(false)}
@@ -201,21 +218,17 @@ const PurchaseGrid = () => {
                 />
             )}
 
-            {/* Success modal for adding a product */}
             <SuccessModal
                 isOpen={!!addSuccessData}
-                purchase={addSuccessData}
+                invoice={addSuccessData}
                 onClose={() => setAddSuccessData(null)}
             />
 
-            {/* Success modal for updating a product */}
             {updateSuccessData && (
                  <SuccessModal
                     isOpen={!!updateSuccessData}
                     onClose={() => setUpdateSuccessData(null)}
-                    purchase={updateSuccessData}
-                    title="Purchase Updated!"
-                    successMessage="The purchase details have been updated."
+                    invoice={updateSuccessData}
                 />
             )}
         </div>

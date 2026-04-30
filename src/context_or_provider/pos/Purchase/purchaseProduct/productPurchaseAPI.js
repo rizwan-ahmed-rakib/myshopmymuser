@@ -25,57 +25,6 @@ api.interceptors.request.use(
 );
 
 // API endpoints
-// export const posPurchaseProductAPI = {
-//     // Get all employees
-//     getAll: () => api.get("/api/purchase/purchases/"),
-//     // getAll: () => api.get("/api/products/category/"),
-//
-//     // Get single employee by ID
-//     getById: (id) => api.get(`/api/purchase/purchases/${id}/`),
-//     // getById: (id) => api.get(`/api/products/category/${id}/`),
-//
-//     // Create new employee
-//     create: (data) => {
-//         const formData = new FormData();
-//         Object.keys(data).forEach(key => {
-//             if (key === 'user' && typeof data[key] === 'object') {
-//                 Object.keys(data[key]).forEach(userKey => {
-//                     formData.append(`user.${userKey}`, data[key][userKey]);
-//                 });
-//             } else if (key === 'image' && data[key]) {
-//                 formData.append(key, data[key]);
-//             } else {
-//                 formData.append(key, data[key]);
-//             }
-//         });
-//         return api.post("/api/purchase/purchases/", formData, {
-//             headers: { "Content-Type": "multipart/form-data" }
-//         });
-//     },
-//
-//     // Update employee
-//     update: (id, data) => {
-//         const formData = new FormData();
-//         Object.keys(data).forEach(key => {
-//             if (key === 'image' && data[key]) {
-//                 formData.append(key, data[key]);
-//             } else if (data[key] !== null && data[key] !== undefined) {
-//                 formData.append(key, data[key]);
-//             }
-//         });
-//         return api.patch(`/api/purchase/purchases/${id}/`, formData, {
-//         // return api.patch(`/api/products/category/${id}/`, formData, {
-//             headers: { "Content-Type": "multipart/form-data" }
-//         });
-//     },
-//
-//     // Delete employee
-//     delete: (id) => api.delete(`/api/purchase/purchases/${id}/`),
-//     // delete: (id) => api.delete(`/api/products/category/${id}/`),
-// };
-
-
-// utils/api.js
 export const posPurchaseProductAPI = {
 
     getAll: () => api.get("/api/purchase/purchases/"),
@@ -84,23 +33,9 @@ export const posPurchaseProductAPI = {
 
     getById: (id) => api.get(`/api/purchase/purchases/${id}/`),
 
-    // ✅ FIXED CREATE
-    create: (data) => {
-        return api.post(
-            "/api/purchase/purchases/",
-            data,
-            { headers: { "Content-Type": "application/json" } }
-        );
-    },
+    create: (data) => api.post("/api/purchase/purchases/", data),
 
-    // ✅ FIXED UPDATE
-    update: (id, data) => {
-        return api.patch(
-            `/api/purchase/purchases/${id}/`,
-            data,
-            { headers: { "Content-Type": "application/json" } }
-        );
-    },
+    update: (id, data) => api.patch(`/api/purchase/purchases/${id}/`, data),
 
     delete: (id) => api.delete(`/api/purchase/purchases/${id}/`),
 };

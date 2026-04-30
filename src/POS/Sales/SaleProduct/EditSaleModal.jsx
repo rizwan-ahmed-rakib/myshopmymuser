@@ -1,91 +1,150 @@
-import React, {useState, useEffect, useCallback} from "react";
+import React, {useState, useEffect} from "react";
 import axios from "axios";
 import BASE_URL_of_POS from "../../../posConfig";
 import {FaTrash} from "react-icons/fa";
 import SuccessModal from "./SuccessModal";
 
 
-const EditSaleModal = ({open, onClose, purchase, onUpdated}) => {
-    const [editablePurchase, setEditablePurchase] = useState(null);
+const EditSaleModal = ({open, onClose, purchase: sale, onUpdated}) => {
+    const [editableSale, setEditableSale] = useState(null);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [invoiceData, setInvoiceData] = useState(null);
+    const [loading, setLoading] = useState(false);
 
-
-    // Deep copy purchase data into local state when modal opens
+    // Deep copy sale data into local state when modal opens
     useEffect(() => {
-        if (purchase) {
-            setEditablePurchase(JSON.parse(JSON.stringify(purchase)));
+        if (sale) {
+            const mappedSale = {
+                ...sale,
+                paid_cash: sale.paid_cash || 0,
+                paid_mobile: sale.paid_mobile || 0,
+                paid_bank: sale.paid_bank || 0,
+                global_discount: sale.global_discount || sale.globalDiscount || 0,
+                mobile_operator: sale.mobile_operator || "",
+                transaction_id: sale.transaction_id || "",
+                bank_account_no: sale.bank_account_no || "",
+            };
+            setEditableSale(JSON.parse(JSON.stringify(mappedSale)));
         }
-    }, [purchase]);
+    }, [sale]);
 
-    // Recalculate totals whenever items or paid amount change
-    const recalculateTotals = useCallback(() => {
-        if (!editablePurchase) return;
+    if (!open || !editableSale) return null;
 
-        const newTotalAmount = editablePurchase.items.reduce((acc, item) => {
+    const calculateUpdatedTotals = (currentSale) => {
+        let total_amount = 0;
+        let itemwise_total_discount = 0;
+
+        const updatedItems = currentSale.items.map(item => {
             const quantity = parseFloat(item.quantity) || 0;
             const unitPrice = parseFloat(item.unit_price) || 0;
-            const itemTotal = quantity * unitPrice;
-            item.total_price = itemTotal.toFixed(2);
-            return acc + itemTotal;
-        }, 0);
+            const discount_amount = parseFloat(item.discount_amount) || 0;
+            const total_price = quantity * unitPrice;
+            const net_total = total_price - discount_amount;
 
-        const paidAmount = parseFloat(editablePurchase.paid_amount) || 0;
-        const newDueAmount = newTotalAmount - paidAmount;
+            total_amount += total_price;
+            itemwise_total_discount += discount_amount;
 
-        setEditablePurchase(prev => ({
-            ...prev,
-            total_amount: newTotalAmount.toFixed(2),
-            due_amount: newDueAmount.toFixed(2),
-        }));
-    }, [editablePurchase]);
+            return {
+                ...item,
+                total_price: total_price.toFixed(2),
+                net_total: net_total.toFixed(2)
+            };
+        });
 
-    // Effect to run recalculation
-    useEffect(() => {
-        recalculateTotals();
-    }, [editablePurchase?.items, editablePurchase?.paid_amount, recalculateTotals]);
+        const global_discount = parseFloat(currentSale.global_discount) || 0;
+        const total_discount = itemwise_total_discount + global_discount;
+        const net_total = total_amount - total_discount;
+        const subtotal = total_amount - itemwise_total_discount;
+        
+        const paid_cash = parseFloat(currentSale.paid_cash) || 0;
+        const paid_mobile = parseFloat(currentSale.paid_mobile) || 0;
+        const paid_bank = parseFloat(currentSale.paid_bank) || 0;
+        const totalPaid = paid_cash + paid_mobile + paid_bank;
+        
+        const due_amount = net_total - totalPaid;
 
+        // Auto determine payment method
+        let payment_method = "cash";
+        const counts = [paid_cash > 0, paid_mobile > 0, paid_bank > 0].filter(Boolean).length;
+        if (counts > 1) payment_method = "hybrid";
+        else if (paid_mobile > 0) payment_method = "mobile_banking";
+        else if (paid_bank > 0) payment_method = "bank";
 
-    if (!open || !editablePurchase) return null;
+        return {
+            ...currentSale,
+            items: updatedItems,
+            total_amount: total_amount.toFixed(2),
+            itemwise_total_discount: itemwise_total_discount.toFixed(2),
+            subtotal: subtotal.toFixed(2),
+            global_discount: global_discount.toFixed(2),
+            total_discount: total_discount.toFixed(2),
+            net_total: net_total.toFixed(2),
+            paid_cash: paid_cash,
+            paid_mobile: paid_mobile,
+            paid_bank: paid_bank,
+            paid_amount: totalPaid,
+            due_amount: due_amount.toFixed(2),
+            payment_method: payment_method
+        };
+    };
 
     const handleItemChange = (index, field, value) => {
-        const updatedItems = [...editablePurchase.items];
+        const updatedItems = [...editableSale.items];
         updatedItems[index] = {...updatedItems[index], [field]: value};
-        setEditablePurchase(prev => ({...prev, items: updatedItems}));
+        const updatedSale = calculateUpdatedTotals({...editableSale, items: updatedItems});
+        setEditableSale(updatedSale);
     };
 
     const handleRemoveItem = (index) => {
-        const updatedItems = editablePurchase.items.filter((_, i) => i !== index);
-        setEditablePurchase(prev => ({...prev, items: updatedItems}));
+        const updatedItems = editableSale.items.filter((_, i) => i !== index);
+        const updatedSale = calculateUpdatedTotals({...editableSale, items: updatedItems});
+        setEditableSale(updatedSale);
     };
 
     const handleTopLevelChange = (field, value) => {
-        setEditablePurchase(prev => ({...prev, [field]: value}));
+        const updatedSale = calculateUpdatedTotals({...editableSale, [field]: value});
+        setEditableSale(updatedSale);
     };
 
     const handleSubmit = async () => {
+        setLoading(true);
         try {
-            // Construct the payload as expected by the API
+            const token = localStorage.getItem("token");
+            const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
             const payload = {
-                ...editablePurchase,
-                // Ensure numeric fields are sent as numbers if required by API
-                paid_amount: parseFloat(editablePurchase.paid_amount) || 0,
-                items: editablePurchase.items.map(item => ({
-                    ...item,
+                customer: editableSale.customer,
+                paid_cash: editableSale.paid_cash,
+                paid_mobile: editableSale.paid_mobile,
+                paid_bank: editableSale.paid_bank,
+                payment_method: editableSale.payment_method,
+                global_discount: editableSale.global_discount,
+                mobile_operator: editableSale.mobile_operator || "",
+                transaction_id: editableSale.transaction_id || "",
+                bank_account_no: editableSale.bank_account_no || "",
+                items: editableSale.items.map(item => ({
+                    product: item.product,
                     quantity: parseInt(item.quantity, 10) || 0,
                     unit_price: parseFloat(item.unit_price) || 0,
+                    discount_amount: parseFloat(item.discount_amount) || 0,
+                    net_total: parseFloat(item.net_total) || 0,
                 }))
             };
 
             const response = await axios.patch(
-                `${BASE_URL_of_POS}/api/sale/sales/${purchase.id}/`,
-                payload
+                `${BASE_URL_of_POS}/api/sale/sales/${sale.id}/`,
+                payload,
+                { headers }
             );
 
-            onUpdated(response.data); // Pass the updated data back to the parent
-            onClose();
+            setInvoiceData(response.data);
+            setLoading(false);
+            return true;
         } catch (err) {
             console.error("Update failed:", err.response ? err.response.data : err);
             alert("Update failed. Check console for details.");
+            setLoading(false);
+            return false;
         }
     };
 
@@ -96,38 +155,59 @@ const EditSaleModal = ({open, onClose, purchase, onUpdated}) => {
         }
     };
 
+    const netTotal = parseFloat(editableSale.net_total) || 0;
+    const totalPaid = parseFloat(editableSale.paid_amount) || 0;
+    const currentInvoiceDue = netTotal - totalPaid;
+
+    const originalInvoiceDue = parseFloat(sale?.due_amount) || 0;
+    const otherInvoicesDue = (parseFloat(sale?.customer_due_amount) || 0) - originalInvoiceDue;
+    const totalCustomerDue = otherInvoicesDue + currentInvoiceDue;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[95vh] overflow-y-auto">
                 <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-2xl font-bold text-gray-800">Edit Purchase (Invoice
-                        #{editablePurchase.invoice_no})</h2>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800">&times;</button>
+                    <h2 className="text-2xl font-bold text-gray-800">Edit Sale (Invoice #{editableSale.invoice_no})</h2>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
                 </div>
 
-                {/* Purchase Items Table */}
+                <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex justify-between items-center">
+                        <div>
+                            <p className="text-[10px] uppercase font-bold text-blue-400 mb-1">Customer</p>
+                            <p className="text-lg font-black text-gray-800">{editableSale.customer_name}</p>
+                        </div>
+                        <div className="bg-white px-4 py-2 rounded-lg border border-blue-200 shadow-sm text-right">
+                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Previous Due</p>
+                            <p className="text-xl font-black text-red-600">৳{otherInvoicesDue.toFixed(2)}</p>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-2 text-gray-700">Purchase Items</h3>
-                    <div className="overflow-x-auto">
-                        <table className="w-full table-auto border border-gray-200">
+                    <h3 className="text-lg font-semibold mb-2 text-gray-700">Sale Items</h3>
+                    <div className="overflow-x-auto border rounded-lg">
+                        <table className="w-full table-auto border-collapse">
                             <thead className="bg-gray-100">
                             <tr>
-                                <th className="px-4 py-2 text-left">Product</th>
-                                <th className="px-4 py-2">Quantity</th>
-                                <th className="px-4 py-2">Unit Price</th>
-                                <th className="px-4 py-2 text-right">Total</th>
+                                <th className="px-4 py-2 text-left text-xs font-bold uppercase text-gray-600">Product</th>
+                                <th className="px-4 py-2 text-center text-xs font-bold uppercase text-gray-600">Quantity</th>
+                                <th className="px-4 py-2 text-right text-xs font-bold uppercase text-gray-600">Unit Price</th>
+                                <th className="px-4 py-2 text-right text-xs font-bold uppercase text-gray-600">Discount</th>
+                                <th className="px-4 py-2 text-right text-xs font-bold uppercase text-gray-600">Net Total</th>
                                 <th className="px-4 py-2"></th>
                             </tr>
                             </thead>
                             <tbody>
-                            {editablePurchase.items.map((item, index) => (
+                            {editableSale.items.map((item, index) => (
                                 <tr key={item.id || index} className="border-b">
-                                    <td className="px-4 py-2">{item.product_name}</td>
+                                    <td className="px-4 py-2">
+                                        <p className="font-bold text-gray-800">{item.product_name}</p>
+                                    </td>
                                     <td className="px-4 py-2">
                                         <input
                                             type="number"
-                                            className="input w-24 text-center"
+                                            className="w-full border p-2 rounded text-center font-bold"
                                             value={item.quantity}
                                             onChange={(e) => handleItemChange(index, "quantity", e.target.value)}
                                         />
@@ -136,15 +216,24 @@ const EditSaleModal = ({open, onClose, purchase, onUpdated}) => {
                                         <input
                                             type="number"
                                             step="0.01"
-                                            className="input w-32 text-right"
+                                            className="w-full border p-2 rounded text-right font-bold"
                                             value={item.unit_price}
                                             onChange={(e) => handleItemChange(index, "unit_price", e.target.value)}
                                         />
                                     </td>
-                                    <td className="px-4 py-2 text-right font-medium">৳{item.total_price}</td>
+                                    <td className="px-4 py-2">
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            className="w-full border p-2 rounded text-right"
+                                            value={item.discount_amount}
+                                            onChange={(e) => handleItemChange(index, "discount_amount", e.target.value)}
+                                        />
+                                    </td>
+                                    <td className="px-4 py-2 text-right font-black text-blue-700">৳{item.net_total}</td>
                                     <td className="px-4 py-2 text-center">
                                         <button onClick={() => handleRemoveItem(index)}
-                                                className="text-red-500 hover:text-red-700">
+                                                className="text-red-500 hover:text-red-700 p-2">
                                             <FaTrash/>
                                         </button>
                                     </td>
@@ -155,49 +244,137 @@ const EditSaleModal = ({open, onClose, purchase, onUpdated}) => {
                     </div>
                 </div>
 
-                {/* Payment and Totals */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label className="block mb-2 font-semibold text-gray-700">Payment Method</label>
-                        <select
-                            className="input"
-                            value={editablePurchase.payment_method}
-                            onChange={(e) => handleTopLevelChange("payment_method", e.target.value)}
-                        >
-                            <option value="cash">Cash</option>
-                            <option value="bkash">Bkash</option>
-                            <option value="bank">Bank</option>
-                        </select>
-                    </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-6">
                     <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                            <span className="font-semibold text-gray-700">Subtotal:</span>
-                            <span className="font-bold text-lg text-gray-800">৳{editablePurchase.total_amount}</span>
+                        <div className="bg-gray-50 p-4 rounded-xl border space-y-4 shadow-sm">
+                            <label className="block text-sm font-bold text-gray-700 border-b pb-2 uppercase tracking-tight">Payment Breakdown</label>
+                            <div className="grid grid-cols-3 gap-4">
+                                <div>
+                                    <label className="text-[10px] uppercase font-bold text-gray-500">Cash</label>
+                                    <input
+                                        type="number"
+                                        className="w-full border p-2 rounded-lg font-bold"
+                                        value={editableSale.paid_cash}
+                                        onChange={(e) => handleTopLevelChange("paid_cash", e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] uppercase font-bold text-gray-500">Mobile</label>
+                                    <input
+                                        type="number"
+                                        className="w-full border p-2 rounded-lg font-bold"
+                                        value={editableSale.paid_mobile}
+                                        onChange={(e) => handleTopLevelChange("paid_mobile", e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] uppercase font-bold text-gray-500">Bank</label>
+                                    <input
+                                        type="number"
+                                        className="w-full border p-2 rounded-lg font-bold"
+                                        value={editableSale.paid_bank}
+                                        onChange={(e) => handleTopLevelChange("paid_bank", e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            {parseFloat(editableSale.paid_mobile) > 0 && (
+                                <div className="grid grid-cols-2 gap-4 p-3 bg-orange-50 rounded-lg border border-orange-100">
+                                    <div>
+                                        <label className="text-[10px] uppercase font-bold text-orange-700">Mobile Operator</label>
+                                        <select
+                                            className="w-full border p-2 rounded-lg bg-white"
+                                            value={editableSale.mobile_operator}
+                                            onChange={(e) => handleTopLevelChange("mobile_operator", e.target.value)}
+                                        >
+                                            <option value="">Select Operator</option>
+                                            <option value="bkash">bKash</option>
+                                            <option value="nagad">Nagad</option>
+                                            <option value="rocket">Rocket</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] uppercase font-bold text-orange-700">Transaction ID</label>
+                                        <input
+                                            className="w-full border p-2 rounded-lg"
+                                            placeholder="TXN123..."
+                                            value={editableSale.transaction_id}
+                                            onChange={(e) => handleTopLevelChange("transaction_id", e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {parseFloat(editableSale.paid_bank) > 0 && (
+                                <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                    <label className="text-[10px] uppercase font-bold text-blue-700">Bank Account Number</label>
+                                    <input
+                                        className="w-full border p-2 rounded-lg"
+                                        placeholder="A/C No..."
+                                        value={editableSale.bank_account_no}
+                                        onChange={(e) => handleTopLevelChange("bank_account_no", e.target.value)}
+                                    />
+                                </div>
+                            )}
                         </div>
-                        <div className="flex justify-between items-center">
-                            <label htmlFor="paid_amount" className="font-semibold text-gray-700">Paid Amount:</label>
+
+                        <div className="bg-green-50 p-4 rounded-xl border border-green-100 shadow-sm">
+                            <label className="block text-sm font-bold text-green-900 mb-2 uppercase tracking-tight">Invoice Discount</label>
                             <input
-                                id="paid_amount"
                                 type="number"
                                 step="0.01"
-                                className="input w-32 text-right"
-                                value={editablePurchase.paid_amount}
-                                onChange={(e) => handleTopLevelChange("paid_amount", e.target.value)}
+                                className="w-full border p-3 rounded-lg bg-white font-bold focus:ring-2 focus:ring-green-500 outline-none"
+                                placeholder="0.00"
+                                value={editableSale.global_discount}
+                                onChange={(e) => handleTopLevelChange("global_discount", e.target.value)}
                             />
                         </div>
-                        <div className="flex justify-between items-center border-t pt-4">
-                            <span className="font-semibold text-xl text-gray-800">Due Amount:</span>
-                            <span className="font-bold text-xl text-red-600">৳{editablePurchase.due_amount}</span>
+                    </div>
+
+                    <div className="bg-gray-900 text-white p-6 rounded-2xl space-y-4 shadow-xl">
+                        <div className="space-y-2 text-sm border-b border-gray-800 pb-3">
+                            <div className="flex justify-between">
+                                <span className="text-gray-500">Gross Total</span>
+                                <span className="font-mono font-bold">৳{editableSale.total_amount}</span>
+                            </div>
+                            <div className="flex justify-between text-green-400">
+                                <span>Total Discount</span>
+                                <span className="font-mono font-bold">- ৳{editableSale.total_discount}</span>
+                            </div>
+                            <div className="flex justify-between text-lg pt-2 border-t border-gray-800 font-bold">
+                                <span className="text-gray-400">Net Total</span>
+                                <span className="font-mono text-2xl text-white">৳{editableSale.net_total}</span>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2 bg-gray-800 p-4 rounded-xl border border-gray-700 shadow-inner">
+                            <div className="flex justify-between items-center text-blue-400 font-bold uppercase text-xs">
+                                <span>Total Received</span>
+                                <span className="font-mono text-xl text-white">৳{editableSale.paid_amount}</span>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4 pt-2">
+                            <div className="p-3 bg-red-900/20 border border-red-900/30 rounded-xl text-center">
+                                <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest mb-1">Invoice Due</p>
+                                <p className="text-2xl font-black text-red-500">৳{currentInvoiceDue.toFixed(2)}</p>
+                            </div>
+                            <div className="p-3 bg-blue-900/20 border border-blue-900/30 rounded-xl text-center">
+                                <p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest mb-1">Total Customer Due</p>
+                                <p className="text-xl font-black text-blue-400">৳{totalCustomerDue.toFixed(2)}</p>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex justify-end gap-4 mt-8">
-                    <button onClick={onClose} className="btn-gray">Cancel</button>
-                    {/*<button onClick={handleSubmit} className="btn-primary">*/}
-                    <button onClick={handleSubmitButtonClick} className="btn-primary">
-                        Save Changes
+                <div className="flex justify-end gap-4 mt-8 pt-6 border-t">
+                    <button disabled={loading} onClick={onClose} className="px-8 py-3 border border-gray-300 rounded-xl font-bold hover:bg-gray-50 transition-colors">Cancel</button>
+                    <button 
+                        disabled={loading}
+                        onClick={handleSubmitButtonClick} 
+                        className="px-12 py-3 bg-blue-600 text-white rounded-xl font-black shadow-lg hover:bg-blue-700 disabled:bg-blue-400 transition-all uppercase tracking-widest"
+                    >
+                        {loading ? "Updating..." : "Update Sale"}
                     </button>
                 </div>
             </div>
@@ -205,13 +382,15 @@ const EditSaleModal = ({open, onClose, purchase, onUpdated}) => {
             {showSuccessModal && (
                 <SuccessModal
                     isOpen={showSuccessModal}
-                    onClose={() => setShowSuccessModal(false)}
-                    // purchaseData={purchase}
-                    purchase={purchase}
+                    onClose={() => {
+                        setShowSuccessModal(false);
+                        onUpdated(invoiceData);
+                        onClose();
+                    }}
+                    invoice={invoiceData}
+                    previousDue={otherInvoicesDue}
                 />
             )}
-
-
         </div>
     );
 };

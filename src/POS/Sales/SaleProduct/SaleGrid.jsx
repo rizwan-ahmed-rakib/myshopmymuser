@@ -4,7 +4,7 @@ import ProductStats from "./ProductStats";
 import SaleSearchFilter from "./SaleSearchFilter";
 import SaleCard from "./SaleCard";
 import SaleList from "./SaleList";
-import AddPurchaseModal from "./AddSaleModal";
+import AddSaleModal from "./AddSaleModal";
 import SuccessModal from "./SuccessModal";
 import LoadingSpinner from "./LoadingSpinner";
 import EditSaleModal from "./EditSaleModal";
@@ -12,49 +12,42 @@ import {posSaleProductAPI} from "../../../context_or_provider/pos/Sale/saleProdu
 import {usePosSaleProducts} from "../../../context_or_provider/pos/Sale/saleProduct/PosSaleProduct_provider";
 
 const SaleGrid = () => {
-    const { posSaleProduct,  setPosSaleProduct} = usePosSaleProducts();
+    const {posSaleProduct, setPosSaleProduct} = usePosSaleProducts();
     const [viewType, setViewType] = useState("grid");
 
-    // State for modals
     const [isAddOpen, setIsAddOpen] = useState(false);
-    const [editingPurchase, setEditingPurchase] = useState(null);
+    const [editingSale, setEditingSale] = useState(null);
 
-    // State for success modals
     const [addSuccessData, setAddSuccessData] = useState(null);
     const [updateSuccessData, setUpdateSuccessData] = useState(null);
 
     const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({
-        total: 0,
-        inStock: 0,
-        outOfStock: 0,
-        totalValue: 0
-    });
 
     const [searchQuery, setSearchQuery] = useState("");
     const [filters, setFilters] = useState({
-        category: "all",
+        customer: "all",
         status: "all",
-        sortBy: "name_asc",
-        priceRange: null
+        method: "all",
+        sortBy: "date_desc",
+        startDate: "",
+        endDate: ""
     });
 
-    const fetchProducts = useCallback(async () => {
+    const fetchSales = useCallback(async () => {
         setLoading(true);
         try {
             const response = await posSaleProductAPI.getAll();
             setPosSaleProduct(response.data);
-            // You can add back calculateStats if needed
         } catch (error) {
-            console.error("Error fetching products:", error);
+            console.error("Error fetching sales:", error);
         } finally {
             setLoading(false);
         }
     }, [setPosSaleProduct]);
 
     useEffect(() => {
-        fetchProducts();
-    }, [fetchProducts]);
+        fetchSales();
+    }, [fetchSales]);
 
     const handleSearch = useCallback((query) => {
         setSearchQuery(query);
@@ -64,51 +57,73 @@ const SaleGrid = () => {
         setFilters(prev => ({...prev, ...newFilters}));
     }, []);
 
-    const filteredProducts = useMemo(() => {
+    const filteredSales = useMemo(() => {
         if (!posSaleProduct || posSaleProduct.length === 0) return [];
         let result = [...posSaleProduct];
 
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
-            result = result.filter(product =>
-                (product.name?.toLowerCase().includes(query) ||
-                product.product_code?.toLowerCase().includes(query))
+            result = result.filter(sale => 
+                sale.invoice_no?.toLowerCase().includes(query)
             );
+        }
+
+        if (filters.customer && filters.customer !== "all") {
+            result = result.filter(sale => sale.customer?.toString() === filters.customer);
+        }
+
+        if (filters.status && filters.status !== "all") {
+            result = result.filter(sale => sale.payment_status === filters.status);
+        }
+
+        if (filters.method && filters.method !== "all") {
+            result = result.filter(sale => sale.payment_method === filters.method);
+        }
+
+        if (filters.startDate) {
+            result = result.filter(sale => new Date(sale.created_at) >= new Date(filters.startDate));
+        }
+        if (filters.endDate) {
+            const end = new Date(filters.endDate);
+            end.setHours(23, 59, 59, 999);
+            result = result.filter(sale => new Date(sale.created_at) <= end);
         }
 
         result.sort((a, b) => {
             switch (filters.sortBy) {
-                case "name_asc":
-                    return (a.name || '').localeCompare(b.name || '');
-                case "name_desc":
-                    return (b.name || '').localeCompare(a.name || '');
-                default:
-                    return 0;
+                case "date_desc": return new Date(b.created_at) - new Date(a.created_at);
+                case "date_asc": return new Date(a.created_at) - new Date(b.created_at);
+                case "invoice_asc": return (a.invoice_no || '').localeCompare(b.invoice_no || '', undefined, {numeric: true});
+                case "invoice_desc": return (b.invoice_no || '').localeCompare(a.invoice_no || '', undefined, {numeric: true});
+                case "due_desc": return parseFloat(b.due_amount) - parseFloat(a.due_amount);
+                default: return new Date(b.created_at) - new Date(a.created_at);
             }
         });
         return result;
     }, [posSaleProduct, searchQuery, filters]);
 
-    // --- Modal Handlers ---
+    const totals = useMemo(() => {
+        return filteredSales.reduce((acc, curr) => ({
+            net_total: acc.net_total + parseFloat(curr.net_total || curr.netTotal || 0),
+            paid_amount: acc.paid_amount + parseFloat(curr.paid_amount || 0),
+            due_amount: acc.due_amount + parseFloat(curr.due_amount || 0),
+        }), { net_total: 0, paid_amount: 0, due_amount: 0 });
+    }, [filteredSales]);
 
-    const handleAddSuccess = (newProduct) => {
+    const handleAddSuccess = (newSale) => {
         setIsAddOpen(false);
-        setAddSuccessData(newProduct);
-        fetchProducts();
-    };
-
-    const handleEditClick = (purchase) => {
-        setEditingPurchase(purchase);
+        setAddSuccessData(newSale);
+        fetchSales();
     };
 
     const handleUpdateSuccess = (updatedData) => {
-        setEditingPurchase(null);
+        setEditingSale(null);
         setUpdateSuccessData(updatedData);
-        fetchProducts();
+        fetchSales();
     };
 
     const handleDeleteSuccess = () => {
-        fetchProducts();
+        fetchSales();
     }
 
     const formatMoney = (value) =>
@@ -118,20 +133,17 @@ const SaleGrid = () => {
         });
 
     const displayStats = [
-        {
-            title: 'Total Products',
-            count: stats.total?.toString() || "0",
-            bgColor: 'bg-blue-600',
-            icon: '📦'
-        },
-        // Other stats can be added here
+        { title: 'Total Invoices', count: filteredSales.length.toString(), bgColor: 'bg-blue-600', icon: '🧾' },
+        { title: 'Total Sales', count: `৳${formatMoney(totals.net_total)}`, bgColor: 'bg-indigo-600', icon: '💰' },
+        { title: 'Total Received', count: `৳${formatMoney(totals.paid_amount)}`, bgColor: 'bg-green-600', icon: '✅' },
+        { title: 'Total Due', count: `৳${formatMoney(totals.due_amount)}`, bgColor: 'bg-red-600', icon: '⏳' }
     ];
 
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <LoadingSpinner size="lg"/>
-                <p className="mt-4 text-gray-600">Loading products...</p>
+                <p className="mt-4 text-gray-600">Loading sales history...</p>
             </div>
         );
     }
@@ -155,65 +167,59 @@ const SaleGrid = () => {
             <div className="bg-white rounded-xl shadow-sm p-4">
                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
                     <h2 className="text-lg font-semibold text-gray-800 mb-2 sm:mb-0">
-                        Product Directory
+                        Sales History
                     </h2>
-                    <div className="text-sm text-gray-500">
-                        Showing {filteredProducts.length} of {posSaleProduct?.length || 0} products
+                    <div className="text-sm text-gray-500 font-bold">
+                        Showing {filteredSales.length} of {posSaleProduct?.length || 0} invoices
                     </div>
                 </div>
 
                 {viewType === "grid" ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {filteredProducts.map(product => (
+                        {filteredSales.map(sale => (
                             <SaleCard
-                                key={product.id}
-                                product={product}
-                                onEdit={() => handleEditClick(product)}
+                                key={sale.id}
+                                product={sale}
+                                onEdit={() => setEditingSale(sale)}
                                 onDelete={handleDeleteSuccess}
                             />
                         ))}
                     </div>
                 ) : (
                     <SaleList
-                        products={filteredProducts}
-                        onEdit={handleEditClick}
+                        products={filteredSales}
+                        onEdit={(sale) => setEditingSale(sale)}
                         onDelete={handleDeleteSuccess}
                     />
                 )}
             </div>
 
-            {/* --- Modals --- */}
-
-            <AddPurchaseModal
+            <AddSaleModal
                 isOpen={isAddOpen}
                 onClose={() => setIsAddOpen(false)}
                 onSuccess={handleAddSuccess}
             />
 
-            {editingPurchase && (
+            {editingSale && (
                  <EditSaleModal
-                    open={!!editingPurchase}
-                    onClose={() => setEditingPurchase(null)}
-                    purchase={editingPurchase}
+                    open={!!editingSale}
+                    onClose={() => setEditingSale(null)}
+                    purchase={editingSale}
                     onUpdated={handleUpdateSuccess}
                 />
             )}
 
-            {/* Success modal for adding a product */}
             <SuccessModal
                 isOpen={!!addSuccessData}
-                purchase={addSuccessData}
+                invoice={addSuccessData}
                 onClose={() => setAddSuccessData(null)}
             />
 
-            {/* Success modal for updating a product */}
             {updateSuccessData && (
                  <SuccessModal
                     isOpen={!!updateSuccessData}
                     onClose={() => setUpdateSuccessData(null)}
-                    purchase={updateSuccessData}
-                    title="Sale Updated!"
-                    successMessage="The purchase details have been updated."
+                    invoice={updateSuccessData}
                 />
             )}
         </div>

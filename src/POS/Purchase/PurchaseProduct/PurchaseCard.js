@@ -214,97 +214,61 @@ const PurchaseCard = ({product, onEdit, onDelete}) => {
                     )}
                 </div>
 
-                {/* Stock badge */}
+                {/* Payment Status badge */}
                 <div
-                    className={`absolute top-3 left-3 px-3 py-1 text-xs font-semibold rounded-full shadow
-        ${product.stock > 0
+                    className={`absolute top-3 left-3 px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full shadow
+        ${product.payment_status === 'paid'
                         ? "bg-green-100 text-green-700"
+                        : product.payment_status === 'partial'
+                        ? "bg-yellow-100 text-yellow-700"
                         : "bg-red-100 text-red-700"}`}
                 >
-                    {product.stock > 0 ? `In Stock · ${product.stock}` : "Out of Stock"}
+                    {product.payment_status}
                 </div>
             </div>
 
 
             <div className="p-4">
                 <div className="flex justify-between items-start mb-2">
-                    <div className="text-xs text-gray-500">Code: {product.supplier_name}</div>
-
-                    {/*<div className="relative" ref={dropdownRef}>*/}
-                    {/*    <button*/}
-                    {/*        onClick={() => setShowDropdown(!showDropdown)}*/}
-                    {/*        className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"*/}
-                    {/*    >*/}
-                    {/*        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">*/}
-                    {/*            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}*/}
-                    {/*                  d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>*/}
-                    {/*        </svg>*/}
-                    {/*    </button>*/}
-
-                    {/*    {showDropdown && (*/}
-                    {/*        <div*/}
-                    {/*            className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">*/}
-
-                    {/*            <button*/}
-                    {/*                onClick={handleNameClick}*/}
-                    {/*                className="flex items-center w-full px-4 py-2 text-sm text-blue-600 hover:bg-gray-50"*/}
-                    {/*            >*/}
-                    {/*                View Details*/}
-                    {/*            </button>*/}
-
-                    {/*            /!*<button*!/*/}
-                    {/*            /!*    onClick={handleEdit}*!/*/}
-                    {/*            /!*    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"*!/*/}
-                    {/*            /!*    disabled={loadingId === product.id}*!/*/}
-                    {/*            /!*>*!/*/}
-                    {/*            /!*    Edit Product*!/*/}
-                    {/*            /!*</button>*!/*/}
-                    {/*            <button*/}
-                    {/*                onClick={handleDelete}*/}
-                    {/*                className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-gray-50"*/}
-                    {/*                disabled={loadingId === product.id}*/}
-                    {/*            >*/}
-                    {/*                Delete Product*/}
-                    {/*            </button>*/}
-                    {/*            <div className="border-t border-gray-100 my-1"></div>*/}
-                    {/*            /!*<button*!/*/}
-                    {/*            /!*    onClick={handleNameClick}*!/*/}
-                    {/*            /!*    className="flex items-center w-full px-4 py-2 text-sm text-blue-600 hover:bg-gray-50"*!/*/}
-                    {/*            /!*>*!/*/}
-                    {/*            /!*    View Details*!/*/}
-                    {/*            /!*</button>*!/*/}
-
-                    {/*            <button*/}
-                    {/*                onClick={handleEdit}*/}
-                    {/*                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"*/}
-                    {/*                disabled={loadingId === product.id}*/}
-                    {/*            >*/}
-                    {/*                Edit Product*/}
-                    {/*            </button>*/}
-
-                    {/*        </div>*/}
-                    {/*    )}*/}
-                    {/*</div>*/}
+                    <div className="text-xs text-blue-600 font-bold">INV: {product.invoice_no}</div>
+                    <div className="text-[10px] uppercase font-bold text-gray-400">
+                        {new Date(product.created_at).toLocaleDateString()}
+                    </div>
                 </div>
 
                 <h3
                     onClick={handleNameClick}
-                    className="font-semibold text-lg text-gray-900 mb-2 hover:text-blue-600 transition-colors cursor-pointer truncate"
+                    className="font-bold text-lg text-gray-900 mb-1 hover:text-blue-600 transition-colors cursor-pointer truncate"
                 >
-                    {product.name}
+                    {product.supplier_name || "Unknown Supplier"}
                 </h3>
 
-                <div className="flex justify-between items-center">
-                    <div className="text-xl font-bold text-gray-800">
-                        {formatPrice(product.total_amount)}
+                <div className="space-y-2 mb-3">
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-500 font-medium">Net Total:</span>
+                        <span className="font-bold text-gray-900">৳{Number(product.net_total).toFixed(2)}</span>
                     </div>
-                    <div className="text-sm text-gray-500 line-through">
-                        {formatPrice(product.due_amount)}
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-500 font-medium">Paid:</span>
+                        <span className="font-bold text-green-600">৳{Number(product.paid_amount).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-1 border-t border-dashed">
+                        <span className="text-xs font-bold text-gray-600 uppercase">Invoice Due:</span>
+                        <span className="font-black text-red-600">৳{Number(product.due_amount).toFixed(2)}</span>
                     </div>
                 </div>
 
-                <div className="mt-2 text-xs text-gray-500">
-                    Category: {product.supplier_name} | Brand: {product.brand}
+                <div className="flex items-center justify-between">
+                    <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                        product.payment_status === 'paid' ? 'bg-green-100 text-green-700' :
+                        product.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-700' :
+                        'bg-red-100 text-red-700'
+                    }`}>
+                        {product.payment_status}
+                    </div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase">
+                        {product.payment_method?.replace('_', ' ')}
+                    </div>
                 </div>
             </div>
         </div>

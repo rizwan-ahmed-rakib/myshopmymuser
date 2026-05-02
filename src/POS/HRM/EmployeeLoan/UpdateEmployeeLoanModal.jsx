@@ -1,292 +1,79 @@
-
-
-
-
-// // UpdateEmployeeSalaryAdvanceModal.jsx
-
-// import React, { useState, useEffect } from "react";
-// import PropTypes from "prop-types";
-// import { useForm } from "../../../hooks/profile";
-// import LoadingSpinner from "./LoadingSpinner";
-// import {employeeLoanAPI} from "../../../context_or_provider/pos/EmployeeLoan/employee_loanAPI";
-
-// const UpdateEmployeeLoanModal = ({
-//     isOpen,
-//     onClose,
-//     onSuccess,
-//     advanceData
-// }) => {
-//     const [loading, setLoading] = useState(false);
-
-//     const {
-//         form,
-//         errors,
-//         handleChange,
-//         setFormData,
-//         validateForm
-//     } = useForm(
-//         {
-//             amount: "",
-//             reason: "",
-//             is_approved: false,
-//         },
-//         {
-//             amount: (v) => !v ? "Amount is required" : null,
-//         }
-//     );
-
-//     // Load data
-//     useEffect(() => {
-//         if (advanceData && isOpen) {
-//             setFormData({
-//                 amount: advanceData.amount?.toString() || "",
-//                 reason: advanceData.reason || "",
-//                 is_approved: advanceData.is_approved || false,
-//             });
-//         }
-//     }, [advanceData, isOpen, setFormData]);
-
-//     const handleSubmit = async (e) => {
-//         e.preventDefault();
-
-//         if (!validateForm()) return;
-
-//         setLoading(true);
-
-//         try {
-//             const payload = {
-//                 amount: Number(form.amount),
-//                 reason: form.reason,
-//                 is_approved: form.is_approved,
-//             };
-
-//             const res = await employeeLoanAPI.update(advanceData.id, payload);
-
-//             onSuccess?.(res.data);
-//             onClose();
-
-//         } catch (err) {
-//             console.error(err);
-//             alert("Update failed");
-//         } finally {
-//             setLoading(false);
-//         }
-//     };
-
-//     if (!isOpen) return null;
-
-//     return (
-//         <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
-//             <div className="bg-white w-full max-w-lg rounded-xl shadow-xl">
-
-//                 {/* Header */}
-//                 <div className="border-b p-4 flex justify-between items-center">
-//                     <div>
-//                         <h2 className="text-xl font-bold">
-//                             Update Salary Advance
-//                         </h2>
-//                         <p className="text-sm text-gray-500">
-//                             #{advanceData?.id}
-//                         </p>
-//                     </div>
-
-//                     <button onClick={onClose} className="text-xl">×</button>
-//                 </div>
-
-//                 {/* Body */}
-//                 <form onSubmit={handleSubmit} className="p-5 space-y-4">
-
-//                     {/* User Name (readonly) */}
-//                     <div>
-//                         <label className="text-sm font-medium text-gray-700">
-//                             Employee
-//                         </label>
-//                         <input
-//                             value={advanceData?.user_name || ""}
-//                             disabled
-//                             className="w-full p-2 border rounded bg-gray-100"
-//                         />
-//                     </div>
-
-//                     {/* Amount */}
-//                     <div>
-//                         <label className="text-sm font-medium text-gray-700">
-//                             Amount (৳)
-//                         </label>
-//                         <input
-//                             type="number"
-//                             name="amount"
-//                             value={form.amount}
-//                             onChange={handleChange}
-//                             className="w-full p-2 border rounded"
-//                         />
-//                         {errors.amount && (
-//                             <p className="text-red-500 text-sm">{errors.amount}</p>
-//                         )}
-//                     </div>
-
-//                     {/* Reason */}
-//                     <div>
-//                         <label className="text-sm font-medium text-gray-700">
-//                             Reason
-//                         </label>
-//                         <textarea
-//                             name="reason"
-//                             value={form.reason}
-//                             onChange={handleChange}
-//                             className="w-full p-2 border rounded"
-//                         />
-//                     </div>
-
-//                     {/* Approval Toggle */}
-//                     <div className="flex items-center gap-3">
-//                         <input
-//                             type="checkbox"
-//                             name="is_approved"
-//                             checked={form.is_approved}
-//                             onChange={(e) =>
-//                                 handleChange({
-//                                     target: {
-//                                         name: "is_approved",
-//                                         value: e.target.checked
-//                                     }
-//                                 })
-//                             }
-//                         />
-//                         <label>Approved</label>
-//                     </div>
-
-//                     {/* Buttons */}
-//                     <div className="flex justify-end gap-3 pt-4">
-//                         <button
-//                             type="button"
-//                             onClick={onClose}
-//                             className="px-4 py-2 border rounded"
-//                         >
-//                             Cancel
-//                         </button>
-
-//                         <button
-//                             type="submit"
-//                             disabled={loading}
-//                             className="px-6 py-2 bg-blue-600 text-white rounded flex items-center"
-//                         >
-//                             {loading ? (
-//                                 <>
-//                                     <LoadingSpinner size="sm" className="mr-2" />
-//                                     Updating...
-//                                 </>
-//                             ) : (
-//                                 "Update"
-//                             )}
-//                         </button>
-//                     </div>
-//                 </form>
-//             </div>
-//         </div>
-//     );
-// };
-
-// UpdateEmployeeLoanModal.propTypes = {
-//     isOpen: PropTypes.bool.isRequired,
-//     onClose: PropTypes.func.isRequired,
-//     onSuccess: PropTypes.func,
-//     advanceData: PropTypes.object.isRequired,
-// };
-
-// export default UpdateEmployeeLoanModal;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
-import { useForm } from "../../../hooks/profile";
+import axios from "axios";
+import BASE_URL_of_POS from "../../../posConfig";
 import LoadingSpinner from "./LoadingSpinner";
-import { leaveApplicationAPI } from "../../../context_or_provider/pos/EmployeeLeaveApplicaations/leave_applicationAPI";
 
-const UpdateEmployeeLeaveApplicationModal = ({
-    isOpen,
-    onClose,
-    onSuccess,
-    advanceData
-}) => {
+const UpdateEmployeeLoanModal = ({ isOpen, onClose, onSuccess, advanceData }) => {
+    const [form, setForm] = useState({
+        amount: "",
+        loan_date: "",
+        reason: "",
+        repayment_start_date: "",
+        monthly_repayment_amount: "",
+        is_fully_paid: false,
+        paid_cash: 0,
+        paid_mobile: 0,
+        paid_bank: 0,
+        payment_method: "cash",
+        mobile_operator: "",
+        transaction_id: "",
+        bank_name: ""
+    });
+
     const [loading, setLoading] = useState(false);
 
-    const {
-        form,
-        errors,
-        handleChange,
-        setFormData,
-        validateForm
-    } = useForm(
-        {
-            leave_type: "",
-            start_date: "",
-            end_date: "",
-            reason: "",
-            is_approved: false,
-            approved_by: ""
-        },
-        {
-            leave_type: (v) => !v ? "Leave type is required" : null,
-            start_date: (v) => !v ? "Start date is required" : null,
-            end_date: (v) => !v ? "End date is required" : null,
-        }
-    );
-
-    // ✅ Load existing data
     useEffect(() => {
         if (advanceData && isOpen) {
-            setFormData({
-                leave_type: advanceData.leave_type || "",
-                start_date: advanceData.start_date || "",
-                end_date: advanceData.end_date || "",
+            setForm({
+                amount: advanceData.amount || "",
+                loan_date: advanceData.loan_date || "",
                 reason: advanceData.reason || "",
-                is_approved: advanceData.status === "approved",
-                approved_by: advanceData.approved_by || ""
+                repayment_start_date: advanceData.repayment_start_date || "",
+                monthly_repayment_amount: advanceData.monthly_repayment_amount || "",
+                is_fully_paid: advanceData.is_fully_paid || false,
+                paid_cash: advanceData.paid_cash || 0,
+                paid_mobile: advanceData.paid_mobile || 0,
+                paid_bank: advanceData.paid_bank || 0,
+                payment_method: advanceData.payment_method || "cash",
+                mobile_operator: advanceData.mobile_operator || "",
+                transaction_id: advanceData.transaction_id || "",
+                bank_name: advanceData.bank_name || ""
             });
         }
-    }, [advanceData, isOpen, setFormData]);
+    }, [advanceData, isOpen]);
+
+    useEffect(() => {
+        const counts = [Number(form.paid_cash) > 0, Number(form.paid_mobile) > 0, Number(form.paid_bank) > 0].filter(Boolean).length;
+        let method = "cash";
+        if (counts > 1) method = "hybrid";
+        else if (Number(form.paid_mobile) > 0) method = "mobile_banking";
+        else if (Number(form.paid_bank) > 0) method = "bank";
+        setForm(prev => ({ ...prev, payment_method: method }));
+    }, [form.paid_cash, form.paid_mobile, form.paid_bank]);
+
+    if (!isOpen) return null;
+
+    const handleChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setForm(prev => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+    };
+
+    const handleAmountChange = (e) => {
+        const { name, value } = e.target;
+        setForm(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        if (!validateForm()) return;
-
         setLoading(true);
-
         try {
-            const payload = {
-                leave_type: form.leave_type,
-                start_date: form.start_date,
-                end_date: form.end_date,
-                reason: form.reason,
-                is_approved: form.is_approved,
-                approved_by: form.is_approved ? form.approved_by : null
-            };
-
-            const res = await leaveApplicationAPI.update(advanceData.id, payload);
-
+            const res = await axios.patch(
+                `${BASE_URL_of_POS}/api/users/employee-loans/${advanceData.id}/`,
+                { ...form, amount: Number(form.amount), monthly_repayment_amount: Number(form.monthly_repayment_amount) }
+            );
             onSuccess?.(res.data);
             onClose();
-
         } catch (err) {
             console.error(err);
             alert("Update failed");
@@ -295,174 +82,65 @@ const UpdateEmployeeLeaveApplicationModal = ({
         }
     };
 
-    if (!isOpen) return null;
-
     return (
         <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
-            <div className="bg-white w-full max-w-lg rounded-xl shadow-xl">
-
-                {/* Header */}
-                <div className="border-b p-4 flex justify-between items-center">
+            <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+                <div className="px-6 py-4 border-b bg-gray-900 text-white flex justify-between items-center sticky top-0 z-10">
                     <div>
-                        <h2 className="text-xl font-bold">
-                            Update Leave Application
-                        </h2>
-                        <p className="text-sm text-gray-500">
-                            #{advanceData?.id}
-                        </p>
+                        <h2 className="text-xl font-bold uppercase">Update Employee Loan</h2>
+                        <p className="text-[10px] text-gray-400">ID: #{advanceData?.id} | {advanceData?.user_name}</p>
                     </div>
-                    <button onClick={onClose} className="text-xl">×</button>
+                    <button onClick={onClose} className="text-gray-400 hover:text-white text-3xl">&times;</button>
                 </div>
 
-                {/* Body */}
-                <form onSubmit={handleSubmit} className="p-5 space-y-4">
-
-                    {/* Employee */}
-                    <div>
-                        <label className="text-sm font-medium text-gray-700">
-                            Employee
-                        </label>
-                        <input
-                            value={advanceData?.user_name || ""}
-                            disabled
-                            className="w-full p-2 border rounded bg-gray-100"
-                        />
+                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-[10px] font-black text-gray-500 uppercase mb-1">Loan Amount</label>
+                            <input type="number" name="amount" value={form.amount} onChange={handleChange} className="w-full p-2 border-2 rounded-xl font-bold" required />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-black text-gray-500 uppercase mb-1">Monthly Repayment</label>
+                            <input type="number" name="monthly_repayment_amount" value={form.monthly_repayment_amount} onChange={handleChange} className="w-full p-2 border-2 rounded-xl" required />
+                        </div>
                     </div>
 
-                    {/* Leave Type */}
-                    <div>
-                        <label className="text-sm font-medium text-gray-700">
-                            Leave Type
-                        </label>
-                        <select
-                            name="leave_type"
-                            value={form.leave_type}
-                            onChange={handleChange}
-                            className="w-full p-2 border rounded"
-                        >
-                            <option value="">Select type</option>
-                            <option value="sick">Sick</option>
-                            <option value="casual">Casual</option>
-                            <option value="annual">Annual</option>
-                        </select>
-                        {errors.leave_type && (
-                            <p className="text-red-500 text-sm">{errors.leave_type}</p>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-[10px] font-black text-gray-500 uppercase mb-1">Loan Date</label>
+                            <input type="date" name="loan_date" value={form.loan_date} onChange={handleChange} className="w-full p-2 border-2 rounded-xl" />
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-black text-gray-500 uppercase mb-1">Repayment Start</label>
+                            <input type="date" name="repayment_start_date" value={form.repayment_start_date} onChange={handleChange} className="w-full p-2 border-2 rounded-xl" required />
+                        </div>
+                    </div>
+
+                    <textarea name="reason" value={form.reason} onChange={handleChange} className="w-full p-2 border-2 rounded-xl" rows="2" placeholder="Reason" />
+
+                    <div className="bg-gray-50 p-5 rounded-2xl border-2 space-y-4">
+                        <label className="block text-[10px] font-black text-gray-500 uppercase">Payment Breakdown (Hybrid)</label>
+                        <div className="grid grid-cols-3 gap-4">
+                            <div><label className="text-[9px] font-black text-gray-400 uppercase block mb-1">Cash</label><input type="number" name="paid_cash" value={form.paid_cash} onChange={handleAmountChange} className="w-full border-2 p-2 rounded-xl font-black text-center text-green-700" /></div>
+                            <div><label className="text-[9px] font-black text-gray-400 uppercase block mb-1">Mobile</label><input type="number" name="paid_mobile" value={form.paid_mobile} onChange={handleAmountChange} className="w-full border-2 p-2 rounded-xl font-black text-center text-orange-700" /></div>
+                            <div><label className="text-[9px] font-black text-gray-400 uppercase block mb-1">Bank</label><input type="number" name="paid_bank" value={form.paid_bank} onChange={handleAmountChange} className="w-full border-2 p-2 rounded-xl font-black text-center text-blue-700" /></div>
+                        </div>
+                        {Number(form.paid_mobile) > 0 && (
+                            <div className="grid grid-cols-2 gap-3"><select name="mobile_operator" value={form.mobile_operator} onChange={handleChange} className="w-full border-2 p-2 rounded-lg font-bold"><option value="">Operator</option><option value="bkash">bKash</option><option value="nagad">Nagad</option><option value="rocket">Rocket</option><option value="upay">Upay</option></select><input name="transaction_id" value={form.transaction_id} onChange={handleChange} className="w-full border-2 p-2 rounded-lg" placeholder="TxID" /></div>
+                        )}
+                        {Number(form.paid_bank) > 0 && (
+                            <input name="bank_name" value={form.bank_name} onChange={handleChange} className="w-full border-2 p-2 rounded-lg font-bold" placeholder="Bank Name / Ref" />
                         )}
                     </div>
 
-                    {/* Start Date */}
-                    <div>
-                        <label className="text-sm font-medium text-gray-700">
-                            Start Date
-                        </label>
-                        <input
-                            type="date"
-                            name="start_date"
-                            value={form.start_date}
-                            onChange={handleChange}
-                            className="w-full p-2 border rounded"
-                        />
+                    <div className="flex justify-between items-center bg-gray-100 p-4 rounded-xl">
+                        <label className="flex items-center gap-2 font-bold text-gray-700"><input type="checkbox" name="is_fully_paid" checked={form.is_fully_paid} onChange={handleChange} /> Fully Paid</label>
+                        <p className="font-black text-lg">Total: ৳{(Number(form.paid_cash) + Number(form.paid_mobile) + Number(form.paid_bank)).toFixed(2)}</p>
                     </div>
 
-                    {/* End Date */}
-                    <div>
-                        <label className="text-sm font-medium text-gray-700">
-                            End Date
-                        </label>
-                        <input
-                            type="date"
-                            name="end_date"
-                            value={form.end_date}
-                            onChange={handleChange}
-                            className="w-full p-2 border rounded"
-                        />
-                    </div>
-
-                    {/* Reason */}
-                    <div>
-                        <label className="text-sm font-medium text-gray-700">
-                            Reason
-                        </label>
-                        <textarea
-                            name="reason"
-                            value={form.reason}
-                            onChange={handleChange}
-                            className="w-full p-2 border rounded"
-                        />
-                    </div>
-
-                    {/* Approve Toggle */}
-                    <div className="flex items-center gap-3">
-                        <input
-                            type="checkbox"
-                            name="is_approved"
-                            checked={form.is_approved}
-                            onChange={(e) =>
-                                handleChange({
-                                    target: {
-                                        name: "is_approved",
-                                        value: e.target.checked
-                                    }
-                                })
-                            }
-                        />
-                        <label>Approved</label>
-                    </div>
-
-                    {/* Approved By (Editable) */}
-                    {form.is_approved && (
-                        <div>
-                            <label className="text-sm font-medium text-gray-700">
-                                Approved By (User ID)
-                            </label>
-                            <input
-                                type="number"
-                                name="approved_by"
-                                value={form.approved_by}
-                                onChange={handleChange}
-                                className="w-full p-2 border rounded"
-                            />
-                        </div>
-                    )}
-
-                    {/* Approved By Name (Readonly) */}
-                    {advanceData?.approved_by_name && (
-                        <div>
-                            <label className="text-sm font-medium text-gray-700">
-                                Approved By Name
-                            </label>
-                            <input
-                                value={advanceData.approved_by_name}
-                                disabled
-                                className="w-full p-2 border rounded bg-gray-100"
-                            />
-                        </div>
-                    )}
-
-                    {/* Buttons */}
-                    <div className="flex justify-end gap-3 pt-4">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 border rounded"
-                        >
-                            Cancel
-                        </button>
-
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="px-6 py-2 bg-blue-600 text-white rounded flex items-center"
-                        >
-                            {loading ? (
-                                <>
-                                    <LoadingSpinner size="sm" className="mr-2" />
-                                    Updating...
-                                </>
-                            ) : (
-                                "Update"
-                            )}
-                        </button>
+                    <div className="flex justify-end gap-3 pt-4 border-t">
+                        <button type="button" onClick={onClose} className="px-6 py-3 font-bold text-gray-400 uppercase text-xs">Cancel</button>
+                        <button type="submit" disabled={loading} className="px-10 py-3 bg-blue-600 text-white rounded-xl font-black uppercase text-xs shadow-xl">{loading ? "Updating..." : "Update Loan"}</button>
                     </div>
                 </form>
             </div>
@@ -470,11 +148,11 @@ const UpdateEmployeeLeaveApplicationModal = ({
     );
 };
 
-UpdateEmployeeLeaveApplicationModal.propTypes = {
+UpdateEmployeeLoanModal.propTypes = {
     isOpen: PropTypes.bool.isRequired,
     onClose: PropTypes.func.isRequired,
     onSuccess: PropTypes.func,
     advanceData: PropTypes.object.isRequired,
 };
 
-export default UpdateEmployeeLeaveApplicationModal;
+export default UpdateEmployeeLoanModal;

@@ -272,6 +272,16 @@ const SaleDetailsPage = () => {
             {editOpen && <EditSaleModal open={editOpen} onClose={() => setEditOpen(false)} purchase={sale} onUpdated={handleEditSuccess} />}
             {returnOpen && <SaleReturnModal isOpen={returnOpen} onClose={() => setReturnOpen(false)} purchase={sale} onSuccess={handleReturnSuccess} />}
             {showSuccessModal && <SuccessModal isOpen={showSuccessModal} onClose={() => setShowSuccessModal(false)} invoice={updatedSaleData} previousDue={otherInvoicesDue} />}
+            
+            {returnSuccessData && (
+                <SaleReturnSuccessModal
+                    isOpen={!!returnSuccessData}
+                    onClose={() => setReturnSuccessData(null)}
+                    purchase={returnSuccessData}
+                    title="Sale Return Successful!"
+                    successMessage="The sale return has been processed."
+                />
+            )}
         </div>
     );
 };

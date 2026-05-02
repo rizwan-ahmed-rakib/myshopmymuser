@@ -5,8 +5,8 @@ const SaleReturnHeader = ({viewType, setViewType, onAddClick}) => (
         className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 p-6 bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="flex items-center mb-4 lg:mb-0">
             <div className="mr-6">
-                <h4 className="text-xl font-bold text-gray-900">Products</h4>
-                <h6 className="text-gray-600">Manage your Products</h6>
+                <h4 className="text-xl font-bold text-gray-900">Sale Returns</h4>
+                <h6 className="text-gray-600">Manage your Sale Returns</h6>
             </div>
         </div>
 

@@ -25,32 +25,52 @@ const SaleReturnGrid = () => {
 
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
-        total: 0,
-        inStock: 0,
-        outOfStock: 0,
-        totalValue: 0
+        totalCount: 0,
+        totalNetAmount: 0,
+        totalDueAmount: 0,
+        paidCount: 0
     });
 
     const [searchQuery, setSearchQuery] = useState("");
     const [filters, setFilters] = useState({
-        category: "all",
+        payment_method: "all",
         status: "all",
-        sortBy: "name_asc",
+        sortBy: "date_desc",
         priceRange: null
     });
+
+    const formatMoney = (value) =>
+        (Number(value) || 0).toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        });
+
+    const calculateStats = useCallback((data) => {
+        const totalCount = data.length;
+        const totalNetAmount = data.reduce((sum, item) => sum + Number(item.net_return_amount || 0), 0);
+        const totalDueAmount = data.reduce((sum, item) => sum + Number(item.due_amount || 0), 0);
+        const paidCount = data.filter(item => item.payment_status === 'paid').length;
+
+        setStats({
+            totalCount,
+            totalNetAmount,
+            totalDueAmount,
+            paidCount
+        });
+    }, []);
 
     const fetchProducts = useCallback(async () => {
         setLoading(true);
         try {
             const response = await posSaleReturnAPI.getAll();
             setPosSaleReturn(response.data);
-            // You can add back calculateStats if needed
+            calculateStats(response.data);
         } catch (error) {
             console.error("Error fetching products:", error);
         } finally {
             setLoading(false);
         }
-    }, [setPosSaleReturn]);
+    }, [setPosSaleReturn, calculateStats]);
 
     useEffect(() => {
         fetchProducts();
@@ -70,18 +90,44 @@ const SaleReturnGrid = () => {
         
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
-            result = result.filter(product =>
-                (product.name?.toLowerCase().includes(query) ||
-                product.product_code?.toLowerCase().includes(query))
+            result = result.filter(item =>
+                (item.customer_name?.toLowerCase().includes(query) ||
+                item.sale_invoice_no?.toLowerCase().includes(query))
             );
+        }
+
+        if (filters.status !== "all") {
+            result = result.filter(item => item.payment_status === filters.status);
+        }
+
+        if (filters.payment_method && filters.payment_method !== "all") {
+            result = result.filter(item => {
+                if (filters.payment_method === 'cash') return Number(item.paid_cash) > 0;
+                if (filters.payment_method === 'bkash') return item.mobile_operator?.toLowerCase() === 'bkash';
+                if (filters.payment_method === 'nagad') return item.mobile_operator?.toLowerCase() === 'nagad';
+                if (filters.payment_method === 'bank') return Number(item.paid_bank) > 0;
+                return true;
+            });
+        }
+
+        if (filters.priceRange) {
+            const { min, max } = filters.priceRange;
+            if (min !== null) result = result.filter(item => Number(item.net_return_amount) >= min);
+            if (max !== null) result = result.filter(item => Number(item.net_return_amount) <= max);
         }
 
         result.sort((a, b) => {
             switch (filters.sortBy) {
-                case "name_asc":
-                    return (a.name || '').localeCompare(b.name || '');
-                case "name_desc":
-                    return (b.name || '').localeCompare(a.name || '');
+                case "date_desc":
+                    return new Date(b.created_at) - new Date(a.created_at);
+                case "date_asc":
+                    return new Date(a.created_at) - new Date(b.created_at);
+                case "amount_desc":
+                    return Number(b.net_return_amount) - Number(a.net_return_amount);
+                case "amount_asc":
+                    return Number(a.net_return_amount) - Number(b.net_return_amount);
+                case "customer_asc":
+                    return (a.customer_name || '').localeCompare(b.customer_name || '');
                 default:
                     return 0;
             }
@@ -111,27 +157,38 @@ const SaleReturnGrid = () => {
         fetchProducts();
     }
     
-    const formatMoney = (value) =>
-        (value || 0).toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        });
-
     const displayStats = [
         {
-            title: 'Total Products',
-            count: stats.total?.toString() || "0",
+            title: 'Total Returns',
+            count: stats.totalCount?.toString() || "0",
             bgColor: 'bg-blue-600',
-            icon: '📦'
+            icon: '📄'
         },
-        // Other stats can be added here
+        {
+            title: 'Net Return Amount',
+            count: `৳${formatMoney(stats.totalNetAmount)}`,
+            bgColor: 'bg-green-600',
+            icon: '💰'
+        },
+        {
+            title: 'Total Due',
+            count: `৳${formatMoney(stats.totalDueAmount)}`,
+            bgColor: 'bg-red-600',
+            icon: '📉'
+        },
+        {
+            title: 'Paid Returns',
+            count: stats.paidCount?.toString() || "0",
+            bgColor: 'bg-purple-600',
+            icon: '✅'
+        },
     ];
 
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <LoadingSpinner size="lg"/>
-                <p className="mt-4 text-gray-600">Loading products...</p>
+                <p className="mt-4 text-gray-600">Loading returns...</p>
             </div>
         );
     }
@@ -155,10 +212,10 @@ const SaleReturnGrid = () => {
             <div className="bg-white rounded-xl shadow-sm p-4">
                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
                     <h2 className="text-lg font-semibold text-gray-800 mb-2 sm:mb-0">
-                        Product Directory
+                        Sale Return Directory
                     </h2>
                     <div className="text-sm text-gray-500">
-                        Showing {filteredProducts.length} of {posSaleReturn?.length || 0} products
+                        Showing {filteredProducts.length} of {posSaleReturn?.length || 0} returns
                     </div>
                 </div>
 

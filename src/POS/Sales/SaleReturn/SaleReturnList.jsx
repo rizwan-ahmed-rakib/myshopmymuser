@@ -1,7 +1,7 @@
 import React, {useState} from "react";
 import {useNavigate} from "react-router-dom";
 import LoadingSpinner from "./LoadingSpinner";
-import {posSubCategoryAPI} from "../../../context_or_provider/pos/subcategories/subCategoryApi";
+import {posSaleReturnAPI} from "../../../context_or_provider/pos/Sale/saleReturnProduct/PosSaleReturnAPI";
 
 const SaleReturnList = ({products, onEdit, onDelete}) => {
     const navigate = useNavigate();
@@ -19,19 +19,19 @@ const SaleReturnList = ({products, onEdit, onDelete}) => {
     };
 
     const handleDelete = async (product) => {
-        if (!window.confirm(`Are you sure you want to delete ${product.name}?`)) {
+        if (!window.confirm(`Are you sure you want to delete return for invoice ${product.sale_invoice_no}?`)) {
             return;
         }
 
         setLoadingId(product.id);
         try {
-            await posSubCategoryAPI.delete(product.id);
+            await posSaleReturnAPI.delete(product.id);
             if (onDelete) {
                 onDelete();
             }
         } catch (error) {
             console.error("Delete error:", error);
-            alert("Failed to delete product.");
+            alert("Failed to delete sale return.");
         } finally {
             setLoadingId(null);
         }
@@ -43,22 +43,22 @@ const SaleReturnList = ({products, onEdit, onDelete}) => {
                 <div className="grid grid-cols-12 gap-4">
                     <div className="col-span-4">
                             <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                                Product
+                                Return Info
                             </span>
                     </div>
                     <div className="col-span-2">
                             <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                                Category
+                                Status
                             </span>
                     </div>
                     <div className="col-span-2">
                             <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                                Price
+                                Net Return
                             </span>
                     </div>
                     <div className="col-span-2">
                             <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                                Stock
+                                Due
                             </span>
                     </div>
                     <div className="col-span-2 text-right">
@@ -79,22 +79,16 @@ const SaleReturnList = ({products, onEdit, onDelete}) => {
                             <div className="col-span-4">
                                 <div className="flex items-center">
                                     <div className="flex-shrink-0">
-                                        <img
-                                            className="h-10 w-10 rounded-lg border border-gray-200"
-                                            // src={product.supplier_image || "https://via.placeholder.com/150"}
-                                            src={product.supplier_image }
-                                            alt={product.supplier_name}
-                                            onError={(e) => {
-                                                e.target.src = "https://images.pexels.com/photos/1704488/pexels-photo-1704488.jpeg";
-                                            }}
-                                        />
+                                        <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                                            {product.customer_name?.charAt(0) || 'C'}
+                                        </div>
                                     </div>
                                     <div className="ml-4">
                                         <p className="text-sm font-medium text-gray-900">
-                                            {product.name}
+                                            {product.customer_name || "Walk-in Customer"}
                                         </p>
                                         <p className="text-xs text-gray-500">
-                                            Code: {product.product_code}
+                                            Inv: #{product.sale_invoice_no}
                                         </p>
                                     </div>
                                 </div>
@@ -102,17 +96,23 @@ const SaleReturnList = ({products, onEdit, onDelete}) => {
 
                             <div className="col-span-2">
                                     <span
-                                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                        {product.category_name || "N/A"}
+                                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                                            product.payment_status === 'paid' 
+                                            ? 'bg-green-100 text-green-800' 
+                                            : product.payment_status === 'partial'
+                                            ? 'bg-yellow-100 text-yellow-800'
+                                            : 'bg-red-100 text-red-800'
+                                        }`}>
+                                        {product.payment_status || "unpaid"}
                                     </span>
                             </div>
 
                             <div className="col-span-2">
-                                <p className="text-sm text-gray-900">৳{product.selling_price}</p>
+                                <p className="text-sm font-semibold text-gray-900">৳{product.net_return_amount}</p>
                             </div>
 
                             <div className="col-span-2">
-                                <p className="text-sm text-gray-900">{product.stock}</p>
+                                <p className="text-sm text-red-600 font-medium">৳{product.due_amount}</p>
                             </div>
 
                             <div className="col-span-2">
@@ -173,8 +173,8 @@ const SaleReturnList = ({products, onEdit, onDelete}) => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
                                   d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
                         </svg>
-                        <h3 className="mt-2 text-sm font-medium text-gray-900">No products</h3>
-                        <p className="mt-1 text-sm text-gray-500">Get started by creating a new product.</p>
+                        <h3 className="mt-2 text-sm font-medium text-gray-900">No returns found</h3>
+                        <p className="mt-1 text-sm text-gray-500">No sale returns have been recorded yet.</p>
                     </div>
                 )}
             </div>

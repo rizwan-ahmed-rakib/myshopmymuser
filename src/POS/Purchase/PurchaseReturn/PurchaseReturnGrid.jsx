@@ -24,37 +24,28 @@ const PurchaseReturnGrid = () => {
     const [updateSuccessData, setUpdateSuccessData] = useState(null);
 
     const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({
-        total: 0,
-        inStock: 0,
-        outOfStock: 0,
-        totalValue: 0
-    });
 
     const [searchQuery, setSearchQuery] = useState("");
     const [filters, setFilters] = useState({
-        category: "all",
         status: "all",
-        sortBy: "name_asc",
-        priceRange: null
+        sortBy: "date_desc",
     });
 
-    const fetchProducts = useCallback(async () => {
+    const fetchReturns = useCallback(async () => {
         setLoading(true);
         try {
             const response = await posPurchaseReturnAPI.getAll();
             setPosPurchaseReturn(response.data);
-            // You can add back calculateStats if needed
         } catch (error) {
-            console.error("Error fetching products:", error);
+            console.error("Error fetching purchase returns:", error);
         } finally {
             setLoading(false);
         }
     }, [setPosPurchaseReturn]);
 
     useEffect(() => {
-        fetchProducts();
-    }, [fetchProducts]);
+        fetchReturns();
+    }, [fetchReturns]);
 
     const handleSearch = useCallback((query) => {
         setSearchQuery(query);
@@ -64,24 +55,32 @@ const PurchaseReturnGrid = () => {
         setFilters(prev => ({...prev, ...newFilters}));
     }, []);
 
-    const filteredProducts = useMemo(() => {
+    const filteredReturns = useMemo(() => {
         if (!posPurchaseReturn || posPurchaseReturn.length === 0) return [];
         let result = [...posPurchaseReturn];
         
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
-            result = result.filter(product =>
-                (product.name?.toLowerCase().includes(query) ||
-                product.product_code?.toLowerCase().includes(query))
+            result = result.filter(item =>
+                (item.purchase_invoice_no?.toLowerCase().includes(query) ||
+                item.supplier_name?.toLowerCase().includes(query))
             );
+        }
+
+        if (filters.status !== "all") {
+            result = result.filter(item => item.payment_status === filters.status);
         }
 
         result.sort((a, b) => {
             switch (filters.sortBy) {
-                case "name_asc":
-                    return (a.name || '').localeCompare(b.name || '');
-                case "name_desc":
-                    return (b.name || '').localeCompare(a.name || '');
+                case "date_asc":
+                    return new Date(a.created_at) - new Date(b.created_at);
+                case "date_desc":
+                    return new Date(b.created_at) - new Date(a.created_at);
+                case "amount_asc":
+                    return a.total_return_amount - b.total_return_amount;
+                case "amount_desc":
+                    return b.total_return_amount - a.total_return_amount;
                 default:
                     return 0;
             }
@@ -89,12 +88,49 @@ const PurchaseReturnGrid = () => {
         return result;
     }, [posPurchaseReturn, searchQuery, filters]);
 
+    const stats = useMemo(() => {
+        if (!posPurchaseReturn) return { total: 0, totalAmount: 0, totalPaid: 0, totalDue: 0 };
+        return posPurchaseReturn.reduce((acc, curr) => ({
+            total: acc.total + 1,
+            totalAmount: acc.totalAmount + Number(curr.total_return_amount || 0),
+            totalPaid: acc.totalPaid + Number(curr.paid_amount || 0),
+            totalDue: acc.totalDue + Number(curr.due_amount || 0),
+        }), { total: 0, totalAmount: 0, totalPaid: 0, totalDue: 0 });
+    }, [posPurchaseReturn]);
+
+    const displayStats = [
+        {
+            title: 'Total Returns',
+            count: stats.total.toString(),
+            bgColor: 'bg-blue-600',
+            icon: '📦'
+        },
+        {
+            title: 'Total Return Amount',
+            count: `৳${stats.totalAmount.toLocaleString()}`,
+            bgColor: 'bg-green-600',
+            icon: '💰'
+        },
+        {
+            title: 'Total Paid',
+            count: `৳${stats.totalPaid.toLocaleString()}`,
+            bgColor: 'bg-indigo-600',
+            icon: '✅'
+        },
+        {
+            title: 'Total Due',
+            count: `৳${stats.totalDue.toLocaleString()}`,
+            bgColor: 'bg-red-600',
+            icon: '⏳'
+        }
+    ];
+
     // --- Modal Handlers ---
 
     const handleAddSuccess = (newProduct) => {
         setIsAddOpen(false);
         setAddSuccessData(newProduct);
-        fetchProducts();
+        fetchReturns();
     };
     
     const handleEditClick = (purchase) => {
@@ -104,34 +140,14 @@ const PurchaseReturnGrid = () => {
     const handleUpdateSuccess = (updatedData) => {
         seteditingPurchaseReturn(null);
         setUpdateSuccessData(updatedData);
-        fetchProducts();
+        fetchReturns();
     };
-
-    const handleDeleteSuccess = () => {
-        fetchProducts();
-    }
-    
-    const formatMoney = (value) =>
-        (value || 0).toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        });
-
-    const displayStats = [
-        {
-            title: 'Total Products',
-            count: stats.total?.toString() || "0",
-            bgColor: 'bg-blue-600',
-            icon: '📦'
-        },
-        // Other stats can be added here
-    ];
 
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <LoadingSpinner size="lg"/>
-                <p className="mt-4 text-gray-600">Loading products...</p>
+                <p className="mt-4 text-gray-600">Loading purchase returns...</p>
             </div>
         );
     }
@@ -155,29 +171,29 @@ const PurchaseReturnGrid = () => {
             <div className="bg-white rounded-xl shadow-sm p-4">
                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
                     <h2 className="text-lg font-semibold text-gray-800 mb-2 sm:mb-0">
-                        Product Directory
+                        Purchase Return Directory
                     </h2>
                     <div className="text-sm text-gray-500">
-                        Showing {filteredProducts.length} of {posPurchaseReturn?.length || 0} products
+                        Showing {filteredReturns.length} of {posPurchaseReturn?.length || 0} returns
                     </div>
                 </div>
 
                 {viewType === "grid" ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {filteredProducts.map(product => (
+                        {filteredReturns.map(item => (
                             <PurchaseReturnCard
-                                key={product.id}
-                                product={product}
-                                onEdit={() => handleEditClick(product)}
-                                onDelete={handleDeleteSuccess}
+                                key={item.id}
+                                item={item}
+                                onEdit={() => handleEditClick(item)}
+                                onDelete={fetchReturns}
                             />
                         ))}
                     </div>
                 ) : (
                     <PurchaseReturnList
-                        products={filteredProducts}
+                        purchaseReturns={filteredReturns}
                         onEdit={handleEditClick}
-                        onDelete={handleDeleteSuccess}
+                        onDelete={fetchReturns}
                     />
                 )}
             </div>

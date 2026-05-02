@@ -312,12 +312,11 @@ const EmployeeSalaryPayslipList = ({ advance, onEdit }) => {
                     {/* Header */}
                     <div className="grid grid-cols-12 px-6 py-4 bg-gray-50 text-xs font-bold text-gray-500 uppercase border-b">
                         <div className="col-span-3">User / Designation</div>
-                        <div className="col-span-2">Month</div>
-                        <div className="col-span-1">Basic</div>
-                        <div className="col-span-1">Allow</div>
-                        <div className="col-span-1">Deduct</div>
-                        <div className="col-span-2">Net Salary</div>
-                        <div className="col-span-2">Payment Date</div>
+                        <div className="col-span-2">Month / Year</div>
+                        <div className="col-span-1">Net Sal.</div>
+                        <div className="col-span-2">Payment</div>
+                        <div className="col-span-2 text-center">Status</div>
+                        <div className="col-span-2 text-right">Actions</div>
                     </div>
 
                     {/* Body */}
@@ -343,10 +342,10 @@ const EmployeeSalaryPayslipList = ({ advance, onEdit }) => {
                                     )}
 
                                     <div>
-                                        <div className="font-semibold">
+                                        <div className="font-semibold text-sm truncate">
                                             {item.user_name || "Unknown"}
                                         </div>
-                                        <div className="text-xs text-gray-400">
+                                        <div className="text-[10px] text-gray-400 uppercase">
                                             {item.user_designation || "Staff"}
                                         </div>
                                     </div>
@@ -357,49 +356,49 @@ const EmployeeSalaryPayslipList = ({ advance, onEdit }) => {
                                     {getMonthName(item.month)} {item.year}
                                 </div>
 
-                                {/* Basic Salary */}
-                                <div className="col-span-1 text-sm">
-                                    ৳{parseFloat(item.basic_salary).toLocaleString()}
-                                </div>
-
-                                {/* Allowances */}
-                                <div className="col-span-1 text-sm text-green-600">
-                                    ৳{parseFloat(item.allowances).toLocaleString()}
-                                </div>
-
-                                {/* Deductions */}
-                                <div className="col-span-1 text-sm text-red-600">
-                                    ৳{parseFloat(item.deductions).toLocaleString()}
-                                </div>
-
                                 {/* Net Salary */}
-                                <div className="col-span-2 font-bold text-gray-900">
+                                <div className="col-span-1 font-bold text-gray-900 text-sm">
                                     ৳{parseFloat(item.net_salary).toLocaleString()}
                                 </div>
 
+                                {/* Payment Method */}
+                                <div className="col-span-2">
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                        item.payment_method === 'cash' ? 'bg-green-50 text-green-600' :
+                                        item.payment_method === 'bank' ? 'bg-blue-50 text-blue-600' :
+                                        item.payment_method === 'hybrid' ? 'bg-purple-50 text-purple-600' : 'bg-orange-50 text-orange-600'
+                                    }`}>
+                                        {item.payment_method || 'N/A'}
+                                    </span>
+                                </div>
+
                                 {/* Payment Date */}
-                                <div className="col-span-2 text-sm text-gray-600">
-                                    {formatDate(item.payment_date)}
+                                <div className="col-span-2 text-center">
+                                     <span className="text-[10px] font-medium text-gray-500">
+                                         {formatDate(item.payment_date)}
+                                     </span>
                                 </div>
 
                                 {/* Actions */}
-                                <div className="col-span-12 flex justify-end gap-3 mt-2">
+                                <div className="col-span-2 flex justify-end gap-3">
 
                                     <button
                                         onClick={() => handleEdit(item)}
                                         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded"
+                                        title="Edit"
                                     >
-                                        Edit
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                     </button>
 
                                     <button
                                         onClick={() => handleDelete(item)}
                                         className="p-1.5 text-red-600 hover:bg-red-50 rounded"
+                                        title="Delete"
                                     >
                                         {loadingId === item.id ? (
                                             <LoadingSpinner size="xs" />
                                         ) : (
-                                            "Delete"
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                         )}
                                     </button>
                                 </div>

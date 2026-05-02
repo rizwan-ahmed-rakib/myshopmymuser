@@ -85,8 +85,9 @@ const EmployeeSalaryAdvanceList = ({advance, onEdit, onDelete}) => {
                         <div className="grid grid-cols-12 px-6 py-4 bg-gray-50 text-xs font-bold text-gray-500 uppercase tracking-wider border-b">
                             <div className="col-span-3">User / Designation</div>
                             <div className="col-span-1">Amount</div>
+                            <div className="col-span-1">Payment</div>
+                            <div className="col-span-1 text-center">Status</div>
                             <div className="col-span-2">Req. Date</div>
-                            <div className="col-span-2 text-center">Status</div>
                             <div className="col-span-2">App. Date</div>
                             <div className="col-span-1">Reason</div>
                             <div className="col-span-1 text-right">Actions</div>
@@ -124,11 +125,17 @@ const EmployeeSalaryAdvanceList = ({advance, onEdit, onDelete}) => {
                                         ৳{parseFloat(item.amount).toLocaleString()}
                                     </div>
 
-                                    <div className="col-span-2 text-sm text-gray-600">
-                                        {formatDate(item.request_date)}
+                                    <div className="col-span-1">
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                            item.payment_method === 'cash' ? 'bg-green-50 text-green-600' :
+                                            item.payment_method === 'bank' ? 'bg-blue-50 text-blue-600' :
+                                            item.payment_method === 'hybrid' ? 'bg-purple-50 text-purple-600' : 'bg-orange-50 text-orange-600'
+                                        }`}>
+                                            {item.payment_method || 'N/A'}
+                                        </span>
                                     </div>
 
-                                    <div className="col-span-2 flex justify-center">
+                                    <div className="col-span-1 flex justify-center">
                                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                                             item.is_approved
                                                 ? "bg-green-100 text-green-700"
@@ -138,7 +145,11 @@ const EmployeeSalaryAdvanceList = ({advance, onEdit, onDelete}) => {
                                         </span>
                                     </div>
 
-                                    <div className="col-span-2 text-sm text-gray-600">
+                                    <div className="col-span-2 text-xs text-gray-600">
+                                        {formatDate(item.request_date)}
+                                    </div>
+
+                                    <div className="col-span-2 text-xs text-gray-600">
                                         {formatDate(item.approved_date)}
                                     </div>
 

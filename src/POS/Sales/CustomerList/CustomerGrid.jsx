@@ -12,7 +12,7 @@ import SuccessModal from "./SuccessModal";
 import LoadingSpinner from "./LoadingSpinner";
 import {posCustomerAPI} from "../../../context_or_provider/pos/Sale/customer/PosCustomerAPI";
 import {usePosCustomers} from "../../../context_or_provider/pos/Sale/customer/PosCustomerProvider";
-import AddCustomerDueCullectionModal from "./AddCustomerDueCollectionModal";
+import AddCustomerDueCollectionModal from "./AddCustomerDueCollectionModal";
 
 const CustomerGrid = () => {
     const {posCustomers, setPosCustomers} = usePosCustomers();
@@ -376,7 +376,7 @@ const CustomerGrid = () => {
 
 
             {/* Due Collection Modal */}
-            <AddCustomerDueCullectionModal
+            <AddCustomerDueCollectionModal
                 isOpen={isDueCollectionOpen}
                 onClose={() => setIsDueCollectionOpen(false)}
                 onSuccess={handleDueCollectionSuccess}

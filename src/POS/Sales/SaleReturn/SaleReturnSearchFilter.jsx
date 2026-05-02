@@ -1,28 +1,29 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import PropTypes from "prop-types";
 
-// Define product-specific filter options
-const PRODUCT_STATUS_OPTIONS = [
+// Define Sale Return specific filter options
+const RETURN_STATUS_OPTIONS = [
     { value: "all", label: "All Statuses" },
-    { value: "in-stock", label: "In Stock" },
-    { value: "out-of-stock", label: "Out of Stock" },
+    { value: "paid", label: "Paid" },
+    { value: "partial", label: "Partial" },
+    { value: "unpaid", label: "Unpaid" },
 ];
 
-const PRODUCT_SORT_OPTIONS = [
-    { value: "name_asc", label: "Name: A to Z" },
-    { value: "name_desc", label: "Name: Z to A" },
-    { value: "price_asc", label: "Price: Low to High" },
-    { value: "price_desc", label: "Price: High to Low" },
-    { value: "stock_desc", label: "Stock: High to Low" },
+const RETURN_SORT_OPTIONS = [
+    { value: "date_desc", label: "Date: Newest First" },
+    { value: "date_asc", label: "Date: Oldest First" },
+    { value: "amount_desc", label: "Amount: High to Low" },
+    { value: "amount_asc", label: "Amount: Low to High" },
+    { value: "customer_asc", label: "Customer: A to Z" },
 ];
 
-// Placeholder for categories - this should be fetched from an API
-const CATEGORY_OPTIONS = [
-    { value: "all", label: "All Categories" },
-    // Example categories - replace with dynamic data
-    { value: "1", label: "Category 1" },
-    { value: "2", label: "Category 2" },
-    { value: "3", label: "Category 3" },
+// Payment Method options for sale returns
+const PAYMENT_METHOD_OPTIONS = [
+    { value: "all", label: "All Payment Methods" },
+    { value: "cash", label: "Cash" },
+    { value: "bkash", label: "bKash" },
+    { value: "nagad", label: "Nagad" },
+    { value: "bank", label: "Bank" },
 ];
 
 
@@ -77,15 +78,15 @@ FilterDropdown.propTypes = {
 const SaleReturnSearchFilter = ({ onSearch, onFilter }) => {
     const [searchQuery, setSearchQuery] = useState("");
     const [filters, setFilters] = useState({
-        category: "all",
+        payment_method: "all",
         status: "all",
-        sortBy: "name_asc"
+        sortBy: "date_desc"
     });
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [priceRange, setPriceRange] = useState({ min: "", max: "" });
 
     // Refs for dropdowns
-    const categoryRef = useRef(null);
+    const paymentMethodRef = useRef(null);
     const statusRef = useRef(null);
     const sortRef = useRef(null);
     
@@ -127,15 +128,15 @@ const SaleReturnSearchFilter = ({ onSearch, onFilter }) => {
 
     const resetFilters = () => {
         setSearchQuery("");
-        setFilters({ category: "all", status: "all", sortBy: "name_asc" });
+        setFilters({ payment_method: "all", status: "all", sortBy: "date_desc" });
         setPriceRange({ min: "", max: "" });
         // Trigger parent components to reset
         onSearch("");
-        onFilter({ category: "all", status: "all", sortBy: "name_asc", priceRange: null });
+        onFilter({ payment_method: "all", status: "all", sortBy: "date_desc", priceRange: null });
     };
 
     const hasActiveFilters = React.useMemo(() => {
-        return filters.category !== "all" ||
+        return filters.payment_method !== "all" ||
                filters.status !== "all" ||
                priceRange.min ||
                priceRange.max;
@@ -156,7 +157,7 @@ const SaleReturnSearchFilter = ({ onSearch, onFilter }) => {
                                 value={searchQuery}
                                 onChange={handleSearchChange}
                                 className="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                placeholder="Search by product name or code..."
+                                placeholder="Search by customer name or invoice number..."
                             />
                         </div>
                     </div>
@@ -174,19 +175,19 @@ const SaleReturnSearchFilter = ({ onSearch, onFilter }) => {
 
                 {/* Quick Filters */}
                 <div className="flex flex-wrap gap-3">
-                    {/* Category Filter */}
-                    <div className="relative" ref={categoryRef}>
-                        <FilterDropdown label={CATEGORY_OPTIONS.find(o => o.value === filters.category)?.label || "Category"} options={CATEGORY_OPTIONS} onSelect={(value) => handleFilterChange("category", value)} selectedValue={filters.category} />
+                    {/* Payment Method Filter */}
+                    <div className="relative" ref={paymentMethodRef}>
+                        <FilterDropdown label={PAYMENT_METHOD_OPTIONS.find(o => o.value === filters.payment_method)?.label || "Payment Method"} options={PAYMENT_METHOD_OPTIONS} onSelect={(value) => handleFilterChange("payment_method", value)} selectedValue={filters.payment_method} />
                     </div>
 
                     {/* Status Filter */}
                     <div className="relative" ref={statusRef}>
-                        <FilterDropdown label={PRODUCT_STATUS_OPTIONS.find(o => o.value === filters.status)?.label || "Status"} options={PRODUCT_STATUS_OPTIONS} onSelect={(value) => handleFilterChange("status", value)} selectedValue={filters.status} />
+                        <FilterDropdown label={RETURN_STATUS_OPTIONS.find(o => o.value === filters.status)?.label || "Status"} options={RETURN_STATUS_OPTIONS} onSelect={(value) => handleFilterChange("status", value)} selectedValue={filters.status} />
                     </div>
 
                     {/* Sort By */}
                     <div className="relative" ref={sortRef}>
-                         <FilterDropdown label={PRODUCT_SORT_OPTIONS.find(o => o.value === filters.sortBy)?.label || "Sort By"} options={PRODUCT_SORT_OPTIONS} onSelect={(value) => handleFilterChange("sortBy", value)} selectedValue={filters.sortBy} />
+                         <FilterDropdown label={RETURN_SORT_OPTIONS.find(o => o.value === filters.sortBy)?.label || "Sort By"} options={RETURN_SORT_OPTIONS} onSelect={(value) => handleFilterChange("sortBy", value)} selectedValue={filters.sortBy} />
                     </div>
                 </div>
                 
@@ -195,7 +196,7 @@ const SaleReturnSearchFilter = ({ onSearch, onFilter }) => {
                     <div className="mt-4 pt-4 border-t">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Price Range</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Net Return Range (৳)</label>
                                 <div className="grid grid-cols-2 gap-3">
                                     <input type="number" value={priceRange.min} onChange={(e) => handlePriceRangeChange(e, "min")} className="w-full px-3 py-2 border rounded-lg" placeholder="Min" />
                                     <input type="number" value={priceRange.max} onChange={(e) => handlePriceRangeChange(e, "max")} className="w-full px-3 py-2 border rounded-lg" placeholder="Max" />

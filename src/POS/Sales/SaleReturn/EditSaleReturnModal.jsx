@@ -298,45 +298,63 @@ const EditSaleReturnModal = ({ open, onClose, purchase, onUpdated }) => {
     const [errors, setErrors] = useState({});
     const [originalItems, setOriginalItems] = useState([]);
 
+    // Hybrid Payment States (Internal to form)
+    const [paidCash, setPaidCash] = useState(0);
+    const [paidMobile, setPaidMobile] = useState(0);
+    const [paidBank, setPaidBank] = useState(0);
+    const [mobileOperator, setMobileOperator] = useState("");
+    const [transactionId, setTransactionId] = useState("");
+    const [bankAccountNo, setBankAccountNo] = useState("");
+    const [globalPenalty, setGlobalPenalty] = useState(0);
+
     /* ================= INIT ================= */
     useEffect(() => {
         if (open && purchase) {
-            // Deep copy of sale return
             const cloned = JSON.parse(JSON.stringify(purchase));
-
-            // Store original items for comparison
             setOriginalItems(cloned.items);
 
-            // Map items for editing
             cloned.items = cloned.items.map(item => ({
                 ...item,
                 _original_return_qty: Number(item.sale_return_quantity) || 0,
                 _sale_item_quantity: Number(item.sold_quantity) || 0,
+                penalty_amount: Number(item.penalty_amount) || 0,
             }));
 
             setForm(cloned);
+            setPaidCash(Number(cloned.paid_cash) || 0);
+            setPaidMobile(Number(cloned.paid_mobile) || 0);
+            setPaidBank(Number(cloned.paid_bank) || 0);
+            setMobileOperator(cloned.mobile_operator || "");
+            setTransactionId(cloned.transaction_id || "");
+            setBankAccountNo(cloned.bank_account_no || "");
+            setGlobalPenalty(Number(cloned.global_penalty) || 0);
         }
     }, [open, purchase]);
 
     /* ================= RECALCULATE ================= */
     const recalculate = useCallback((data) => {
         let totalReturnAmount = 0;
+        let totalItemPenalty = 0;
 
         data.items.forEach(item => {
             const returnQty = Number(item.sale_return_quantity) || 0;
             const unitPrice = Number(item.unit_price) || 0;
+            const penalty = Number(item.penalty_amount) || 0;
+            
             item.total_price = (returnQty * unitPrice).toFixed(2);
             totalReturnAmount += returnQty * unitPrice;
+            totalItemPenalty += penalty;
         });
 
-        const paid = Number(data.paid_amount) || 0;
-        const dueAmount = totalReturnAmount - paid;
+        const totalPaid = Number(paidCash) + Number(paidMobile) + Number(paidBank);
+        const netReturnAmount = totalReturnAmount - totalItemPenalty - Number(globalPenalty);
+        const dueAmount = netReturnAmount - totalPaid;
 
         // Determine payment status
         let paymentStatus = 'unpaid';
-        if (paid === 0) {
+        if (totalPaid === 0) {
             paymentStatus = 'unpaid';
-        } else if (paid >= totalReturnAmount) {
+        } else if (totalPaid >= netReturnAmount) {
             paymentStatus = 'paid';
         } else {
             paymentStatus = 'partial';
@@ -345,38 +363,31 @@ const EditSaleReturnModal = ({ open, onClose, purchase, onUpdated }) => {
         return {
             ...data,
             total_return_amount: totalReturnAmount.toFixed(2),
+            total_item_penalty: totalItemPenalty.toFixed(2),
+            net_return_amount: netReturnAmount.toFixed(2),
             due_amount: dueAmount.toFixed(2),
             payment_status: paymentStatus,
+            paid_cash: paidCash,
+            paid_mobile: paidMobile,
+            paid_bank: paidBank,
+            global_penalty: globalPenalty,
         };
-    }, []);
+    }, [paidCash, paidMobile, paidBank, globalPenalty]);
 
     useEffect(() => {
         if (form) {
             setForm(prev => recalculate({ ...prev }));
         }
-    }, [form?.items, form?.paid_amount, recalculate]);
+    }, [form?.items, paidCash, paidMobile, paidBank, globalPenalty, recalculate]);
 
     if (!open || !form) return null;
 
     /* ================= HELPERS ================= */
     const getAvailableQuantity = (item) => {
         const soldQty = Number(item.sold_quantity) || 0;
-        const alreadyReturned = originalItems
-            .filter(orig => orig.sale_item === item.sale_item)
-            .reduce((sum, orig) => sum + (Number(orig.sale_return_quantity) || 0), 0);
-
-        // return soldQty - alreadyReturned + (Number(item.sale_return_quantity) || 0);
-        return soldQty - alreadyReturned;
-    };
-
-    const getOriginalSaleInfo = (item) => {
-        const originalItem = originalItems.find(orig => orig.sale_item === item.sale_item);
-        return {
-            originalReturnQty: originalItem ? Number(originalItem.sale_return_quantity) || 0 : 0,
-            alreadyReturned: originalItems
-                .filter(orig => orig.sale_item === item.sale_item)
-                .reduce((sum, orig) => sum + (Number(orig.sale_return_quantity) || 0), 0)
-        };
+        // Simplified for edit: soldQty - other returns (not this one)
+        // But for UI display, we'll just use soldQty as the upper bound
+        return soldQty;
     };
 
     /* ================= HANDLERS ================= */
@@ -389,16 +400,11 @@ const EditSaleReturnModal = ({ open, onClose, purchase, onUpdated }) => {
     };
 
     const handleRemoveItem = (index) => {
-        if (window.confirm("Are you sure you want to remove this item from the return?")) {
+        if (window.confirm("Are you sure you want to remove this item?")) {
             setForm(prev => ({
                 ...prev,
                 items: prev.items.filter((_, i) => i !== index),
             }));
-            setErrors(prev => {
-                const newErrors = { ...prev };
-                delete newErrors[index];
-                return newErrors;
-            });
         }
     };
 
@@ -409,23 +415,15 @@ const EditSaleReturnModal = ({ open, onClose, purchase, onUpdated }) => {
     /* ================= VALIDATION ================= */
     const validate = () => {
         const errs = {};
-
         form.items.forEach((item, index) => {
             const returnQty = Number(item.sale_return_quantity) || 0;
-            const available = getAvailableQuantity(item);
             const soldQty = Number(item.sold_quantity) || 0;
-
             if (returnQty <= 0) {
-                errs[index] = "Return quantity must be greater than 0";
+                errs[index] = "Required > 0";
             } else if (returnQty > soldQty) {
-                errs[index] = `Cannot return more than sold quantity (${soldQty})`;
+                errs[index] = `Max ${soldQty}`;
             }
-            // else if (returnQty > available) {
-            //     const originalInfo = getOriginalSaleInfo(item) + soldQty;
-            //     errs[index] = `Exceeds available quantity. Available: ${available} (Sold: ${soldQty}, Already returned in other returns: ${originalInfo.alreadyReturned - originalInfo.originalReturnQty})`;
-            // }
         });
-
         setErrors(errs);
         return Object.keys(errs).length === 0;
     };
@@ -433,36 +431,41 @@ const EditSaleReturnModal = ({ open, onClose, purchase, onUpdated }) => {
     /* ================= SUBMIT ================= */
     const handleSubmit = async () => {
         if (!validate()) return;
-
         try {
             setSaving(true);
-
             const payload = {
                 sale: form.sale,
                 customer: form.customer,
+                total_return_amount: Number(form.total_return_amount),
+                total_item_penalty: Number(form.total_item_penalty),
+                global_penalty: Number(globalPenalty),
+                net_return_amount: Number(form.net_return_amount),
+                paid_cash: Number(paidCash),
+                paid_mobile: Number(paidMobile),
+                paid_bank: Number(paidBank),
+                mobile_operator: paidMobile > 0 ? mobileOperator : "",
+                transaction_id: paidMobile > 0 ? transactionId : "",
+                bank_account_no: paidBank > 0 ? bankAccountNo : "",
                 payment_method: form.payment_method,
-                paid_amount: Number(form.paid_amount) || 0,
                 note: form.note || "",
                 return_reason: form.return_reason || "",
                 items: form.items.map(item => ({
                     sale_item: item.sale_item,
-                    sale_return_quantity: Number(item.sale_return_quantity) || 0,
-                    unit_price: Number(item.unit_price) || 0,
+                    sale_return_quantity: Number(item.sale_return_quantity),
+                    unit_price: Number(item.unit_price),
+                    penalty_amount: Number(item.penalty_amount || 0),
                     reason: item.reason || "Customer Return",
                 })),
             };
-
-            console.log("Update payload:", payload);
 
             const res = await axios.put(
                 `${BASE_URL_of_POS}/api/sale/sale-returns/${form.id}/`,
                 payload
             );
-
             onUpdated(res.data);
             onClose();
         } catch (err) {
-            console.error("Update failed:", err.response?.data || err.message);
+            console.error("Update failed:", err);
             alert(`Update failed: ${err.response?.data?.message || err.message}`);
         } finally {
             setSaving(false);
@@ -472,278 +475,106 @@ const EditSaleReturnModal = ({ open, onClose, purchase, onUpdated }) => {
     /* ================= UI ================= */
     return (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
-
+            <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl">
                 {/* HEADER */}
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-800">
-                                Edit Sale Return
-                            </h2>
-                            <div className="flex items-center gap-4 mt-1 text-sm text-gray-600">
-                                <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full font-medium">
-                                    Invoice #{form.sale_invoice_no}
-                                </span>
-                                <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full font-medium">
-                                    {form.customer_name || 'Walk-in Customer'}
-                                </span>
-                                <span className={`px-3 py-1 rounded-full font-medium ${
-                                    form.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
-                                    form.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-800' :
-                                    'bg-red-100 text-red-800'
-                                }`}>
-                                    {form.payment_status?.toUpperCase()}
-                                </span>
-                            </div>
-                        </div>
-                        <button
-                            onClick={onClose}
-                            className="text-2xl text-gray-500 hover:text-gray-700 transition-colors"
-                        >
-                            &times;
-                        </button>
+                <div className="bg-gray-800 text-white px-6 py-4 flex justify-between items-center">
+                    <div>
+                        <h2 className="text-xl font-bold">Edit Sale Return</h2>
+                        <p className="text-xs text-gray-400">Invoice #{form.sale_invoice_no} | Customer: {form.customer_name || 'Walk-in'}</p>
                     </div>
+                    <button onClick={onClose} className="text-2xl hover:text-red-400">×</button>
                 </div>
 
-                {/* MAIN CONTENT - Scrollable */}
-                <div className="flex-1 overflow-y-auto p-6">
-                    {/* Return Info */}
-                    <div className="mb-6 grid md:grid-cols-2 gap-4">
+                {/* CONTENT */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    <div className="grid md:grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Return Reason
-                            </label>
-                            <textarea
-                                className="w-full border rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                rows="2"
-                                value={form.return_reason || ""}
-                                onChange={e => handleChange("return_reason", e.target.value)}
-                                placeholder="Reason for return..."
-                            />
+                            <label className="block text-sm font-bold text-gray-700 mb-1">Return Reason</label>
+                            <textarea className="input w-full border-gray-300 rounded-lg" rows="1" value={form.return_reason || ""} onChange={e => handleChange("return_reason", e.target.value)} />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Additional Notes
-                            </label>
-                            <textarea
-                                className="w-full border rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                rows="2"
-                                value={form.note || ""}
-                                onChange={e => handleChange("note", e.target.value)}
-                                placeholder="Additional notes..."
-                            />
+                            <label className="block text-sm font-bold text-gray-700 mb-1">Internal Note</label>
+                            <textarea className="input w-full border-gray-300 rounded-lg" rows="1" value={form.note || ""} onChange={e => handleChange("note", e.target.value)} />
                         </div>
                     </div>
 
-                    {/* ITEMS TABLE */}
-                    <div className="mb-6">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Return Items</h3>
-                        <div className="overflow-x-auto rounded-lg border shadow-sm">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Product
-                                        </th>
-                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Sold
-                                        </th>
-                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Available
-                                        </th>
-                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Return Qty
-                                        </th>
-                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Unit Price
-                                        </th>
-                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Total
-                                        </th>
-                                        <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Action
-                                        </th>
+                    <div className="border rounded-xl overflow-hidden shadow-sm">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Product</th>
+                                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Sold</th>
+                                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-500 uppercase">Return Qty</th>
+                                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Price</th>
+                                    <th className="px-4 py-3 text-right text-xs font-bold text-red-500 uppercase">Penalty</th>
+                                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase">Total</th>
+                                    <th className="px-4 py-3"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {form.items.map((item, index) => (
+                                    <tr key={item.id} className="hover:bg-gray-50">
+                                        <td className="px-4 py-3 text-sm font-medium">{item.product_name}</td>
+                                        <td className="px-4 py-3 text-center text-sm">{item.sold_quantity}</td>
+                                        <td className="px-4 py-3">
+                                            <input type="number" className="input w-20 text-center mx-auto block" value={item.sale_return_quantity} onChange={e => handleItemChange(index, "sale_return_quantity", e.target.value)} />
+                                            {errors[index] && <p className="text-[10px] text-red-500 text-center mt-1">{errors[index]}</p>}
+                                        </td>
+                                        <td className="px-4 py-3 text-right text-sm">৳{item.unit_price}</td>
+                                        <td className="px-4 py-3">
+                                            <input type="number" className="input w-24 text-right mx-auto block text-red-600 font-bold" value={item.penalty_amount} onChange={e => handleItemChange(index, "penalty_amount", e.target.value)} />
+                                        </td>
+                                        <td className="px-4 py-3 text-right text-sm font-bold">৳{item.total_price}</td>
+                                        <td className="px-4 py-3 text-center">
+                                            <button onClick={() => handleRemoveItem(index)} className="text-red-400 hover:text-red-600"><FaTrash size={14}/></button>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                    {form.items.map((item, index) => {
-                                        const available = getAvailableQuantity(item);
-                                        const originalInfo = getOriginalSaleInfo(item);
-
-                                        return (
-                                            <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-6 py-4">
-                                                    <div className="font-medium text-gray-900">{item.product_name}</div>
-                                                    <div className="text-xs text-gray-500 mt-1">
-                                                        <div>Original Return: {originalInfo.originalReturnQty}</div>
-                                                        <div>Total Already Returned: {originalInfo.alreadyReturned}</div>
-                                                    </div>
-                                                </td>
-
-                                                <td className="px-6 py-4 text-center">
-                                                    {/*<span className="font-medium">{item.sold_quantity}</span>*/}
-                                                    <span className={`font-medium ${item.sold_quantity < item.sale_return_quantity ? 'text-red-600' : 'text-green-600'}`}>{item.sold_quantity}</span>
-                                                </td>
-
-                                                <td className="px-6 py-4 text-center">
-                                                    <span className={`font-medium ${available < item.sale_return_quantity ? 'text-red-600' : 'text-green-600'}`}>
-                                                        {available}
-                                                    </span>
-                                                </td>
-
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-col items-center">
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            max={available}
-                                                            value={item.sale_return_quantity || ""}
-                                                            onChange={e =>
-                                                                handleItemChange(index, "sale_return_quantity", e.target.value)
-                                                            }
-                                                            className="w-24 text-center border rounded-lg py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                        />
-                                                        {errors[index] && (
-                                                            <p className="text-xs text-red-600 mt-1 text-center">
-                                                                {errors[index]}
-                                                            </p>
-                                                        )}
-                                                    </div>
-                                                </td>
-
-                                                <td className="px-6 py-4">
-                                                    <input
-                                                        type="number"
-                                                        step="0.01"
-                                                        min="0"
-                                                        value={item.unit_price || ""}
-                                                        onChange={e =>
-                                                            handleItemChange(index, "unit_price", e.target.value)
-                                                        }
-                                                        className="w-32 text-right border rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                    />
-                                                </td>
-
-                                                <td className="px-6 py-4 text-right font-medium text-gray-900">
-                                                    ৳{item.total_price || "0.00"}
-                                                </td>
-
-                                                <td className="px-6 py-4 text-center">
-                                                    <button
-                                                        onClick={() => handleRemoveItem(index)}
-                                                        className="text-red-500 hover:text-red-700 transition-colors p-2 rounded-full hover:bg-red-50"
-                                                        title="Remove item"
-                                                    >
-                                                        <FaTrash size={18} />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
 
-                    {/* PAYMENT SECTION */}
-                    <div className="bg-gray-50 rounded-xl p-6 mb-6">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Payment Details</h3>
-
-                        <div className="grid md:grid-cols-2 gap-8">
-                            {/* Payment Method */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-3">
-                                    Payment Method
-                                </label>
-                                <select
-                                    className="w-full border rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                                    value={form.payment_method || ""}
-                                    onChange={e => handleChange("payment_method", e.target.value)}
-                                >
-                                    <option value="">Select Method</option>
-                                    <option value="hand cash">Hand Cash</option>
-                                    <option value="bkash">bKash</option>
-                                    <option value="bank">Bank Transfer</option>
-                                    <option value="card">Credit/Debit Card</option>
-                                    <option value="due">Due</option>
-                                </select>
+                    <div className="grid lg:grid-cols-2 gap-8">
+                        <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100 space-y-4">
+                            <h3 className="font-bold text-blue-900 border-b border-blue-200 pb-2">Payment Adjustment</h3>
+                            <div className="grid grid-cols-3 gap-3">
+                                <div><label className="text-[10px] uppercase font-bold text-blue-700">Cash</label><input type="number" className="w-full border-blue-200 p-2 rounded-lg font-bold" value={paidCash} onChange={(e) => setPaidCash(Number(e.target.value))}/></div>
+                                <div><label className="text-[10px] uppercase font-bold text-blue-700">Mobile</label><input type="number" className="w-full border-blue-200 p-2 rounded-lg font-bold" value={paidMobile} onChange={(e) => setPaidMobile(Number(e.target.value))}/></div>
+                                <div><label className="text-[10px] uppercase font-bold text-blue-700">Bank</label><input type="number" className="w-full border-blue-200 p-2 rounded-lg font-bold" value={paidBank} onChange={(e) => setPaidBank(Number(e.target.value))}/></div>
                             </div>
-
-                            {/* Payment Summary */}
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center pb-3 border-b">
-                                    <span className="text-gray-600">Total Return Amount:</span>
-                                    <strong className="text-xl text-gray-900">
-                                        ৳{form.total_return_amount || "0.00"}
-                                    </strong>
+                            {paidMobile > 0 && (
+                                <div className="grid grid-cols-2 gap-3 p-3 bg-white rounded-lg border border-blue-100 shadow-sm">
+                                    <div><label className="text-[10px] font-bold text-gray-500">Operator</label><select className="w-full border-0 p-0 text-sm focus:ring-0" value={mobileOperator} onChange={(e) => setMobileOperator(e.target.value)}><option value="bkash">bKash</option><option value="nagad">Nagad</option></select></div>
+                                    <div><label className="text-[10px] font-bold text-gray-500">Trx ID</label><input className="w-full border-0 p-0 text-sm focus:ring-0" value={transactionId} onChange={(e) => setTransactionId(e.target.value)}/></div>
                                 </div>
-
-                                <div className="flex justify-between items-center pb-3 border-b">
-                                    <span className="text-gray-600">Paid Amount:</span>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-gray-500">৳</span>
-                                        <input
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
-                                            max={form.total_return_amount || 0}
-                                            value={form.paid_amount || ""}
-                                            onChange={e => handleChange("paid_amount", e.target.value)}
-                                            className="w-40 text-right border rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                        />
-                                    </div>
+                            )}
+                            {paidBank > 0 && (
+                                <div className="p-3 bg-white rounded-lg border border-blue-100 shadow-sm">
+                                    <label className="text-[10px] font-bold text-gray-500">Bank Account No</label>
+                                    <input className="w-full border-0 p-0 text-sm focus:ring-0" value={bankAccountNo} onChange={(e) => setBankAccountNo(e.target.value)}/>
                                 </div>
+                            )}
+                        </div>
 
-                                <div className="flex justify-between items-center pt-2">
-                                    <span className="text-lg font-semibold text-gray-700">Due Amount:</span>
-                                    <strong className={`text-2xl ${
-                                        Number(form.due_amount) > 0 ? 'text-red-600' : 'text-green-600'
-                                    }`}>
-                                        ৳{form.due_amount || "0.00"}
-                                    </strong>
-                                </div>
-
-                                <div className="flex justify-between items-center">
-                                    <span className="text-gray-600">Payment Status:</span>
-                                    <span className={`px-3 py-1 rounded-full font-medium ${
-                                        form.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
-                                        form.payment_status === 'partial' ? 'bg-yellow-100 text-yellow-800' :
-                                        'bg-red-100 text-red-800'
-                                    }`}>
-                                        {form.payment_status?.toUpperCase() || 'UNPAID'}
-                                    </span>
-                                </div>
+                        <div className="bg-gray-900 text-white p-6 rounded-2xl space-y-3 shadow-xl">
+                            <div className="flex justify-between text-sm opacity-70"><span>Gross Total</span><span>৳{form.total_return_amount}</span></div>
+                            <div className="flex justify-between text-sm text-red-400"><span>Item Penalties</span><span>- ৳{form.total_item_penalty}</span></div>
+                            <div className="flex justify-between items-center text-sm text-red-400">
+                                <span>Global Penalty</span>
+                                <input type="number" className="w-24 bg-gray-800 border-0 rounded text-right p-1 font-mono text-white focus:ring-1 focus:ring-red-500" value={globalPenalty} onChange={e => setGlobalPenalty(Number(e.target.value))} />
                             </div>
+                            <div className="flex justify-between text-lg pt-2 border-t border-gray-800"><span className="font-bold">Net Return</span><span className="font-mono font-black text-2xl text-green-400">৳{form.net_return_amount}</span></div>
+                            <div className="flex justify-between text-sm pt-2 border-t border-gray-800 opacity-70"><span>Total Paid Back</span><span>৳{(Number(paidCash) + Number(paidMobile) + Number(paidBank)).toFixed(2)}</span></div>
+                            <div className="flex justify-between text-lg text-red-500 font-bold"><span>Balance Due</span><span className="font-mono">৳{form.due_amount}</span></div>
                         </div>
                     </div>
                 </div>
 
-                {/* FOOTER - Fixed at bottom */}
-                <div className="border-t bg-white px-6 py-4">
-                    <div className="flex justify-end gap-4">
-                        <button
-                            onClick={onClose}
-                            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                            disabled={saving}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={handleSubmit}
-                            disabled={saving || form.items.length === 0}
-                            className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
-                        >
-                            {saving ? (
-                                <span className="flex items-center gap-2">
-                                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
-                                    Updating...
-                                </span>
-                            ) : (
-                                "Update Sale Return"
-                            )}
-                        </button>
-                    </div>
+                <div className="bg-gray-50 px-6 py-4 flex justify-end gap-3 border-t">
+                    <button onClick={onClose} className="btn-gray px-6 py-2 rounded-xl">Discard</button>
+                    <button onClick={handleSubmit} disabled={saving} className="bg-blue-600 text-white px-10 py-2 rounded-xl font-bold hover:bg-blue-700 shadow-lg disabled:bg-gray-400">
+                        {saving ? "Updating..." : "Update Return"}
+                    </button>
                 </div>
             </div>
         </div>

@@ -1,30 +1,20 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import PropTypes from "prop-types";
 
-// Define product-specific filter options
-const PRODUCT_STATUS_OPTIONS = [
+// Define purchase return-specific filter options
+const RETURN_STATUS_OPTIONS = [
     { value: "all", label: "All Statuses" },
-    { value: "in-stock", label: "In Stock" },
-    { value: "out-of-stock", label: "Out of Stock" },
+    { value: "paid", label: "Paid" },
+    { value: "partial", label: "Partial Paid" },
+    { value: "unpaid", label: "Unpaid" },
 ];
 
-const PRODUCT_SORT_OPTIONS = [
-    { value: "name_asc", label: "Name: A to Z" },
-    { value: "name_desc", label: "Name: Z to A" },
-    { value: "price_asc", label: "Price: Low to High" },
-    { value: "price_desc", label: "Price: High to Low" },
-    { value: "stock_desc", label: "Stock: High to Low" },
+const RETURN_SORT_OPTIONS = [
+    { value: "date_desc", label: "Date: Newest First" },
+    { value: "date_asc", label: "Date: Oldest First" },
+    { value: "amount_desc", label: "Amount: High to Low" },
+    { value: "amount_asc", label: "Amount: Low to High" },
 ];
-
-// Placeholder for categories - this should be fetched from an API
-const CATEGORY_OPTIONS = [
-    { value: "all", label: "All Categories" },
-    // Example categories - replace with dynamic data
-    { value: "1", label: "Category 1" },
-    { value: "2", label: "Category 2" },
-    { value: "3", label: "Category 3" },
-];
-
 
 // A helper component for dropdowns to reduce repetition
 const FilterDropdown = ({ label, options, onSelect, selectedValue }) => {
@@ -77,15 +67,13 @@ FilterDropdown.propTypes = {
 const ProductSearchFilter = ({ onSearch, onFilter }) => {
     const [searchQuery, setSearchQuery] = useState("");
     const [filters, setFilters] = useState({
-        category: "all",
         status: "all",
-        sortBy: "name_asc"
+        sortBy: "date_desc"
     });
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [priceRange, setPriceRange] = useState({ min: "", max: "" });
 
     // Refs for dropdowns
-    const categoryRef = useRef(null);
     const statusRef = useRef(null);
     const sortRef = useRef(null);
     
@@ -127,16 +115,15 @@ const ProductSearchFilter = ({ onSearch, onFilter }) => {
 
     const resetFilters = () => {
         setSearchQuery("");
-        setFilters({ category: "all", status: "all", sortBy: "name_asc" });
+        setFilters({ status: "all", sortBy: "date_desc" });
         setPriceRange({ min: "", max: "" });
         // Trigger parent components to reset
         onSearch("");
-        onFilter({ category: "all", status: "all", sortBy: "name_asc", priceRange: null });
+        onFilter({ status: "all", sortBy: "date_desc", priceRange: null });
     };
 
     const hasActiveFilters = React.useMemo(() => {
-        return filters.category !== "all" ||
-               filters.status !== "all" ||
+        return filters.status !== "all" ||
                priceRange.min ||
                priceRange.max;
     }, [filters, priceRange]);
@@ -156,7 +143,7 @@ const ProductSearchFilter = ({ onSearch, onFilter }) => {
                                 value={searchQuery}
                                 onChange={handleSearchChange}
                                 className="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                                placeholder="Search by product name or code..."
+                                placeholder="Search by invoice # or supplier..."
                             />
                         </div>
                     </div>
@@ -174,19 +161,14 @@ const ProductSearchFilter = ({ onSearch, onFilter }) => {
 
                 {/* Quick Filters */}
                 <div className="flex flex-wrap gap-3">
-                    {/* Category Filter */}
-                    <div className="relative" ref={categoryRef}>
-                        <FilterDropdown label={CATEGORY_OPTIONS.find(o => o.value === filters.category)?.label || "Category"} options={CATEGORY_OPTIONS} onSelect={(value) => handleFilterChange("category", value)} selectedValue={filters.category} />
-                    </div>
-
                     {/* Status Filter */}
                     <div className="relative" ref={statusRef}>
-                        <FilterDropdown label={PRODUCT_STATUS_OPTIONS.find(o => o.value === filters.status)?.label || "Status"} options={PRODUCT_STATUS_OPTIONS} onSelect={(value) => handleFilterChange("status", value)} selectedValue={filters.status} />
+                        <FilterDropdown label={RETURN_STATUS_OPTIONS.find(o => o.value === filters.status)?.label || "Status"} options={RETURN_STATUS_OPTIONS} onSelect={(value) => handleFilterChange("status", value)} selectedValue={filters.status} />
                     </div>
 
                     {/* Sort By */}
                     <div className="relative" ref={sortRef}>
-                         <FilterDropdown label={PRODUCT_SORT_OPTIONS.find(o => o.value === filters.sortBy)?.label || "Sort By"} options={PRODUCT_SORT_OPTIONS} onSelect={(value) => handleFilterChange("sortBy", value)} selectedValue={filters.sortBy} />
+                         <FilterDropdown label={RETURN_SORT_OPTIONS.find(o => o.value === filters.sortBy)?.label || "Sort By"} options={RETURN_SORT_OPTIONS} onSelect={(value) => handleFilterChange("sortBy", value)} selectedValue={filters.sortBy} />
                     </div>
                 </div>
                 
@@ -195,7 +177,7 @@ const ProductSearchFilter = ({ onSearch, onFilter }) => {
                     <div className="mt-4 pt-4 border-t">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Price Range</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Amount Range</label>
                                 <div className="grid grid-cols-2 gap-3">
                                     <input type="number" value={priceRange.min} onChange={(e) => handlePriceRangeChange(e, "min")} className="w-full px-3 py-2 border rounded-lg" placeholder="Min" />
                                     <input type="number" value={priceRange.max} onChange={(e) => handlePriceRangeChange(e, "max")} className="w-full px-3 py-2 border rounded-lg" placeholder="Max" />

@@ -3,11 +3,37 @@ import { posPurchaseReturnAPI } from "../../../context_or_provider/pos/Purchase/
 
 const PurchaseReturnModal = ({ isOpen, onClose, onSuccess, purchase }) => {
   const [returnItems, setReturnItems] = useState({});
-  const [paidAmount, setPaidAmount] = useState(0);
+  const [itemPenalties, setItemPenalties] = useState({});
+  const [globalPenalty, setGlobalPenalty] = useState(0);
+
+  // Hybrid Payment States
+  const [paidCash, setPaidCash] = useState(0);
+  const [paidMobile, setPaidMobile] = useState(0);
+  const [paidBank, setPaidBank] = useState(0);
+  const [mobileOperator, setMobileOperator] = useState("");
+  const [transactionId, setTransactionId] = useState("");
+  const [bankAccountNo, setBankAccountNo] = useState("");
+
   const [paymentMethod, setPaymentMethod] = useState("hand cash");
   const [loading, setLoading] = useState(false);
   const [returnedQuantitiesMap, setReturnedQuantitiesMap] = useState({});
   const [existingReturnId, setExistingReturnId] = useState(null);
+  const [note, setNote] = useState("");
+  const [returnReason, setReturnReason] = useState("");
+
+  // Auto update payment method based on inputs
+  useEffect(() => {
+    const counts = [paidCash > 0, paidMobile > 0, paidBank > 0].filter(Boolean).length;
+    if (counts > 1) {
+      setPaymentMethod("hybrid");
+    } else if (paidMobile > 0) {
+      setPaymentMethod("mobile_banking");
+    } else if (paidBank > 0) {
+      setPaymentMethod("bank");
+    } else {
+      setPaymentMethod("hand cash");
+    }
+  }, [paidCash, paidMobile, paidBank]);
 
   useEffect(() => {
     if (isOpen && purchase) {
@@ -20,18 +46,40 @@ const PurchaseReturnModal = ({ isOpen, onClose, onSuccess, purchase }) => {
           );
 
           if (relatedReturns.length > 0) {
-            setExistingReturnId(relatedReturns[0].id);
+            const latestReturn = relatedReturns[0];
+            setExistingReturnId(latestReturn.id);
+            
+            // Set existing values
+            setNote(latestReturn.note || "");
+            setReturnReason(latestReturn.return_reason || "");
+            setPaidCash(parseFloat(latestReturn.paid_cash) || 0);
+            setPaidMobile(parseFloat(latestReturn.paid_mobile) || 0);
+            setPaidBank(parseFloat(latestReturn.paid_bank) || 0);
+            setGlobalPenalty(parseFloat(latestReturn.global_penalty) || 0);
+            setMobileOperator(latestReturn.mobile_operator || "");
+            setTransactionId(latestReturn.transaction_id || "");
+            setBankAccountNo(latestReturn.bank_account_no || "");
+
             const newReturnedMap = {};
             relatedReturns.forEach(r => {
               r.items.forEach(i => {
                 newReturnedMap[i.purchase_item] =
-                  (newReturnedMap[i.purchase_item] || 0) + i.quantity;
+                  (newReturnedMap[i.purchase_item] || 0) + i.purchase_return_quantity;
               });
             });
             setReturnedQuantitiesMap(newReturnedMap);
           } else {
             setExistingReturnId(null);
             setReturnedQuantitiesMap({});
+            setNote("");
+            setReturnReason("");
+            setPaidCash(0);
+            setPaidMobile(0);
+            setPaidBank(0);
+            setGlobalPenalty(0);
+            setMobileOperator("");
+            setTransactionId("");
+            setBankAccountNo("");
           }
         } catch (error) {
           console.error("Error fetching purchase returns:", error);
@@ -42,7 +90,7 @@ const PurchaseReturnModal = ({ isOpen, onClose, onSuccess, purchase }) => {
 
       fetchExistingReturns();
       setReturnItems({});
-      setPaidAmount(0);
+      setItemPenalties({});
     }
   }, [isOpen, purchase]);
 
@@ -54,7 +102,13 @@ const PurchaseReturnModal = ({ isOpen, onClose, onSuccess, purchase }) => {
     }, 0);
   }, [returnItems, purchase]);
 
-  const dueAmount = totalReturnAmount - paidAmount;
+  const totalItemPenalty = useMemo(() => {
+    return Object.values(itemPenalties).reduce((sum, p) => sum + Number(p || 0), 0);
+  }, [itemPenalties]);
+
+  const netReturnAmount = totalReturnAmount - totalItemPenalty - Number(globalPenalty || 0);
+  const totalPaid = Number(paidCash) + Number(paidMobile) + Number(paidBank);
+  const dueAmount = netReturnAmount - totalPaid;
 
   if (!isOpen) return null;
 
@@ -71,6 +125,19 @@ const PurchaseReturnModal = ({ isOpen, onClose, onSuccess, purchase }) => {
       ...returnItems,
       [item.id]: qty,
     });
+
+    if (qty === 0) {
+      const newPenalties = { ...itemPenalties };
+      delete newPenalties[item.id];
+      setItemPenalties(newPenalties);
+    }
+  };
+
+  const handlePenaltyChange = (itemId, penalty) => {
+    setItemPenalties({
+      ...itemPenalties,
+      [itemId]: Number(penalty),
+    });
   };
 
   const handleSubmit = async () => {
@@ -83,9 +150,10 @@ const PurchaseReturnModal = ({ isOpen, onClose, onSuccess, purchase }) => {
       .filter(i => Number(returnItems[i.id]) > 0)
       .map(i => ({
         purchase_item: i.id,
-        quantity: Number(returnItems[i.id]),
+        purchase_return_quantity: Number(returnItems[i.id]),
         unit_price: i.unit_price,
-        reason: "Returned",
+        penalty_amount: Number(itemPenalties[i.id] || 0),
+        reason: returnReason || "Returned",
       }));
 
     if (!items.length) {
@@ -96,8 +164,19 @@ const PurchaseReturnModal = ({ isOpen, onClose, onSuccess, purchase }) => {
     const payload = {
       purchase: purchase.id,
       supplier: purchase.supplier,
-      paid_amount: paidAmount,
+      total_return_amount: totalReturnAmount,
+      total_item_penalty: totalItemPenalty,
+      global_penalty: Number(globalPenalty),
+      net_return_amount: netReturnAmount,
+      paid_cash: paidCash,
+      paid_mobile: paidMobile,
+      paid_bank: paidBank,
+      mobile_operator: paidMobile > 0 ? mobileOperator : "",
+      transaction_id: paidMobile > 0 ? transactionId : "",
+      bank_account_no: paidBank > 0 ? bankAccountNo : "",
       payment_method: paymentMethod,
+      note: note,
+      return_reason: returnReason,
       items,
     };
 
@@ -113,7 +192,7 @@ const PurchaseReturnModal = ({ isOpen, onClose, onSuccess, purchase }) => {
       onClose();
     } catch (err) {
       console.error(err);
-      alert("Purchase return failed");
+      alert(`Purchase return failed: ${err.response?.data?.message || err.message}`);
     } finally {
       setLoading(false);
     }
@@ -121,84 +200,139 @@ const PurchaseReturnModal = ({ isOpen, onClose, onSuccess, purchase }) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-xl w-full max-w-3xl">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-white p-6 rounded-xl w-full max-w-4xl max-h-[95vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4 text-gray-800">
           <h2 className="text-xl font-bold">Purchase Return (Invoice #{purchase?.invoice_no})</h2>
           <span className={`px-3 py-1 rounded-full text-sm font-semibold ${existingReturnId ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}`}>
             {existingReturnId ? 'Update Return' : 'New Return'}
           </span>
         </div>
 
-        {loading ? (
+        {loading && !purchase ? (
           <p>Loading...</p>
         ) : (
           <>
-            {/* Items */}
-            <div className="mt-4 space-y-3">
-              {purchase?.items.map(item => {
-                const alreadyReturned = returnedQuantitiesMap[item.id] || 0;
-                const availableQuantity = item.quantity - alreadyReturned;
-                return (
-                  <div key={item.id} className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">{item.product_name}</p>
-                      <p className="text-xs text-gray-500">
-                        Purchased: {item.quantity} | Available: {availableQuantity}
-                      </p>
-                    </div>
-                    <input
-                      type="number"
-                      min="0"
-                      max={availableQuantity}
-                      className="input w-24"
-                      placeholder="Qty"
-                      value={returnItems[item.id] || ""}
-                      onChange={e => handleQtyChange(item, e.target.value)}
-                    />
-                  </div>
-                );
-              })}
+            <div className="mb-4 grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700">Return Reason</label>
+                <textarea className="input w-full p-2 border rounded" rows="1" value={returnReason} onChange={e => setReturnReason(e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1 text-gray-700">Internal Note</label>
+                <textarea className="input w-full p-2 border rounded" rows="1" value={note} onChange={e => setNote(e.target.value)} />
+              </div>
             </div>
 
-            {/* Payment */}
-            <div className="mt-6 space-y-2">
-              <div className="flex justify-between">
-                <span>Total Return</span>
-                <strong>৳ {totalReturnAmount.toFixed(2)}</strong>
+            {/* Items Table */}
+            <div className="overflow-x-auto rounded-lg border">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-bold uppercase text-gray-600 tracking-wider">Product</th>
+                    <th className="px-4 py-2 text-center text-xs font-bold uppercase text-gray-600 tracking-wider">Bought</th>
+                    <th className="px-4 py-2 text-center text-xs font-bold uppercase text-gray-600 tracking-wider">Avail.</th>
+                    <th className="px-4 py-2 text-center text-xs font-bold uppercase text-gray-600 tracking-wider">Return Qty</th>
+                    <th className="px-4 py-2 text-right text-xs font-bold uppercase text-gray-600 tracking-wider">Unit Price</th>
+                    <th className="px-4 py-2 text-right text-xs font-bold uppercase text-red-600 tracking-wider">Penalty</th>
+                    <th className="px-4 py-2 text-right text-xs font-bold uppercase text-gray-600 tracking-wider">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {purchase?.items.map(item => {
+                    const alreadyReturned = returnedQuantitiesMap[item.id] || 0;
+                    const availableQuantity = item.quantity - alreadyReturned;
+                    const qty = Number(returnItems[item.id] || 0);
+                    const penalty = Number(itemPenalties[item.id] || 0);
+                    const total = (qty * Number(item.unit_price)) - penalty;
+
+                    return (
+                      <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-2 text-sm font-medium text-gray-900">{item.product_name}</td>
+                        <td className="px-4 py-2 text-center text-sm text-gray-600">{item.quantity}</td>
+                        <td className="px-4 py-2 text-center text-sm text-gray-600">{availableQuantity}</td>
+                        <td className="px-4 py-2">
+                          <input type="number" min="0" max={availableQuantity} className="w-20 text-center mx-auto block border rounded p-1 focus:ring-2 focus:ring-blue-500 outline-none" value={returnItems[item.id] || ""} onChange={e => handleQtyChange(item, e.target.value)} />
+                        </td>
+                        <td className="px-4 py-2 text-right text-sm text-gray-600">৳{item.unit_price}</td>
+                        <td className="px-4 py-2">
+                          <input type="number" min="0" className="w-24 text-right mx-auto block text-red-600 border rounded p-1 focus:ring-2 focus:ring-red-500 outline-none font-bold" value={itemPenalties[item.id] || ""} onChange={e => handlePenaltyChange(item.id, e.target.value)} disabled={qty === 0} />
+                        </td>
+                        <td className="px-4 py-2 text-right font-bold text-sm text-gray-900">৳{total.toFixed(2)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Financial Summary */}
+            <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Payment Inputs */}
+              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-4 shadow-sm">
+                <label className="block text-sm font-bold text-gray-700 uppercase tracking-wider">Receive from Supplier (Hybrid)</label>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block tracking-tighter">Cash</label>
+                    <input type="number" className="w-full border p-2 rounded-lg font-bold focus:ring-2 focus:ring-green-500 outline-none shadow-inner" value={paidCash} onChange={(e) => setPaidCash(Number(e.target.value))}/>
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block tracking-tighter">Mobile</label>
+                    <input type="number" className="w-full border p-2 rounded-lg font-bold focus:ring-2 focus:ring-orange-500 outline-none shadow-inner" value={paidMobile} onChange={(e) => setPaidMobile(Number(e.target.value))}/>
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-gray-500 mb-1 block tracking-tighter">Bank</label>
+                    <input type="number" className="w-full border p-2 rounded-lg font-bold focus:ring-2 focus:ring-blue-500 outline-none shadow-inner" value={paidBank} onChange={(e) => setPaidBank(Number(e.target.value))}/>
+                  </div>
+                </div>
+
+                {paidMobile > 0 && (
+                  <div className="grid grid-cols-2 gap-3 p-3 bg-orange-50 rounded-lg border border-orange-100 animate-fadeIn">
+                    <div>
+                        <label className="text-[10px] uppercase font-bold text-orange-700">Operator</label>
+                        <select className="w-full border p-2 rounded-lg bg-white" value={mobileOperator} onChange={(e) => setMobileOperator(e.target.value)}>
+                            <option value="">Select</option>
+                            <option value="bkash">bKash</option>
+                            <option value="nagad">Nagad</option>
+                            <option value="rocket">Rocket</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="text-[10px] uppercase font-bold text-orange-700">Transaction ID</label>
+                        <input className="w-full border p-2 rounded-lg" value={transactionId} onChange={(e) => setTransactionId(e.target.value)}/>
+                    </div>
+                  </div>
+                )}
+                {paidBank > 0 && (
+                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-100 animate-fadeIn">
+                    <label className="text-[10px] uppercase font-bold text-blue-700 block mb-1">Bank Account / Reference</label>
+                    <input className="w-full border p-2 rounded-lg" value={bankAccountNo} onChange={(e) => setBankAccountNo(e.target.value)}/>
+                  </div>
+                )}
               </div>
-              <div className="flex justify-between items-center">
-                <span>Paid</span>
-                <input
-                  type="number"
-                  className="input w-32 text-right"
-                  value={paidAmount}
-                  onChange={e => setPaidAmount(Number(e.target.value))}
-                />
+
+              {/* Totals */}
+              <div className="bg-gray-900 text-white p-6 rounded-xl space-y-3 shadow-lg">
+                <div className="flex justify-between text-sm opacity-80"><span>Gross Return Amount</span><span className="font-mono">৳{totalReturnAmount.toFixed(2)}</span></div>
+                <div className="flex justify-between text-sm text-red-400"><span>Total Item Penalty</span><span className="font-mono">- ৳{totalItemPenalty.toFixed(2)}</span></div>
+                <div className="flex justify-between items-center text-sm text-red-400">
+                  <span>Global Penalty</span>
+                  <input type="number" className="w-24 bg-gray-800 border-gray-700 rounded text-right p-1 font-mono text-white focus:border-red-500 outline-none" value={globalPenalty} onChange={e => setGlobalPenalty(Number(e.target.value))} />
+                </div>
+                <div className="flex justify-between text-lg pt-2 border-t border-gray-700 font-bold uppercase tracking-wider"><span className="text-gray-400">Net Return</span><span className="font-mono font-black text-2xl text-green-400">৳{netReturnAmount.toFixed(2)}</span></div>
+                <div className="flex justify-between text-sm pt-2 border-t border-gray-700 opacity-80"><span>Received back from Supplier</span><span className="font-mono">৳{totalPaid.toFixed(2)}</span></div>
+                <div className="flex justify-between text-lg text-red-500 font-black pt-1 border-t-2 border-dashed border-gray-700"><span>Balance Due</span><span className="font-mono">৳{dueAmount.toFixed(2)}</span></div>
               </div>
-              <div className="flex justify-between text-red-600 font-semibold">
-                <span>Due</span>
-                <span>৳ {dueAmount.toFixed(2)}</span>
-              </div>
-              <select
-                className="input w-full"
-                value={paymentMethod}
-                onChange={e => setPaymentMethod(e.target.value)}
-              >
-                <option value="hand cash">Hand Cash</option>
-                <option value="bkash">bKash</option>
-                <option value="bank">Bank</option>
-              </select>
             </div>
 
             {/* Actions */}
-            <div className="flex justify-end gap-3 mt-6">
-              <button onClick={onClose} className="btn-gray">Cancel</button>
+            <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+              <button onClick={onClose} className="px-6 py-2 border rounded-lg font-bold text-gray-600 hover:bg-gray-50 transition-colors">Cancel</button>
               <button
-                disabled={loading}
+                disabled={loading || totalReturnAmount === 0}
                 onClick={handleSubmit}
-                className="btn-danger"
+                className="px-8 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 disabled:bg-gray-400 transition-all shadow-md active:scale-95"
               >
-                {loading ? "Saving..." : "Confirm Return"}
+                {loading ? "Saving..." : existingReturnId ? "Update Return" : "Confirm Return"}
               </button>
             </div>
           </>

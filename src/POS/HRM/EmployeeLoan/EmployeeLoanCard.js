@@ -1,19 +1,12 @@
-
-
-
 import React, {useState, useRef, useEffect} from "react";
 import {useNavigate} from "react-router-dom";
 import UpdateSalaryAdvanceModal from "./UpdateEmployeeLoanModal";
-// import SuccessSalaryAdvancePopup from "./SuccessSalaryAdvancePopup";
-import UpdateEmployeeLoanSuccessPopup from "./UpdateEmployeeLoanSuccessPopup";
 import {employeeLoanAPI} from "../../../context_or_provider/pos/EmployeeLoan/employee_loanAPI";
 
 const EmployeeLoanCard = ({advance, onEdit, onDelete}) => {
     const navigate = useNavigate();
     const [selectedAdvance, setSelectedAdvance] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
-    const [showSuccess, setShowSuccess] = useState(false);
-    const [successMessage, setSuccessMessage] = useState("");
     const [loadingId, setLoadingId] = useState(null);
     const [showDropdown, setShowDropdown] = useState(false);
     const dropdownRef = useRef(null);
@@ -29,7 +22,7 @@ const EmployeeLoanCard = ({advance, onEdit, onDelete}) => {
     }, []);
 
     const handleUserClick = () => {
-        navigate(`/employee/profile/${advance.user}`);
+        navigate(`/hrm/loan/details/${advance.id}`);
     };
 
     const handleEdit = (advance) => {
@@ -39,23 +32,20 @@ const EmployeeLoanCard = ({advance, onEdit, onDelete}) => {
     };
 
     const handleDelete = async (advance) => {
-        if (!window.confirm(`Are you sure you want to delete salary advance of $${advance.amount} for ${advance.user_name}?`)) {
+        if (!window.confirm(`Are you sure you want to delete loan of ৳${advance.amount} for ${advance.user_name}?`)) {
             return;
         }
 
         setLoadingId(advance.id);
         try {
             await employeeLoanAPI.delete(advance.id);
-            setSuccessMessage(`Salary advance of $${advance.amount} deleted successfully!`);
-            setShowSuccess(true);
-
             // Refresh the list
             if (onDelete) {
                 onDelete();
             }
         } catch (error) {
             console.error("Delete error:", error);
-            alert("Failed to delete salary advance.");
+            alert("Failed to delete loan.");
         } finally {
             setLoadingId(null);
         }
@@ -63,9 +53,6 @@ const EmployeeLoanCard = ({advance, onEdit, onDelete}) => {
 
     const handleUpdateSuccess = (updatedData) => {
         setShowEditModal(false);
-        setSuccessMessage("Salary advance updated successfully!");
-        setShowSuccess(true);
-
         // Refresh the list
         if (onEdit) {
             onEdit(updatedData);
@@ -73,23 +60,20 @@ const EmployeeLoanCard = ({advance, onEdit, onDelete}) => {
     };
 
     const handleApprove = async (advance) => {
-        if (!window.confirm(`Approve salary advance of $${advance.amount} for ${advance.user_name}?`)) {
+        if (!window.confirm(`Approve loan of ৳${advance.amount} for ${advance.user_name}?`)) {
             return;
         }
 
         setLoadingId(advance.id);
         try {
-            await employeeLoanAPI.approve(advance.id);
-            setSuccessMessage(`Salary advance of $${advance.amount} approved successfully!`);
-            setShowSuccess(true);
-
+            const res = await employeeLoanAPI.approve(advance.id);
             // Refresh the list
             if (onEdit) {
-                onEdit();
+                onEdit(res.data);
             }
         } catch (error) {
             console.error("Approve error:", error);
-            alert("Failed to approve salary advance.");
+            alert("Failed to approve loan.");
         } finally {
             setLoadingId(null);
         }
@@ -179,7 +163,7 @@ const EmployeeLoanCard = ({advance, onEdit, onDelete}) => {
 
                                     <div className="border-t border-gray-100 my-1"></div>
                                     <button
-                                        onClick={() => navigate(`/employee/profile/${advance.user}`)}
+                                        onClick={() => navigate(`/hrm/loan/details/${advance.id}`)}
                                         className="flex items-center w-full px-4 py-2 text-sm text-blue-600 hover:bg-gray-50"
                                     >
                                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor"
@@ -189,7 +173,7 @@ const EmployeeLoanCard = ({advance, onEdit, onDelete}) => {
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                                                   d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                                         </svg>
-                                        View Employee
+                                        View Loan Details
                                     </button>
                                 </div>
                             )}
@@ -236,9 +220,9 @@ const EmployeeLoanCard = ({advance, onEdit, onDelete}) => {
                     {/* Advance Details */}
                     <div className="space-y-3 mb-4">
                         <div className="bg-blue-50 rounded-lg p-3 text-center">
-                            <div className="text-xs text-gray-600 mb-1">Amount</div>
+                            <div className="text-xs text-gray-600 mb-1">Loan Amount</div>
                             <div className="text-2xl font-bold text-blue-600">
-                                ${parseFloat(advance.amount).toLocaleString()}
+                                ৳{parseFloat(advance.amount).toLocaleString()}
                             </div>
                         </div>
 
@@ -301,25 +285,6 @@ const EmployeeLoanCard = ({advance, onEdit, onDelete}) => {
                     }}
                     onSuccess={handleUpdateSuccess}
                     advanceData={selectedAdvance}
-                />
-            )}
-
-            {/* Success Popup */}
-            {/*{showSuccess && (*/}
-            {/*    <UpdateSuccessSalaryAdvancePopup*/}
-            {/*        message={successMessage}*/}
-            {/*        onClose={() => setShowSuccess(false)}*/}
-            {/*        duration={3000}*/}
-            {/*    />*/}
-            {/*)}*/}
-
-
-            {showSuccess && (
-                <UpdateEmployeeLoanSuccessPopup
-                    message={successMessage || "Advance updated"}
-                    subtitle="Approved successfully"
-                    onClose={() => setShowSuccess(false)}   // ✅ FIXED
-                    duration={3000}
                 />
             )}
         </>

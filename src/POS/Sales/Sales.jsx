@@ -8,6 +8,7 @@ import Customers from "./Customers";
 import SaleGrid from "./SaleProduct/SaleGrid";
 import CustomerGrid from "./CustomerList/CustomerGrid";
 import SaleReturnGrid from "./SaleReturn/SaleReturnGrid";
+import CustomerDueCollectionGrid from "./CustomerDueCollection/CustomerDueCollectionGrid";
 
 const Sales = () => {
   const [activeTab, setActiveTab] = useState('sales');
@@ -17,7 +18,7 @@ const Sales = () => {
     // { id: 'invoices', name: 'Invoices', icon: '🧾' },
     { id: 'sales-return', name: 'Sales Return', icon: '↩️' },
     { id: 'customers', name: 'Customers', icon: '↩️' },
-    // { id: 'quotations', name: 'Quotations', icon: '📄' },
+    { id: 'customers-due-collection', name: 'Customers Due Colection', icon: '📄' },
   ];
 
   const renderTabContent = () => {
@@ -33,8 +34,8 @@ const Sales = () => {
       case 'sales-return':
         // return <SalesReturnTab />;
         return <SaleReturnGrid />;
-      // case 'quotations':
-      //   return <QuotationsTab />;
+      case 'customers-due-collection':
+        return <CustomerDueCollectionGrid />;
       default:
         // return <SalesTab />;
         return <SaleGrid />;

@@ -25,6 +25,8 @@ import {SalaryPaySlipProvider} from "./pos/EmployeeSalaryPayslip/salary_payslip_
 import {EmployeeAttendanceProvider} from "./pos/EmployeeAttendance/employee_attendance_provider";
 import {PosUniqueProductInstanceProvider} from "./pos/UniqueProductInstance/UniqueProductInstanceProvider";
 import {PosWarrantyPeriodProvider} from "./pos/warrantyPeriod/WarrantyPeriodProvider";
+import {DuePaymentProvider} from "./pos/Purchase/duePayment/DuePaymentProvider";
+import {DueCollectionProvider} from "./pos/Sale/dueCollection/DueCollectionProvider";
 // import {ContactWithMeProvider} from './ContactContext';
 // import {ServiceProvider} from './ServiceContext';
 // import {ImageGalleryProvider} from './GalleryContext';
@@ -59,13 +61,19 @@ const RootProvider = ({children}) => {
                                                                                             <EmployeeLoanProvider>
                                                                                                 <SalaryPaySlipProvider>
                                                                                                     <EmployeeAttendanceProvider>
-                                                                                                    <PosUniqueProductInstanceProvider>
-                                                                                                    <PosWarrantyPeriodProvider>
-                                                                                                    {/*<QRcodeProvider>*/}
-                                                                                                    {children}
-                                                                                                    {/*</QRcodeProvider>*/}
-                                                                                                    </PosWarrantyPeriodProvider>
-                                                                                                    </PosUniqueProductInstanceProvider>
+                                                                                                        <PosUniqueProductInstanceProvider>
+                                                                                                            <PosWarrantyPeriodProvider>
+                                                                                                                <DuePaymentProvider>
+                                                                                                                    <DueCollectionProvider>
+                                                                                                                        {/*<QRcodeProvider>*/}
+                                                                                                                        {/*<QRcodeProvider>*/}
+                                                                                                                        {children}
+                                                                                                                        {/*</QRcodeProvider>*/}
+                                                                                                                        {/*</QRcodeProvider>*/}
+                                                                                                                    </DueCollectionProvider>
+                                                                                                                </DuePaymentProvider>
+                                                                                                            </PosWarrantyPeriodProvider>
+                                                                                                        </PosUniqueProductInstanceProvider>
                                                                                                     </EmployeeAttendanceProvider>
                                                                                                 </SalaryPaySlipProvider>
                                                                                             </EmployeeLoanProvider>

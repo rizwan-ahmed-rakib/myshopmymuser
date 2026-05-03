@@ -6,6 +6,7 @@ import Suppliers from './Suppliers';
 import PurchaseGrid from "./PurchaseProduct/PurchaseGrid";
 import SupplierGrid from "./SupplierList/SupplierGrid";
 import PurchaseReturnGrid from "./PurchaseReturn/PurchaseReturnGrid";
+import SupplierDuePaymentGrid from "./SupplierDuePayment/SupplierDuePaymentGrid"
 
 const Purchase = () => {
     // const [activeSection, setActiveSection] = useState('posPurchase-list');
@@ -15,8 +16,9 @@ const Purchase = () => {
     // const menuItems = [
     const tabs = [
         {id: 'posPurchase-list', name: 'Purchase List', icon: '📋'},
-        {id: 'purchase-return-list', name: 'Purchase Return List', icon: '📋'},
+        {id: 'purchase-return-list', name: 'Purchase Return List', icon: ''},
         {id: 'Supplier-list', name: 'Supplier List', icon: '👥'},
+        {id: 'Supplier-due-payment-list', name: 'Supplier Due Payment List', icon: '📋'},
 
     ];
 
@@ -30,7 +32,9 @@ const Purchase = () => {
                 return <SupplierGrid/>;
             case 'purchase-return-list':
                 return <PurchaseReturnGrid/>;
-            case 'suppliers':
+            case 'Supplier-due-payment-list':
+                return <SupplierDuePaymentGrid/>;
+                case 'suppliers':
                 return <Suppliers/>;
             default:
                 return <PurchaseList/>;

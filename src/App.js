@@ -202,8 +202,13 @@ import CustomerProfilePage from "./POS/Sales/CustomerList/CustomerProfilePage";
 import CustomerGrid from "./POS/Sales/CustomerList/CustomerGrid";
 import DamageProductDetailsPage from "./POS/Inventory/DamageProductList/DamageProductDetailsPage";
 import DamageProductGrid from "./POS/Inventory/DamageProductList/DamageProductGrid";
-import ReportsList from "./POS/Reports/ReportsList";
 import ReportDetail from "./POS/Reports/ReportDetail";
+import SupplierDuePaymentDetails from "./POS/Purchase/SupplierDuePayment/SupplierDuePaymentDetailsPage";
+import CustomerDueCollectionDetails from "./POS/Sales/CustomerDueCollection/CustomerDueCollectionDetailsPage";
+import EmployeeLoanDetails from "./POS/HRM/EmployeeLoan/EmployeeLoanDetailsPage";
+import ReportsList from "./POS/Reports/ReportsList";
+import EmployeeSalaryAdvanceDetailsPage from "./POS/HRM/EmployeeSalaryAdvance/EmployeeSalaryAdvanceDetailsPage";
+import EmployeeSalaryPayslipDetailsPage from "./POS/HRM/EmployeeSalaryPayslip/EmployeeSalaryPayslipDetailsPage";
 
 // import {CartProvider} from "./context_or_provider/CartContext";
 
@@ -360,6 +365,13 @@ const App = () => {
 
                             <Route path="/Sale/sale/details/:id" element={<SaleDetailsPage/>}/>
                             <Route path="/Sale/sale-return/details/:id" element={<SaleReturnDetailsPage/>}/>
+
+
+                            <Route path="/purchase/due-payment/details/:id" element={<SupplierDuePaymentDetails/>}/>
+                            <Route path="/sales/due-collection/details/:id" element={<CustomerDueCollectionDetails/>}/>
+                            <Route path="/hrm/loan/details/:id" element={<EmployeeLoanDetails/>}/>
+                            <Route path="/hrm/advance/details/:id" element={<EmployeeSalaryAdvanceDetailsPage/>}/>
+                            <Route path="/hrm/payslip/details/:id" element={<EmployeeSalaryPayslipDetailsPage/>}/>
 
 
                         </Routes>

@@ -84,13 +84,14 @@ import ExpenseList from './ExpenseList';
 import CashboxTransactions from './CashboxTransactions';
 import CashboxReport from './CashboxReport';
 
-const BASE_URL = "https://pos.myshopmym.com/api";
+import BASE_URL_of_POS  from "../../posConfig";
+
 
 const ENDPOINTS = {
-  cashbox: `${BASE_URL}/cashbox/cashbox/`,
-  income: `${BASE_URL}/cashbox/income/`,
-  expense: `${BASE_URL}/cashbox/expenses/`,
-  report: `${BASE_URL}/cashbox/`,
+  cashbox: `${BASE_URL_of_POS}/api/cashbox/cashbox/`,
+  income: `${BASE_URL_of_POS}/api/cashbox/income/`,
+  expense: `${BASE_URL_of_POS}/api/cashbox/expenses/`,
+  report: `${BASE_URL_of_POS}/api/cashbox/`,
 };
 
 const Cashbox = () => {

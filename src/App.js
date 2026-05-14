@@ -171,7 +171,6 @@ import HRM from "./POS/HRM/HRM";
 import Marketing from "./POS/Marketing/Marketing";
 import CRM from "./POS/CRM/CRM";
 import Branches from "./POS/Branches/Branches";
-import Settings from "./POS/Settings/Settings";
 import Users from "./POS/users/Users";
 import EmployeeProfilePage from "./POS/HRM/EmployeeList/EmployeeProfilePage";
 import EmployeeGrid from "./POS/HRM/EmployeeList/EmployeeGrid";
@@ -209,6 +208,7 @@ import EmployeeLoanDetails from "./POS/HRM/EmployeeLoan/EmployeeLoanDetailsPage"
 import ReportsList from "./POS/Reports/ReportsList";
 import EmployeeSalaryAdvanceDetailsPage from "./POS/HRM/EmployeeSalaryAdvance/EmployeeSalaryAdvanceDetailsPage";
 import EmployeeSalaryPayslipDetailsPage from "./POS/HRM/EmployeeSalaryPayslip/EmployeeSalaryPayslipDetailsPage";
+import SettingsPage from "./POS/Settings/SettingsPage";
 
 // import {CartProvider} from "./context_or_provider/CartContext";
 
@@ -325,7 +325,8 @@ const App = () => {
                             <Route path="/marketing" element={<Marketing/>}/>
                             <Route path="/branches" element={<Branches/>}/>
                             <Route path="/users" element={<Users/>}/>
-                            <Route path="/settings" element={<Settings/>}/>
+                            {/*<Route path="/settings" element={<Settings/>}/>*/}
+                            <Route path="/settings" element={<SettingsPage/>}/>
                             <Route path="/reports" element={<ReportsList/>}/>
                             <Route path="/reports/detail" element={<ReportDetail/>}/>
 

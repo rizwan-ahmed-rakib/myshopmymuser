@@ -238,6 +238,7 @@ import axios from "axios";
 import {FaTrash} from "react-icons/fa";
 import BASE_URL_of_POS from "../../../posConfig";
 
+
 const EditPurchaseReturnModal = ({ open, onClose, purchase, onUpdated }) => {
     const [form, setForm] = useState(null);
     const [saving, setSaving] = useState(false);
@@ -252,10 +253,64 @@ const EditPurchaseReturnModal = ({ open, onClose, purchase, onUpdated }) => {
     const [bankAccountNo, setBankAccountNo] = useState("");
     const [globalPenalty, setGlobalPenalty] = useState(0);
 
+    const [instances, setInstances] = useState({}); // {productId: [instances]}
+    const [returnedSerials, setReturnedSerials] = useState({}); // {itemId: [serialNumbers]}
+    const [activeSerialTab, setActiveSerialTab] = useState(null);
+
+    const fetchInstances = async (invoiceNo) => {
+        try {
+            console.log("Fetching instances for invoice:", invoiceNo);
+            const token = localStorage.getItem("token");
+            const response = await axios.get(`${BASE_URL_of_POS}/api/bar-qr/instances/?purchase_invoice_no=${invoiceNo}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
+            });
+            
+            // Handle both paginated and non-paginated responses
+            const data = response.data.results || response.data;
+            console.log("Fetched instances count:", data.length);
+
+            const grouped = data.reduce((acc, curr) => {
+                const pid = curr.product;
+                if (!acc[pid]) acc[pid] = [];
+                acc[pid].push(curr);
+                return acc;
+            }, {});
+            setInstances(grouped);
+        } catch (err) {
+            console.error("Failed to fetch instances:", err);
+        }
+    };
+
+    const toggleSerialReturn = (itemId, productId, serial, maxToReturn) => {
+        setReturnedSerials(prev => {
+            const current = prev[itemId] || [];
+            if (current.includes(serial)) {
+                return {...prev, [itemId]: current.filter(s => s !== serial)};
+            } else {
+                if (current.length >= maxToReturn) {
+                    alert(`Limit reached! You can only return up to ${maxToReturn} serial(s) for this item.`);
+                    return prev;
+                }
+                return {...prev, [itemId]: [...current, serial]};
+            }
+        });
+    };
+
     /* ================= INIT ================= */
     useEffect(() => {
         if (open && purchase) {
             const cloned = JSON.parse(JSON.stringify(purchase));
+            
+            // Map existing serials if available (though usually returns are fresh creates in this UI)
+            const initialSerials = {};
+            cloned.items.forEach(item => {
+                // If the backend provides currently returned serials for an existing return
+                if (item.returned_serials) {
+                    initialSerials[item.id] = item.returned_serials;
+                }
+            });
+            setReturnedSerials(initialSerials);
+
             cloned.items = cloned.items.map(item => ({
                 ...item,
                 _original_quantity: Number(item.purchase_return_quantity),
@@ -269,6 +324,8 @@ const EditPurchaseReturnModal = ({ open, onClose, purchase, onUpdated }) => {
             setTransactionId(cloned.transaction_id || "");
             setBankAccountNo(cloned.bank_account_no || "");
             setGlobalPenalty(Number(cloned.global_penalty) || 0);
+
+            if (cloned.purchase_invoice_no) fetchInstances(cloned.purchase_invoice_no);
         }
     }, [open, purchase]);
 
@@ -386,6 +443,7 @@ const EditPurchaseReturnModal = ({ open, onClose, purchase, onUpdated }) => {
                     unit_price: Number(item.unit_price),
                     penalty_amount: Number(item.penalty_amount || 0),
                     reason: item.reason || "Returned",
+                    returned_serials: returnedSerials[item.id] || [],
                 })),
             };
 
@@ -442,22 +500,95 @@ const EditPurchaseReturnModal = ({ open, onClose, purchase, onUpdated }) => {
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {form.items.map((item, index) => (
-                                    <tr key={item.id} className="hover:bg-gray-50">
-                                        <td className="px-4 py-3 text-sm font-medium">{item.product_name}</td>
-                                        <td className="px-4 py-3 text-center text-sm">{item.purchased_quantity}</td>
-                                        <td className="px-4 py-3">
-                                            <input type="number" className="input w-20 text-center mx-auto block" value={item.purchase_return_quantity} onChange={e => handleItemChange(index, "purchase_return_quantity", e.target.value)} />
-                                            {errors[index] && <p className="text-[10px] text-red-500 text-center mt-1">{errors[index]}</p>}
-                                        </td>
-                                        <td className="px-4 py-3 text-right text-sm">৳{item.unit_price}</td>
-                                        <td className="px-4 py-3">
-                                            <input type="number" className="input w-24 text-right mx-auto block text-red-600 font-bold" value={item.penalty_amount} onChange={e => handleItemChange(index, "penalty_amount", e.target.value)} />
-                                        </td>
-                                        <td className="px-4 py-3 text-right text-sm font-bold">৳{item.total_price}</td>
-                                        <td className="px-4 py-3 text-center">
-                                            <button onClick={() => handleRemoveItem(index)} className="text-red-400 hover:text-red-600"><FaTrash size={14}/></button>
-                                        </td>
-                                    </tr>
+                                    <React.Fragment key={item.id}>
+                                        <tr className="hover:bg-gray-50">
+                                            <td className="px-4 py-3 text-sm font-medium">{item.product_name}</td>
+                                            <td className="px-4 py-3 text-center text-sm">{item.purchased_quantity}</td>
+                                            <td className="px-4 py-3">
+                                                <input type="number" className="input w-20 text-center mx-auto block" value={item.purchase_return_quantity} onChange={e => handleItemChange(index, "purchase_return_quantity", e.target.value)} />
+                                                {errors[index] && <p className="text-[10px] text-red-500 text-center mt-1">{errors[index]}</p>}
+                                            </td>
+                                            <td className="px-4 py-3 text-right text-sm">৳{item.unit_price}</td>
+                                            <td className="px-4 py-3">
+                                                <input type="number" className="input w-24 text-right mx-auto block text-red-600 font-bold" value={item.penalty_amount} onChange={e => handleItemChange(index, "penalty_amount", e.target.value)} />
+                                            </td>
+                                            <td className="px-4 py-3 text-right text-sm font-bold">৳{item.total_price}</td>
+                                            <td className="px-4 py-3 text-center space-x-2 flex items-center justify-center">
+                                                <button 
+                                                    onClick={() => setActiveSerialTab(activeSerialTab === item.id ? null : item.id)}
+                                                    className={`p-1 px-2 rounded text-[10px] font-bold ${activeSerialTab === item.id ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+                                                >
+                                                    SERIALS
+                                                </button>
+                                                <button onClick={() => handleRemoveItem(index)} className="text-red-400 hover:text-red-600"><FaTrash size={14}/></button>
+                                            </td>
+                                        </tr>
+                                        {activeSerialTab === item.id && (
+                                            <tr className="bg-gray-50">
+                                                <td colSpan="7" className="px-4 py-4">
+                                                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-inner">
+                                                        {(() => {
+                                                            const currentInstances = instances[item.product] || [];
+                                                            const maxToReturn = Number(item.purchase_return_quantity) || 0;
+                                                            const currentlySelected = (returnedSerials[item.id] || []).length;
+
+                                                            return (
+                                                                <>
+                                                                    <div className="flex justify-between items-center mb-3">
+                                                                        <h4 className="text-sm font-bold text-gray-700 uppercase tracking-tight">Select Serials for product {item.product_name}</h4>
+                                                                        <div className={`text-[10px] font-bold px-2 py-1 rounded ${currentlySelected === maxToReturn ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                                            Selected: {currentlySelected} / {maxToReturn}
+                                                                        </div>
+                                                                    </div>
+                                                                    
+                                                                    <div className="mb-4">
+                                                                        <input 
+                                                                            type="text"
+                                                                            placeholder={maxToReturn > 0 ? "Scan Serial..." : "Set quantity first"}
+                                                                            disabled={maxToReturn === 0}
+                                                                            className="w-full border p-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100"
+                                                                            onKeyDown={(e) => {
+                                                                                if (e.key === 'Enter') {
+                                                                                    const serial = e.target.value.trim();
+                                                                                    if (serial && currentInstances.some(inst => inst.unique_serial === serial)) {
+                                                                                        toggleSerialReturn(item.id, item.product, serial, maxToReturn);
+                                                                                        e.target.value = '';
+                                                                                    }
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-40 overflow-y-auto p-1">
+                                                                        {currentInstances.map(inst => {
+                                                                            const isReturning = (returnedSerials[item.id] || []).includes(inst.unique_serial);
+                                                                            const isSold = inst.status !== 'in_stock';
+                                                                            return (
+                                                                                <div 
+                                                                                    key={inst.id}
+                                                                                    onClick={() => !isSold && (isReturning || currentlySelected < maxToReturn || alert(`Limit reached`)) && toggleSerialReturn(item.id, item.product, inst.unique_serial, maxToReturn)}
+                                                                                    className={`p-2 border rounded-lg text-[9px] cursor-pointer transition-all flex flex-col items-center text-center ${
+                                                                                        isReturning ? 'bg-blue-50 border-blue-300 text-blue-600' : 
+                                                                                        isSold ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60' : 
+                                                                                        'bg-white border-gray-200 hover:border-blue-400'
+                                                                                    }`}
+                                                                                >
+                                                                                    <span className="font-bold truncate w-full">{inst.unique_serial.split('-').pop()}</span>
+                                                                                    <span className={`mt-1 px-1 rounded-full text-[7px] font-black uppercase ${isReturning ? 'bg-blue-500 text-white' : isSold ? 'bg-gray-400 text-white' : 'bg-green-500 text-white'}`}>
+                                                                                        {isReturning ? 'RETURNING' : isSold ? 'SOLD' : 'AVAILABLE'}
+                                                                                    </span>
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </React.Fragment>
                                 ))}
                             </tbody>
                         </table>

@@ -158,8 +158,9 @@
 // components/cashbox/ExpenseList.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import BASE_URL_of_POS from "../../posConfig";
 
-const DEFAULT_URL = "https://pos.myshopmym.com/api/cashbox/expenses/";
+const DEFAULT_URL = `${BASE_URL_of_POS}/api/cashbox/expenses/`;
 
 const ExpenseList = ({ endpoints }) => {
   const API_URL = endpoints?.expense || DEFAULT_URL;

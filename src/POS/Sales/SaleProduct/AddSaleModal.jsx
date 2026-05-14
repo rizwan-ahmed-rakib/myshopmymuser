@@ -155,10 +155,10 @@ const AddSaleModal = ({isOpen, onClose, onSuccess}) => {
             const response = await fetch(`${BASE_URL_of_POS}/api/bar-qr/verify/verify/?serial=${serial}`);
             const data = await response.json();
             if (data.valid && data.status_code === 'in_stock') {
-                if (isProductDuplicate(data.product_id, index)) {
-                    updateItem(index, { error_msg: "Model already added!", success_msg: "" });
-                    return;
-                }
+                // if (isProductDuplicate(data.product_id, index)) {
+                //     updateItem(index, { error_msg: "Model already added!", success_msg: "" });
+                //     return;
+                // }
                 updateItem(index, {
                     product: data.product_id,
                     product_name: data.product.name,

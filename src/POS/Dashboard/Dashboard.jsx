@@ -8,16 +8,18 @@ import {
   Truck, AlertTriangle, DollarSign, RefreshCw,
   ArrowUpRight, ArrowDownRight, Clock, CheckCircle, XCircle,
 } from 'lucide-react';
+import BASE_URL_of_POS from "../../posConfig";
 
 // ─── API ──────────────────────────────────────────────────────────────────────
-const BASE = 'https://pos.myshopmym.com/api';
+// const BASE = 'https://pos.myshopmym.com/api';
+const BASE =BASE_URL_of_POS;
 const EP = {
-  sales:     `${BASE}/sale/sales/`,
-  purchases: `${BASE}/purchase/purchases/`,
-  products:  `${BASE}/products/product/`,
-  expenses:  `${BASE}/cashbox/expenses/`,
-  incomes:   `${BASE}/cashbox/income/`,
-  customers: `${BASE}/sale/customers/`,
+  sales:     `${BASE}/api/sale/sales/`,
+  purchases: `${BASE}/api/purchase/purchases/`,
+  products:  `${BASE}/api/products/product/`,
+  expenses:  `${BASE}/api/cashbox/expenses/`,
+  incomes:   `${BASE}/api/cashbox/income/`,
+  customers: `${BASE}/api/sale/customers/`,
 };
 
 const apiFetch = async (url) => {

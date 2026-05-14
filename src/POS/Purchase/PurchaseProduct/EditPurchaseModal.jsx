@@ -7,10 +7,13 @@ import SuccessModal from "./SuccessModal";
 
 const EditPurchaseModal = ({open, onClose, purchase, onUpdated}) => {
     const [editablePurchase, setEditablePurchase] = useState(null);
+    const [instances, setInstances] = useState({}); // {productId: [instances]}
+    const [removedSerials, setRemovedSerials] = useState({}); // {productId: [serialNumbers]}
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [invoiceData, setInvoiceData] = useState(null);
     const [paymentProof, setPaymentProof] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [activeSerialTab, setActiveSerialTab] = useState(null); // To track which product's serials we are managing
 
     // Deep copy purchase data into local state when modal opens
     useEffect(() => {
@@ -27,8 +30,29 @@ const EditPurchaseModal = ({open, onClose, purchase, onUpdated}) => {
                 bank_account_no: purchase.bank_account_no || "",
             };
             setEditablePurchase(JSON.parse(JSON.stringify(mappedPurchase)));
+            fetchInstances(purchase.invoice_no);
         }
     }, [purchase]);
+
+    const fetchInstances = async (invoiceNo) => {
+        try {
+            const token = localStorage.getItem("token");
+            const response = await axios.get(`${BASE_URL_of_POS}/api/bar-qr/instances/?purchase_invoice_no=${invoiceNo}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
+            });
+            
+            // Group by product ID
+            const grouped = response.data.reduce((acc, curr) => {
+                const pid = curr.product;
+                if (!acc[pid]) acc[pid] = [];
+                acc[pid].push(curr);
+                return acc;
+            }, {});
+            setInstances(grouped);
+        } catch (err) {
+            console.error("Failed to fetch instances:", err);
+        }
+    };
 
     if (!open || !editablePurchase) return null;
 
@@ -103,6 +127,17 @@ const EditPurchaseModal = ({open, onClose, purchase, onUpdated}) => {
         setEditablePurchase(updatedPurchase);
     };
 
+    const toggleSerialRemoval = (productId, serial) => {
+        setRemovedSerials(prev => {
+            const current = prev[productId] || [];
+            if (current.includes(serial)) {
+                return {...prev, [productId]: current.filter(s => s !== serial)};
+            } else {
+                return {...prev, [productId]: [...current, serial]};
+            }
+        });
+    };
+
     const handleTopLevelChange = (field, value) => {
         const updatedPurchase = calculateUpdatedTotals({...editablePurchase, [field]: value});
         setEditablePurchase(updatedPurchase);
@@ -138,6 +173,7 @@ const EditPurchaseModal = ({open, onClose, purchase, onUpdated}) => {
                 manufacturing_date: item.manufacturing_date || null,
                 shelf_life_days: item.shelf_life_days || 0,
                 batch_no: item.batch_no || "",
+                removed_serials: removedSerials[item.product] || [],
             }));
 
             formData.append("items", JSON.stringify(itemsPayload));
@@ -247,13 +283,92 @@ const EditPurchaseModal = ({open, onClose, purchase, onUpdated}) => {
                                             />
                                         </td>
                                         <td className="px-4 py-2 text-right font-black text-blue-700">৳{item.net_total}</td>
-                                        <td className="px-4 py-2 text-center">
+                                        <td className="px-4 py-2 text-center space-x-2">
+                                            <button 
+                                                onClick={() => setActiveSerialTab(activeSerialTab === item.product ? null : item.product)}
+                                                className={`p-1 px-2 rounded text-[10px] font-bold ${activeSerialTab === item.product ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
+                                                title="Manage Serials"
+                                            >
+                                                SERIALS
+                                            </button>
                                             <button onClick={() => handleRemoveItem(index)}
                                                     className="text-red-500 hover:text-red-700 p-2">
                                                 <FaTrash/>
                                             </button>
                                         </td>
                                     </tr>
+                                    {/* Serial Management Section */}
+                                    {activeSerialTab === item.product && (
+                                        <tr className="bg-gray-50 border-b">
+                                            <td colSpan="6" className="px-4 py-4">
+                                                <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-inner">
+                                                    {(() => {
+                                                        const currentCount = instances[item.product]?.length || 0;
+                                                        const targetQty = parseInt(item.quantity) || 0;
+                                                        const maxToRemove = Math.max(0, currentCount - targetQty);
+                                                        const currentlySelected = (removedSerials[item.product] || []).length;
+
+                                                        return (
+                                                            <>
+                                                                <div className="flex justify-between items-center mb-3">
+                                                                    <h4 className="text-sm font-bold text-gray-700 uppercase">Manage Serials for {item.product_name}</h4>
+                                                                    <div className="flex gap-2">
+                                                                        <div className="text-[10px] font-bold px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                                                                            In Stock: {currentCount}
+                                                                        </div>
+                                                                        <div className={`text-[10px] font-bold px-2 py-1 rounded ${currentlySelected === maxToRemove ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                                            Selected to Remove: {currentlySelected} / {maxToRemove}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                <div className="mb-4">
+                                                                    <input 
+                                                                        type="text"
+                                                                        placeholder={maxToRemove > 0 ? "Scan Serial to Remove..." : "Quantity not reduced - removal disabled"}
+                                                                        disabled={maxToRemove === 0}
+                                                                        className="w-full border p-2 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100"
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === 'Enter') {
+                                                                                const serial = e.target.value.trim();
+                                                                                if (serial && instances[item.product]?.some(inst => inst.unique_serial === serial)) {
+                                                                                    toggleSerialRemoval(item.product, serial, maxToRemove);
+                                                                                    e.target.value = '';
+                                                                                }
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                </div>
+
+                                                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-40 overflow-y-auto p-1">
+                                                                    {(instances[item.product] || []).map(inst => {
+                                                                        const isRemoved = (removedSerials[item.product] || []).includes(inst.unique_serial);
+                                                                        const isSold = inst.status !== 'in_stock';
+                                                                        return (
+                                                                            <div 
+                                                                                key={inst.id}
+                                                                                onClick={() => !isSold && (isRemoved || currentlySelected < maxToRemove || alert(`Limit of ${maxToRemove} reached`)) && toggleSerialRemoval(item.product, inst.unique_serial, maxToRemove)}
+                                                                                className={`p-2 border rounded text-[9px] cursor-pointer transition-all flex flex-col items-center text-center ${
+                                                                                    isRemoved ? 'bg-red-50 border-red-300 text-red-600 shadow-sm' : 
+                                                                                    isSold ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60' : 
+                                                                                    'bg-white border-gray-200 hover:border-blue-400'
+                                                                                }`}
+                                                                            >
+                                                                                <span className="font-bold truncate w-full">{inst.unique_serial.split('-').pop()}</span>
+                                                                                <span className={`mt-1 px-1 rounded-full text-[7px] font-black uppercase ${isRemoved ? 'bg-red-500 text-white' : isSold ? 'bg-gray-400 text-white' : 'bg-green-500 text-white'}`}>
+                                                                                    {isRemoved ? 'REMOVING' : isSold ? 'SOLD' : 'KEEP'}
+                                                                                </span>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </>
+                                                        );
+                                                    })()}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
                                     {/* Expiry Details Row */}
                                     {(item.has_expiry || purchase.items.find(pi => pi.product === item.product)?.has_expiry) && (
                                         <tr className="bg-blue-50/50 border-b">

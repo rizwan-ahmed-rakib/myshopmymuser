@@ -220,11 +220,12 @@
 // components/cashbox/CashboxTransactions.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import BASE_URL_of_POS from "../../posConfig";
 
 const DEFAULT_URLS = {
-  cashbox: "https://pos.myshopmym.com/api/cashbox/cashbox/",
-  income: "https://pos.myshopmym.com/api/cashbox/income/",
-  expense: "https://pos.myshopmym.com/api/cashbox/expenses/"
+  cashbox: `${BASE_URL_of_POS}/api/cashbox/cashbox/`,
+  income: `${BASE_URL_of_POS}/api/cashbox/income/`,
+  expense: `${BASE_URL_of_POS}/api/cashbox/expenses/`
 };
 
 const CashboxTransactions = ({ endpoints }) => {
@@ -233,9 +234,16 @@ const CashboxTransactions = ({ endpoints }) => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [totalIncome, setTotalIncome] = useState(0);
-  const [totalExpense, setTotalExpense] = useState(0);
-  const [balance, setBalance] = useState(0);
+  
+  // Totals
+  const [summary, setSummary] = useState({
+    income: 0,
+    expense: 0,
+    balance: 0,
+    cash: 0,
+    mobile: 0,
+    bank: 0
+  });
 
   useEffect(() => {
     fetchData();
@@ -252,12 +260,11 @@ const CashboxTransactions = ({ endpoints }) => {
         axios.get(API_URLS.expense)
       ]);
 
-      // Cashbox items — determine type by 'transaction_type' or 'type' field from backend
+      // Process Transactions
       const cashboxData = cashboxRes.data.map(item => ({
         ...item,
         source: 'cashbox',
-        // Use backend's type field; fallback to checking amount sign
-        resolvedType: item.transaction_type || item.type || 'cashbox'
+        resolvedType: item.type || 'cashbox'
       }));
 
       const incomeData = incomeRes.data.map(item => ({
@@ -277,12 +284,42 @@ const CashboxTransactions = ({ endpoints }) => {
 
       setTransactions(allTransactions);
 
-      const totalInc = incomeRes.data.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
-      const totalExp = expenseRes.data.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+      // Calculate Summary with Breakdown
+      let totalInc = 0;
+      let totalExp = 0;
+      let netCash = 0;
+      let netMobile = 0;
+      let netBank = 0;
 
-      setTotalIncome(totalInc);
-      setTotalExpense(totalExp);
-      setBalance(totalInc - totalExp);
+      // We use only Cashbox entries for net liquidity because they are the "source of truth" for cashflow
+      // Income/Expense records also sync to cashbox, so cashbox is exhaustive.
+      cashboxRes.data.forEach(tx => {
+        const amt = parseFloat(tx.amount || 0);
+        const cash = parseFloat(tx.paid_cash || 0);
+        const mobile = parseFloat(tx.paid_mobile || 0);
+        const bank = parseFloat(tx.paid_bank || 0);
+
+        if (tx.type === 'in') {
+          totalInc += amt;
+          netCash += cash;
+          netMobile += mobile;
+          netBank += bank;
+        } else if (tx.type === 'out') {
+          totalExp += amt;
+          netCash -= cash;
+          netMobile -= mobile;
+          netBank -= bank;
+        }
+      });
+
+      setSummary({
+        income: totalInc,
+        expense: totalExp,
+        balance: totalInc - totalExp,
+        cash: netCash,
+        mobile: netMobile,
+        bank: netBank
+      });
 
     } catch (err) {
       console.error("Error fetching data:", err);
@@ -292,6 +329,8 @@ const CashboxTransactions = ({ endpoints }) => {
     }
   };
 
+  const formatCurrency = (amount) => `৳${parseFloat(amount || 0).toLocaleString()}`;
+  
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-GB', {
       day: '2-digit', month: 'short', year: 'numeric'
@@ -304,126 +343,171 @@ const CashboxTransactions = ({ endpoints }) => {
     });
   };
 
-  // Robust type detection using resolvedType
   const isIncome = (tx) => tx.resolvedType === 'in' || tx.source === 'income';
 
-  const getTransactionIcon = (tx) => {
-    if (isIncome(tx)) return '📈';
-    if (tx.source === 'expense' || tx.resolvedType === 'out') return '📉';
-    return '💰';
-  };
-
   return (
-    <div>
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Cashbox Transactions</h1>
-        <p className="text-gray-600">View all cashbox activities</p>
+    <div className="max-w-6xl mx-auto">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Cashbox Dashboard</h1>
+          <p className="text-gray-500 mt-1">Real-time overview of your store's finances</p>
+        </div>
+        <button
+          onClick={fetchData}
+          disabled={loading}
+          className="flex items-center px-4 py-2 bg-white border border-gray-200 rounded-xl shadow-sm text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all active:scale-95 disabled:opacity-50"
+        >
+          {loading ? 'Refreshing...' : '🔄 Refresh Data'}
+        </button>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="bg-green-50 p-6 rounded-lg">
-          <div className="flex items-center">
-            <div className="p-3 bg-green-100 rounded-lg mr-4">
-              <span className="text-2xl">📈</span>
+      {/* Primary Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Balance Card */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-indigo-600 to-blue-700 p-6 rounded-2xl shadow-xl text-white">
+          <div className="relative z-10">
+            <p className="text-indigo-100 text-sm font-medium uppercase tracking-wider">Net Balance</p>
+            <h3 className="text-3xl font-bold mt-1">{formatCurrency(summary.balance)}</h3>
+            <div className="mt-4 flex items-center text-indigo-100 text-xs">
+              <span className="bg-white/20 px-2 py-1 rounded-md">Total Liquidity</span>
             </div>
+          </div>
+          <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
+        </div>
+
+        {/* Income Card */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-gray-500 text-sm font-medium">Total Income</p>
+            <span className="p-2 bg-green-50 text-green-600 rounded-lg text-lg">📈</span>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(summary.income)}</h3>
+          <div className="mt-2 text-xs text-green-600 font-medium">Total cash in-flow</div>
+        </div>
+
+        {/* Expense Card */}
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-gray-500 text-sm font-medium">Total Expense</p>
+            <span className="p-2 bg-red-50 text-red-600 rounded-lg text-lg">📉</span>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(summary.expense)}</h3>
+          <div className="mt-2 text-xs text-red-600 font-medium">Total cash out-flow</div>
+        </div>
+      </div>
+
+      {/* Breakdown Section */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 flex items-center justify-between">
+          <div className="flex items-center">
+            <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 mr-3 text-xl">💵</div>
             <div>
-              <p className="text-sm text-gray-600">Total Income</p>
-              <p className="text-2xl font-bold text-green-600">৳{totalIncome.toLocaleString()}</p>
+              <p className="text-xs text-gray-500 font-semibold uppercase">Cash In Hand</p>
+              <p className="text-lg font-bold text-gray-800">{formatCurrency(summary.cash)}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-red-50 p-6 rounded-lg">
+        <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 flex items-center justify-between">
           <div className="flex items-center">
-            <div className="p-3 bg-red-100 rounded-lg mr-4">
-              <span className="text-2xl">📉</span>
-            </div>
+            <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center text-pink-600 mr-3 text-xl">📱</div>
             <div>
-              <p className="text-sm text-gray-600">Total Expense</p>
-              <p className="text-2xl font-bold text-red-600">৳{totalExpense.toLocaleString()}</p>
+              <p className="text-xs text-gray-500 font-semibold uppercase">Mobile Banking</p>
+              <p className="text-lg font-bold text-gray-800">{formatCurrency(summary.mobile)}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-blue-50 p-6 rounded-lg">
+        <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 flex items-center justify-between">
           <div className="flex items-center">
-            <div className="p-3 bg-blue-100 rounded-lg mr-4">
-              <span className="text-2xl">💰</span>
-            </div>
+            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mr-3 text-xl">🏛️</div>
             <div>
-              <p className="text-sm text-gray-600">Current Balance</p>
-              <p className={`text-2xl font-bold ${balance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                ৳{balance.toLocaleString()}
-              </p>
+              <p className="text-xs text-gray-500 font-semibold uppercase">Bank Account</p>
+              <p className="text-lg font-bold text-gray-800">{formatCurrency(summary.bank)}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Transactions List */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-4 border-b flex justify-between items-center">
-          <h2 className="text-lg font-semibold">Recent Transactions</h2>
-          <button
-            onClick={fetchData}
-            className="text-sm text-blue-600 hover:text-blue-800"
-          >
-            🔄 Refresh
-          </button>
+      {/* Recent Transactions List */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-6 border-b border-gray-50 flex justify-between items-center">
+          <h2 className="text-xl font-bold text-gray-800">Recent Transactions</h2>
+          <div className="flex space-x-2">
+            <span className="px-3 py-1 bg-blue-50 text-blue-600 text-xs font-bold rounded-full uppercase">Live Feed</span>
+          </div>
         </div>
 
         {loading ? (
-          <div className="p-8 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-            <p className="mt-2 text-gray-600">Loading transactions...</p>
+          <div className="p-12 text-center">
+            <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
+            <p className="mt-4 text-gray-500 font-medium">Processing records...</p>
           </div>
         ) : error ? (
-          <div className="p-8 text-center">
-            <p className="text-red-500 mb-3">{error}</p>
+          <div className="p-12 text-center">
+            <div className="inline-block p-4 bg-red-50 rounded-full text-red-500 mb-4">⚠️</div>
+            <p className="text-red-500 font-semibold mb-4">{error}</p>
             <button
               onClick={fetchData}
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              className="px-6 py-2 bg-indigo-600 text-white rounded-lg shadow-sm hover:bg-indigo-700 transition-colors"
             >
-              আবার চেষ্টা করুন
+              Retry Connection
             </button>
           </div>
         ) : transactions.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            No transactions found
+          <div className="p-12 text-center text-gray-400">
+            <p className="text-5xl mb-4">💨</p>
+            <p className="font-medium italic">No transactions recorded yet.</p>
           </div>
         ) : (
-          <div className="divide-y">
-            {transactions.map((transaction) => (
-              <div key={`${transaction.source}-${transaction.id}`} className="p-4 hover:bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className={`p-3 rounded-lg mr-4 ${isIncome(transaction) ? 'bg-green-100' : 'bg-red-100'}`}>
-                      <span className="text-xl">{getTransactionIcon(transaction)}</span>
+          <div className="divide-y divide-gray-50">
+            {transactions.map((transaction) => {
+              const income = isIncome(transaction);
+              return (
+                <div key={`${transaction.source}-${transaction.id}`} className="p-5 hover:bg-gray-50/50 transition-colors group">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm ${
+                        income ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                      }`}>
+                        {income ? '📈' : '📉'}
+                      </div>
+                      <div>
+                        <p className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                          {transaction.title || transaction.reason || 'Unnamed Transaction'}
+                        </p>
+                        <div className="flex items-center mt-1 space-x-2 text-xs text-gray-400">
+                          <span className="font-medium">{formatDate(transaction.created_at)}</span>
+                          <span>•</span>
+                          <span>{formatTime(transaction.created_at)}</span>
+                          {transaction.payment_method && (
+                            <>
+                              <span>•</span>
+                              <span className="uppercase font-bold text-indigo-400">{transaction.payment_method}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-800">
-                        {transaction.title || transaction.reason || 'Transaction'}
+                    <div className="text-right">
+                      <p className={`text-xl font-extrabold ${income ? 'text-green-600' : 'text-red-600'}`}>
+                        {income ? '+' : '-'}{formatCurrency(transaction.amount || 0)}
                       </p>
-                      <p className="text-sm text-gray-500">
-                        {formatDate(transaction.created_at)} • {formatTime(transaction.created_at)}
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">
+                        Via {transaction.source}
                       </p>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className={`font-bold text-lg ${isIncome(transaction) ? 'text-green-600' : 'text-red-600'}`}>
-                      {isIncome(transaction) ? '+' : '-'}৳{parseFloat(transaction.amount || 0).toLocaleString()}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1 capitalize">
-                      {transaction.source}
-                    </p>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
+        
+        <div className="p-4 bg-gray-50 text-center border-t border-gray-100">
+          <p className="text-xs text-gray-400">Showing all records from synchronized channels</p>
+        </div>
       </div>
     </div>
   );

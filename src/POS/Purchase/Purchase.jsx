@@ -21,14 +21,14 @@ const Purchase = () => {
 
     useEffect(() => {
         updateNavbar({
-            title: 'purchase MANAGEMENT',
-            subtitle: 'Manage transactions, customers and returns',
+            title: 'PURCHASE MANAGEMENT',
+            subtitle: 'Inventory replenishment and supplier relations',
             extraActions: (
-                <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-xl shadow-sm border border-gray-200">
+                <div className="flex flex-wrap items-center gap-1.5 bg-gray-50 p-1 rounded-xl shadow-sm border border-gray-200">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
-                            className={`flex items-center px-4 py-2 text-[10px] font-bold rounded-lg transition-all duration-200 ${
+                            className={`flex items-center px-4 py-2 text-[10px] font-bold rounded-lg transition-all duration-200 whitespace-nowrap ${
                                 activeTab === tab.id
                                     ? 'bg-blue-600 text-white shadow-md'
                                     : 'text-gray-600 hover:bg-gray-100'
@@ -93,7 +93,8 @@ const Purchase = () => {
             {/*</div>*/}
 
             {/* Content Area */}
-            <div className="p-6">
+            {/*<div className="p-6">*/}
+            <div className="p-0">
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                     {renderTabContent()}
                 </div>

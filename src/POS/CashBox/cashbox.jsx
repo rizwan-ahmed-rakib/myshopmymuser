@@ -108,14 +108,14 @@ const Cashbox = () => {
   ];
     useEffect(() => {
         updateNavbar({
-            title: 'cashbox MANAGEMENT',
-            subtitle: 'Manage transactions, customers and returns',
+            title: 'CASHBOX MANAGEMENT',
+            subtitle: 'Monitor cash flow, income and expenses',
             extraActions: (
-                <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-xl shadow-sm border border-gray-200">
+                <div className="flex flex-wrap items-center gap-1.5 bg-gray-50 p-1 rounded-xl shadow-sm border border-gray-200">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
-                            className={`flex items-center px-4 py-2 text-[10px] font-bold rounded-lg transition-all duration-200 ${
+                            className={`flex items-center px-4 py-2 text-[10px] font-bold rounded-lg transition-all duration-200 whitespace-nowrap ${
                                 activeTab === tab.id
                                     ? 'bg-blue-600 text-white shadow-md'
                                     : 'text-gray-600 hover:bg-gray-100'

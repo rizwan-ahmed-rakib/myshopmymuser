@@ -22,32 +22,33 @@ const Navbar = () => {
 
   return (
     <header className="bg-white shadow-sm border-b relative">
-      <div className="flex justify-between items-center px-6 py-4">
+      <div className="flex justify-between items-start px-6 py-4"> {/* items-start keeping right side at top */}
 
-        {/* Dynamic Page Title & Tabs */}
+        {/* Left Side: Title & Tabs Section */}
+        <div className="flex flex-col md:flex-row md:items-start gap-4 md:gap-8 flex-1 min-w-0">
 
-        <div className="flex items-center gap-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">{navbarContent.title}</h1>
-            <p className="text-gray-600 text-sm">{navbarContent.subtitle}</p>
+          {/* Page Title */}
+          <div className="flex-shrink-0 pt-0.5">
+            <h1 className="text-2xl font-bold text-gray-800 leading-tight">{navbarContent.title}</h1>
+            <p className="text-gray-600 text-xs mt-0.5">{navbarContent.subtitle}</p>
           </div>
-          
-          {/* Extra Actions (e.g., Tabs from other modules) */}
+
+          {/* Dynamic Tabs (Extra Actions) */}
           {navbarContent.extraActions && (
-            <div className="hidden md:flex items-center">
+            <div className="flex flex-wrap items-center gap-2 pt-1">
               {navbarContent.extraActions}
             </div>
           )}
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center space-x-4 relative">
+        {/* Right Side: Global Actions (Add New, Notification, User) */}
+        <div className="flex items-center space-x-4 flex-shrink-0 ml-4 pt-1">
 
           {/* Add New Button */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setOpen(!open)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center gap-2 hover:bg-blue-700"
+              className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-sm"
             >
               ➕ Add New
             </button>
@@ -56,18 +57,18 @@ const Navbar = () => {
           </div>
 
           {/* Notification */}
-          <button className="p-2 rounded-full bg-gray-100 hover:bg-gray-200">
+          <button className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-lg">
             🔔
           </button>
 
           {/* User Info */}
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-              <span className="text-white font-semibold">A</span>
+          <div className="flex items-center space-x-3 pl-2 border-l border-gray-100">
+            <div className="w-9 h-9 bg-blue-500 rounded-full flex items-center justify-center shadow-inner">
+              <span className="text-white font-bold text-sm">A</span>
             </div>
-            <div>
-              <p className="font-semibold">Admin User</p>
-              <p className="text-sm text-gray-500">Owner</p>
+            <div className="hidden sm:block">
+              <p className="font-bold text-sm text-gray-800 leading-none">Admin User</p>
+              <p className="text-[10px] text-gray-500 mt-1">Owner</p>
             </div>
           </div>
 

@@ -40,21 +40,22 @@ const Inventory = () => {
 
     useEffect(() => {
         updateNavbar({
-            title: 'Inventory MANAGEMENT',
-            subtitle: 'Manage transactions, customers and returns',
+            // title: 'INVENTORY MANAGEMENT',
+            title: 'INVENTORY',
+            subtitle: 'Stock control and product metadata',
             extraActions: (
-                <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-xl shadow-sm border border-gray-200">
+                <div className="flex flex-wrap items-center gap-1.5 bg-gray-50 p-1 rounded-xl shadow-sm border border-gray-200">
                     {tabs.map((tab) => (
                         <button
                             key={tab.id}
-                            className={`flex items-center px-4 py-2 text-[10px] font-bold rounded-lg transition-all duration-200 ${
+                            className={`flex items-center px-3 py-1.5 text-[9px] font-bold rounded-lg transition-all duration-200 whitespace-nowrap ${
                                 activeTab === tab.id
                                     ? 'bg-blue-600 text-white shadow-md'
                                     : 'text-gray-600 hover:bg-gray-100'
                             }`}
                             onClick={() => setActiveTab(tab.id)}
                         >
-                            <span className="mr-1.5">{tab.icon}</span>
+                            <span className="mr-1">{tab.icon}</span>
                             {tab.name.toUpperCase()}
                         </button>
                     ))}
@@ -99,38 +100,12 @@ const Inventory = () => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-gray-50">
-            {/* Sticky Header Section */}
-            <div className="sticky top-0 z-20 bg-gray-50/95 backdrop-blur-sm pt-6 px-6 pb-2 border-b border-gray-200">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                    <div>
-                        <h1 className="text-2xl font-black text-gray-900 tracking-tight uppercase">Inventory
-                            Management</h1>
-                        <p className="text-sm text-gray-500 font-medium">Stock control, categories and product
-                            metadata</p>
-                    </div>
-                    <div
-                        className="flex flex-wrap items-center gap-1.5 bg-white p-1 rounded-xl shadow-sm border border-gray-200">
-                        {tabs.map((tab) => (
-                            <button
-                                key={tab.id}
-                                className={`flex items-center px-3 py-1.5 text-[9px] font-bold rounded-lg transition-all duration-200 whitespace-nowrap ${
-                                    activeTab === tab.id
-                                        ? 'bg-blue-600 text-white shadow-md'
-                                        : 'text-gray-600 hover:bg-gray-100'
-                                }`}
-                                onClick={() => setActiveTab(tab.id)}
-                            >
-                                <span className="mr-1">{tab.icon}</span>
-                                {tab.name.toUpperCase()}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
+        // <div className="flex flex-col h-full bg-gray-50">
+        <div className="flex flex-col h-full bg-green-500">
             {/* Content Area */}
-            <div className="p-6">
+            {/*<div className="p-6">*/}
+            <div className="p-0">
+                {/*<div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">*/}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                     {renderTabContent()}
                 </div>

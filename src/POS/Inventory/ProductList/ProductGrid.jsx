@@ -218,7 +218,8 @@ const ProductGrid = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+        // <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+        <div className="min-h-screen bg-green-50 p-4 md:p-0">
             <ProductHeader viewType={viewType} setViewType={setViewType} onAddClick={() => setIsAddOpen(true)} />
             <div className="mb-6">
                 <ProductStats stats={displayStats}/>

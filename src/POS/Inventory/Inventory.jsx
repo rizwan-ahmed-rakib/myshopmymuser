@@ -18,103 +18,75 @@ import Warranties from "./Warranties/Warranties";
 import WarrantyPeriodsGrid from "./WarrantyPeriod/WarrantyPeriodsGrid";
 
 const Inventory = () => {
-    const [activeSection, setActiveSection] = useState('product_list');
+    const [activeTab, setActiveTab] = useState('product_list');
 
-    const menuItems = [
-        // { id: 'create_product', name: 'Create Product', icon: '➕' },
-        {id: 'product_list', name: 'Product List', icon: '📋'},
-        {id: 'Categories', name: 'Categories', icon: '👥'},
-        {id: 'SubCategories', name: 'SubCategories', icon: '👥'},
-        {id: 'Brands', name: 'Brands', icon: '👥'},
-        {id: 'Units', name: 'Units', icon: '👥'},
-        {id: 'Size', name: 'Size', icon: '👥'},
-        {id: 'WarrantyPeriods', name: 'Warranty', icon: '👥'},
-        {id: 'Print_Barcode', name: 'Print Barcode', icon: '👥'},
-        {id: 'Print_QRrcode', name: 'Print QR Code', icon: '👥'},
-        {id: 'Expired_products', name: 'Expired Products', icon: '👥'},
-        {id: 'Low_stocks', name: 'Low Stocks', icon: '👥'},
-        {id: 'Damage', name: 'Damages', icon: '👥'},
-        {id: 'DamageStock', name: 'DamagesStock', icon: '👥'},
-        {id: 'Warranties', name: 'Warranties', icon: '👥'},
-
+    const tabs = [
+        {id: 'product_list', name: 'Products', icon: '📦'},
+        {id: 'Categories', name: 'Categories', icon: '📁'},
+        {id: 'SubCategories', name: 'Sub-Cats', icon: '📂'},
+        {id: 'Brands', name: 'Brands', icon: '🏷️'},
+        {id: 'Units', name: 'Units', icon: '📏'},
+        {id: 'Size', name: 'Size', icon: '📐'},
+        {id: 'WarrantyPeriods', name: 'Warranty', icon: '🛡️'},
+        {id: 'Print_Barcode', name: 'Barcode', icon: '🏷️'},
+        {id: 'Print_QRrcode', name: 'QR Code', icon: '📱'},
+        {id: 'Expired_products', name: 'Expired', icon: '⚠️'},
+        {id: 'Low_stocks', name: 'Low Stock', icon: '📉'},
+        {id: 'DamageStock', name: 'Damages', icon: '🛠️'},
+        {id: 'Warranties', name: 'Warranties', icon: '📜'},
     ];
 
-    const renderContent = () => {
-        switch (activeSection) {
-            case 'product_list':
-                return <ProductGrid/>;
-            case 'Categories':
-                return <CategoryGrid/>;
-            case 'SubCategories':
-                return <SubCateforyGrid/>;
-            case 'Units':
-                return <UnitGrid/>;
-            case 'Size':
-                return <SizeGrid/>;
-            case 'Brands':
-                return <BrandsGrid/>;
-            case 'WarrantyPeriods':
-                return <WarrantyPeriodsGrid/>;
-            case 'create_product':
-                return <AddPurchase/>;
-            case 'suppliers':
-                return <Suppliers/>;
-            case 'Damage':
-                return <DamageProductGrid/>;
-            case 'DamageStock':
-                return <DamageStockGrid/>;
-            case 'Low_stocks':
-                return <ProducLowstocktGrid/>;
-            case 'Print_Barcode':
-                return <BarcodeQRList type="barcode"/>;
-            case 'Print_QRrcode':
-                return <BarcodeQRList type="qr"/>;
-            case 'Expired_products':
-                return <ExpiredProducts type="expire"/>;
-            case 'Warranties':
-                return <Warranties type="warranties"/>;
-            default:
-                return <PurchaseList/>;
+    const renderTabContent = () => {
+        switch (activeTab) {
+            case 'product_list': return <ProductGrid/>;
+            case 'Categories': return <CategoryGrid/>;
+            case 'SubCategories': return <SubCateforyGrid/>;
+            case 'Units': return <UnitGrid/>;
+            case 'Size': return <SizeGrid/>;
+            case 'Brands': return <BrandsGrid/>;
+            case 'WarrantyPeriods': return <WarrantyPeriodsGrid/>;
+            case 'DamageStock': return <DamageStockGrid/>;
+            case 'Low_stocks': return <ProducLowstocktGrid/>;
+            case 'Print_Barcode': return <BarcodeQRList type="barcode"/>;
+            case 'Print_QRrcode': return <BarcodeQRList type="qr"/>;
+            case 'Expired_products': return <ExpiredProducts type="expire"/>;
+            case 'Warranties': return <Warranties type="warranties"/>;
+            default: return <ProductGrid/>;
         }
     };
 
     return (
-        <div className="flex h-full bg-gray-50">
-            {/* Side Menu */}
-            <div className="w-64 bg-white shadow-lg">
-                <div className="p-4 border-b">
-                    <h2 className="text-lg font-bold text-gray-800">Inventory Management</h2>
-                </div>
-                <nav className="p-4">
-                    <ul className="space-y-2">
-                        {menuItems.map((item) => (
-                            <li key={item.id}>
-                                <button
-                                  onClick={() => setActiveSection(item.id)}
-                                  className="w-full flex items-center px-2 py-2 rounded-lg transition-colors"
-                                >
-                                  <span className="mr-3 text-lg">{item.icon}</span>
-                                  <span className="font-medium">{item.name}</span>
-                                </button>
-
-                                {/*<button*/}
-                                {/*    onClick={() => setActiveSection(item.id)}*/}
-                                {/*    // Ekhane double quotes use kora hoyeche*/}
-                                {/*    className="w-full flex items-center px-2 py-2 rounded-lg transition-colors"*/}
-                                {/*>*/}
-                                {/*    <span className="mr-3 text-lg">{item.icon}</span>*/}
-                                {/*    <span className="font-medium">{item.name}</span>*/}
-                                {/*</button>*/}
-                            </li>
+        <div className="flex flex-col h-full bg-gray-50">
+            {/* Sticky Header Section */}
+            <div className="sticky top-0 z-20 bg-gray-50/95 backdrop-blur-sm pt-6 px-6 pb-2 border-b border-gray-200">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                    <div>
+                        <h1 className="text-2xl font-black text-gray-900 tracking-tight uppercase">Inventory Management</h1>
+                        <p className="text-sm text-gray-500 font-medium">Stock control, categories and product metadata</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5 bg-white p-1 rounded-xl shadow-sm border border-gray-200">
+                        {tabs.map((tab) => (
+                            <button
+                                key={tab.id}
+                                className={`flex items-center px-3 py-1.5 text-[9px] font-bold rounded-lg transition-all duration-200 whitespace-nowrap ${
+                                    activeTab === tab.id
+                                        ? 'bg-blue-600 text-white shadow-md'
+                                        : 'text-gray-600 hover:bg-gray-100'
+                                }`}
+                                onClick={() => setActiveTab(tab.id)}
+                            >
+                                <span className="mr-1">{tab.icon}</span>
+                                {tab.name.toUpperCase()}
+                            </button>
                         ))}
-                    </ul>
-                </nav>
+                    </div>
+                </div>
             </div>
 
-            {/* Main Content */}
-            <div className="flex-1 p-6 overflow-auto">
-                <div className="bg-white rounded-lg shadow-md">
-                    {renderContent()}
+            {/* Content Area */}
+            <div className="p-6">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                    {renderTabContent()}
                 </div>
             </div>
         </div>

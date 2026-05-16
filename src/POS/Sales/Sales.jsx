@@ -15,64 +15,54 @@ const Sales = () => {
 
   const tabs = [
     { id: 'sales', name: 'Sales', icon: '🛒' },
-    // { id: 'invoices', name: 'Invoices', icon: '🧾' },
     { id: 'sales-return', name: 'Sales Return', icon: '↩️' },
-    { id: 'customers', name: 'Customers', icon: '↩️' },
-    { id: 'customers-due-collection', name: 'Customers Due Colection', icon: '📄' },
+    { id: 'customers', name: 'Customers', icon: '👥' },
+    { id: 'customers-due-collection', name: 'Due Collection', icon: '📄' },
   ];
 
   const renderTabContent = () => {
     switch (activeTab) {
-      case 'sales':
-        // return <SalesTab />;
-        return <SaleGrid />;
-      // case 'invoices':
-      //   return <InvoicesTab />;
-      case 'customers':
-        // return <Customers />;
-        return <CustomerGrid />;
-      case 'sales-return':
-        // return <SalesReturnTab />;
-        return <SaleReturnGrid />;
-      case 'customers-due-collection':
-        return <CustomerDueCollectionGrid />;
-      default:
-        // return <SalesTab />;
-        return <SaleGrid />;
+      case 'sales': return <SaleGrid />;
+      case 'customers': return <CustomerGrid />;
+      case 'sales-return': return <SaleReturnGrid />;
+      case 'customers-due-collection': return <CustomerDueCollectionGrid />;
+      default: return <SaleGrid />;
     }
   };
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Sales Management</h1>
-        <p className="text-gray-600">Manage all sales activities</p>
-      </div>
-
-      {/* Tabs */}
-      <div className="bg-white rounded-lg shadow-md mb-6">
-        <div className="flex border-b">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              className={`flex items-center px-6 py-4 font-medium border-b-2 transition-colors ${
-                activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600 bg-blue-50'
-                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              }`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              <span className="mr-2 text-lg">{tab.icon}</span>
-              {tab.name}
-            </button>
-          ))}
+    <div className="flex flex-col h-full bg-gray-50">
+      {/* Sticky Header Section */}
+      <div className="sticky top-0 z-20 bg-gray-50/95 backdrop-blur-sm pt-6 px-6 pb-2 border-b border-gray-200">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+          <div>
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight">SALES MANAGEMENT</h1>
+            <p className="text-sm text-gray-500 font-medium">Manage transactions, customers and returns</p>
+          </div>
+          <div className="flex items-center gap-2 bg-white p-1 rounded-xl shadow-sm border border-gray-200">
+             {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  className={`flex items-center px-4 py-2 text-xs font-bold rounded-lg transition-all duration-200 ${
+                    activeTab === tab.id
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  <span className="mr-2">{tab.icon}</span>
+                  {tab.name.toUpperCase()}
+                </button>
+              ))}
+          </div>
         </div>
       </div>
 
-      {/* Tab Content */}
-      <div className="bg-white rounded-lg shadow-md">
-        {renderTabContent()}
+      {/* Content Area */}
+      <div className="p-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          {renderTabContent()}
+        </div>
       </div>
     </div>
   );

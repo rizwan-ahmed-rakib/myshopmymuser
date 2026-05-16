@@ -1,10 +1,12 @@
 import React, {useState, useRef, useEffect} from "react";
 import AddNewDropdown from "./AddNewDropdown";
 import Inventory from "../Inventory/Inventory";
+import { useNavbar } from "../../context_or_provider/pos/NavbarContext";
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const { navbarContent } = useNavbar();
 
   // outside click handler
   useEffect(() => {
@@ -22,11 +24,20 @@ const Navbar = () => {
     <header className="bg-white shadow-sm border-b relative">
       <div className="flex justify-between items-center px-6 py-4">
 
-        {/* Page Title */}
+        {/* Dynamic Page Title & Tabs */}
 
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-          <p className="text-gray-600">Welcome to your POS system</p>
+        <div className="flex items-center gap-8">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">{navbarContent.title}</h1>
+            <p className="text-gray-600 text-sm">{navbarContent.subtitle}</p>
+          </div>
+          
+          {/* Extra Actions (e.g., Tabs from other modules) */}
+          {navbarContent.extraActions && (
+            <div className="hidden md:flex items-center">
+              {navbarContent.extraActions}
+            </div>
+          )}
         </div>
 
         {/* Actions */}

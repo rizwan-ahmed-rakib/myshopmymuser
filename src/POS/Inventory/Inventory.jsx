@@ -1,5 +1,5 @@
 ﻿// myshopPages/Inventory.jsx
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import PurchaseList from './PurchaseList';
 import AddPurchase from './AddPurchase';
 import Suppliers from './Suppliers';
@@ -16,9 +16,11 @@ import ProducLowstocktGrid from "./LowStock/ProducLowstocktGrid";
 import ExpiredProducts from "./Expeired products/ExpiredProducts";
 import Warranties from "./Warranties/Warranties";
 import WarrantyPeriodsGrid from "./WarrantyPeriod/WarrantyPeriodsGrid";
+import {useNavbar} from '../../context_or_provider/pos/NavbarContext';
 
 const Inventory = () => {
     const [activeTab, setActiveTab] = useState('product_list');
+    const {updateNavbar, resetNavbar} = useNavbar();
 
     const tabs = [
         {id: 'product_list', name: 'Products', icon: '📦'},
@@ -36,22 +38,63 @@ const Inventory = () => {
         {id: 'Warranties', name: 'Warranties', icon: '📜'},
     ];
 
+    useEffect(() => {
+        updateNavbar({
+            title: 'Inventory MANAGEMENT',
+            subtitle: 'Manage transactions, customers and returns',
+            extraActions: (
+                <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-xl shadow-sm border border-gray-200">
+                    {tabs.map((tab) => (
+                        <button
+                            key={tab.id}
+                            className={`flex items-center px-4 py-2 text-[10px] font-bold rounded-lg transition-all duration-200 ${
+                                activeTab === tab.id
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : 'text-gray-600 hover:bg-gray-100'
+                            }`}
+                            onClick={() => setActiveTab(tab.id)}
+                        >
+                            <span className="mr-1.5">{tab.icon}</span>
+                            {tab.name.toUpperCase()}
+                        </button>
+                    ))}
+                </div>
+            )
+        });
+        return () => resetNavbar();
+    }, [activeTab]);
+
+
     const renderTabContent = () => {
         switch (activeTab) {
-            case 'product_list': return <ProductGrid/>;
-            case 'Categories': return <CategoryGrid/>;
-            case 'SubCategories': return <SubCateforyGrid/>;
-            case 'Units': return <UnitGrid/>;
-            case 'Size': return <SizeGrid/>;
-            case 'Brands': return <BrandsGrid/>;
-            case 'WarrantyPeriods': return <WarrantyPeriodsGrid/>;
-            case 'DamageStock': return <DamageStockGrid/>;
-            case 'Low_stocks': return <ProducLowstocktGrid/>;
-            case 'Print_Barcode': return <BarcodeQRList type="barcode"/>;
-            case 'Print_QRrcode': return <BarcodeQRList type="qr"/>;
-            case 'Expired_products': return <ExpiredProducts type="expire"/>;
-            case 'Warranties': return <Warranties type="warranties"/>;
-            default: return <ProductGrid/>;
+            case 'product_list':
+                return <ProductGrid/>;
+            case 'Categories':
+                return <CategoryGrid/>;
+            case 'SubCategories':
+                return <SubCateforyGrid/>;
+            case 'Units':
+                return <UnitGrid/>;
+            case 'Size':
+                return <SizeGrid/>;
+            case 'Brands':
+                return <BrandsGrid/>;
+            case 'WarrantyPeriods':
+                return <WarrantyPeriodsGrid/>;
+            case 'DamageStock':
+                return <DamageStockGrid/>;
+            case 'Low_stocks':
+                return <ProducLowstocktGrid/>;
+            case 'Print_Barcode':
+                return <BarcodeQRList type="barcode"/>;
+            case 'Print_QRrcode':
+                return <BarcodeQRList type="qr"/>;
+            case 'Expired_products':
+                return <ExpiredProducts type="expire"/>;
+            case 'Warranties':
+                return <Warranties type="warranties"/>;
+            default:
+                return <ProductGrid/>;
         }
     };
 
@@ -61,10 +104,13 @@ const Inventory = () => {
             <div className="sticky top-0 z-20 bg-gray-50/95 backdrop-blur-sm pt-6 px-6 pb-2 border-b border-gray-200">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                     <div>
-                        <h1 className="text-2xl font-black text-gray-900 tracking-tight uppercase">Inventory Management</h1>
-                        <p className="text-sm text-gray-500 font-medium">Stock control, categories and product metadata</p>
+                        <h1 className="text-2xl font-black text-gray-900 tracking-tight uppercase">Inventory
+                            Management</h1>
+                        <p className="text-sm text-gray-500 font-medium">Stock control, categories and product
+                            metadata</p>
                     </div>
-                    <div className="flex flex-wrap items-center gap-1.5 bg-white p-1 rounded-xl shadow-sm border border-gray-200">
+                    <div
+                        className="flex flex-wrap items-center gap-1.5 bg-white p-1 rounded-xl shadow-sm border border-gray-200">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}

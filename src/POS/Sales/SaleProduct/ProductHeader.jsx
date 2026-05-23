@@ -2,7 +2,7 @@ import React from "react";
 
 const ProductsHeader = ({viewType, setViewType, onAddClick}) => (
     <div
-        className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 p-6 bg-white rounded-lg shadow-sm border border-gray-200">
+        className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 p-1 bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="flex items-center mb-4 lg:mb-0">
             <div className="mr-6">
                 <h4 className="text-xl font-bold text-gray-900">Products</h4>

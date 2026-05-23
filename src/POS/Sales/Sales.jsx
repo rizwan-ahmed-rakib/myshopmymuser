@@ -1,5 +1,5 @@
 // myshopPages/Sales.jsx (Updated with Tabs)
-import React, { useState, useEffect } from 'react';
+import React, {useState} from 'react';
 import SalesTab from './SalesTab';
 import InvoicesTab from './InvoicesTab';
 import SalesReturnTab from './SalesReturnTab';
@@ -9,65 +9,78 @@ import SaleGrid from "./SaleProduct/SaleGrid";
 import CustomerGrid from "./CustomerList/CustomerGrid";
 import SaleReturnGrid from "./SaleReturn/SaleReturnGrid";
 import CustomerDueCollectionGrid from "./CustomerDueCollection/CustomerDueCollectionGrid";
-import { useNavbar } from '../../context_or_provider/pos/NavbarContext';
 
 const Sales = () => {
-  const [activeTab, setActiveTab] = useState('sales');
-  const { updateNavbar, resetNavbar } = useNavbar();
+    const [activeTab, setActiveTab] = useState('sales');
 
-  const tabs = [
-    { id: 'sales', name: 'Sales', icon: '🛒' },
-    { id: 'sales-return', name: 'Sales Return', icon: '↩️' },
-    { id: 'customers', name: 'Customers', icon: '👥' },
-    { id: 'customers-due-collection', name: 'Due Collection', icon: '📄' },
-  ];
 
-  useEffect(() => {
-    updateNavbar({
-      title: 'SALES MANAGEMENT',
-      subtitle: 'Manage transactions, customers and returns',
-      extraActions: (
-        <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-xl shadow-sm border border-gray-200">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              className={`flex items-center px-4 py-2 text-[10px] font-bold rounded-lg transition-all duration-200 ${
-                activeTab === tab.id
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              <span className="mr-1.5">{tab.icon}</span>
-              {tab.name.toUpperCase()}
-            </button>
-          ))}
+    const tabs = [
+        {id: 'sales', name: 'Sales', icon: '🛒'},
+        // { id: 'invoices', name: 'Invoices', icon: '🧾' },
+        {id: 'sales-return', name: 'Sales Return', icon: '↩️'},
+        {id: 'customers', name: 'Customers', icon: '↩️'},
+        {id: 'customers-due-collection', name: 'Customers Due Colection', icon: '📄'},
+    ];
+
+    const renderTabContent = () => {
+        switch (activeTab) {
+            case 'sales':
+                // return <SalesTab />;
+                return <SaleGrid/>;
+            // case 'invoices':
+            //   return <InvoicesTab />;
+            case 'customers':
+                // return <Customers />;
+                return <CustomerGrid/>;
+            case 'sales-return':
+                // return <SalesReturnTab />;
+                return <SaleReturnGrid/>;
+            case 'customers-due-collection':
+                return <CustomerDueCollectionGrid/>;
+            default:
+                // return <SalesTab />;
+                return <SaleGrid/>;
+        }
+    };
+
+
+    return (
+        <div className="h-full flex flex-col bg-gray-50">
+
+            {/* 🔥 Top Tabs */}
+            <div className="bg-white border-b px-3 py-2">
+                <div className="flex gap-2 overflow-x-auto">
+
+                    {tabs.map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`px-4 py-1.5 text-sm rounded-md whitespace-nowrap transition
+              
+              ${
+                                activeTab === tab.id
+                                    ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white"
+                                    : "text-gray-600 hover:bg-gray-100"
+                            }`}
+                        >
+                            {tab.name}
+                        </button>
+                    ))}
+
+
+                </div>
+
+            </div>
+
+            {/* 🔥 Content */}
+            <div className="flex-1 p-2 overflow-auto">
+                <div className="bg-white rounded-md shadow-sm p-2">
+                    {renderTabContent()}
+                </div>
+            </div>
+
         </div>
-      )
-    });
-    return () => resetNavbar();
-  }, [activeTab]);
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'sales': return <SaleGrid />;
-      case 'customers': return <CustomerGrid />;
-      case 'sales-return': return <SaleReturnGrid />;
-      case 'customers-due-collection': return <CustomerDueCollectionGrid />;
-      default: return <SaleGrid />;
-    }
-  };
-
-  return (
-    <div className="flex flex-col h-full bg-gray-50">
-      {/* Content Area */}
-      <div className="p-6">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          {renderTabContent()}
-        </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default Sales;

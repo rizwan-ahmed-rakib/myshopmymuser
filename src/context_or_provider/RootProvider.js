@@ -27,7 +27,6 @@ import {PosUniqueProductInstanceProvider} from "./pos/UniqueProductInstance/Uniq
 import {PosWarrantyPeriodProvider} from "./pos/warrantyPeriod/WarrantyPeriodProvider";
 import {DuePaymentProvider} from "./pos/Purchase/duePayment/DuePaymentProvider";
 import {DueCollectionProvider} from "./pos/Sale/dueCollection/DueCollectionProvider";
-import {NavbarProvider} from "./pos/NavbarContext";
 // import {ContactWithMeProvider} from './ContactContext';
 // import {ServiceProvider} from './ServiceContext';
 // import {ImageGalleryProvider} from './GalleryContext';
@@ -43,59 +42,57 @@ const RootProvider = ({children}) => {
                     <ProductsProvider>
                         <CartProvider>
                             {/*///////pos provider//////////*/}
-                            <NavbarProvider>
-                                <UserWithProfileProvider>
-                                    <PosProductProvider>
-                                        <PosDamageProductProvider>
-                                            <PosCategoryProvider>
-                                                <PosBrandProvider>
-                                                    <PosUnitProvider>
-                                                        <PosSizeProvider>
-                                                            <PosSubCategoryProvider>
-                                                                <PosPurchaseProductProvider>
-                                                                    <PosSupplierProvider>
-                                                                        <PosPurchaseReturnProvider>
-                                                                            <PosCustomerProvider>
-                                                                                <PosSaleProductProvider>
-                                                                                    <PosSaleReturnProvider>
-                                                                                        <SalaryAdvanceProvider>
-                                                                                            <LeaveApplicationProvider>
-                                                                                                <EmployeeLoanProvider>
-                                                                                                    <SalaryPaySlipProvider>
-                                                                                                        <EmployeeAttendanceProvider>
-                                                                                                            <PosUniqueProductInstanceProvider>
-                                                                                                                <PosWarrantyPeriodProvider>
-                                                                                                                    <DuePaymentProvider>
-                                                                                                                        <DueCollectionProvider>
-                                                                                                                            {/*<QRcodeProvider>*/}
-                                                                                                                            {/*<QRcodeProvider>*/}
-                                                                                                                            {children}
-                                                                                                                            {/*</QRcodeProvider>*/}
-                                                                                                                            {/*</QRcodeProvider>*/}
-                                                                                                                        </DueCollectionProvider>
-                                                                                                                    </DuePaymentProvider>
-                                                                                                                </PosWarrantyPeriodProvider>
-                                                                                                            </PosUniqueProductInstanceProvider>
-                                                                                                        </EmployeeAttendanceProvider>
-                                                                                                    </SalaryPaySlipProvider>
-                                                                                                </EmployeeLoanProvider>
-                                                                                            </LeaveApplicationProvider>
-                                                                                        </SalaryAdvanceProvider>
-                                                                                    </PosSaleReturnProvider>
-                                                                                </PosSaleProductProvider>
-                                                                            </PosCustomerProvider>
-                                                                        </PosPurchaseReturnProvider>
-                                                                    </PosSupplierProvider>
-                                                                </PosPurchaseProductProvider>
-                                                            </PosSubCategoryProvider>
-                                                        </PosSizeProvider>
-                                                    </PosUnitProvider>
-                                                </PosBrandProvider>
-                                            </PosCategoryProvider>
-                                        </PosDamageProductProvider>
-                                    </PosProductProvider>
-                                </UserWithProfileProvider>
-                            </NavbarProvider>
+                            <UserWithProfileProvider>
+                                <PosProductProvider>
+                                    <PosDamageProductProvider>
+                                        <PosCategoryProvider>
+                                            <PosBrandProvider>
+                                                <PosUnitProvider>
+                                                    <PosSizeProvider>
+                                                        <PosSubCategoryProvider>
+                                                            <PosPurchaseProductProvider>
+                                                                <PosSupplierProvider>
+                                                                    <PosPurchaseReturnProvider>
+                                                                        <PosCustomerProvider>
+                                                                            <PosSaleProductProvider>
+                                                                                <PosSaleReturnProvider>
+                                                                                    <SalaryAdvanceProvider>
+                                                                                        <LeaveApplicationProvider>
+                                                                                            <EmployeeLoanProvider>
+                                                                                                <SalaryPaySlipProvider>
+                                                                                                    <EmployeeAttendanceProvider>
+                                                                                                        <PosUniqueProductInstanceProvider>
+                                                                                                            <PosWarrantyPeriodProvider>
+                                                                                                                <DuePaymentProvider>
+                                                                                                                    <DueCollectionProvider>
+                                                                                                                        {/*<QRcodeProvider>*/}
+                                                                                                                        {/*<QRcodeProvider>*/}
+                                                                                                                        {children}
+                                                                                                                        {/*</QRcodeProvider>*/}
+                                                                                                                        {/*</QRcodeProvider>*/}
+                                                                                                                    </DueCollectionProvider>
+                                                                                                                </DuePaymentProvider>
+                                                                                                            </PosWarrantyPeriodProvider>
+                                                                                                        </PosUniqueProductInstanceProvider>
+                                                                                                    </EmployeeAttendanceProvider>
+                                                                                                </SalaryPaySlipProvider>
+                                                                                            </EmployeeLoanProvider>
+                                                                                        </LeaveApplicationProvider>
+                                                                                    </SalaryAdvanceProvider>
+                                                                                </PosSaleReturnProvider>
+                                                                            </PosSaleProductProvider>
+                                                                        </PosCustomerProvider>
+                                                                    </PosPurchaseReturnProvider>
+                                                                </PosSupplierProvider>
+                                                            </PosPurchaseProductProvider>
+                                                        </PosSubCategoryProvider>
+                                                    </PosSizeProvider>
+                                                </PosUnitProvider>
+                                            </PosBrandProvider>
+                                        </PosCategoryProvider>
+                                    </PosDamageProductProvider>
+                                </PosProductProvider>
+                            </UserWithProfileProvider>
                             {/*//////pos provider/////////////////////////*/}
                         </CartProvider>
                     </ProductsProvider>

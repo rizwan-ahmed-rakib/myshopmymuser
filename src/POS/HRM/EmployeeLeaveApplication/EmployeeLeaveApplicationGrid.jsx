@@ -14,11 +14,11 @@ import {
     useLeaveApplications
 } from "../../../context_or_provider/pos/EmployeeLeaveApplicaations/leave_applications_provider";
 
-const EmployeeLeaveApplicationGrid = () => {
+const EmployeeLeaveApplicationGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
     const { leaveApplication,  setLeaveApplication} = useLeaveApplications();
     // const { userWith_profile, setUserWith_profile } = useUserWithProfile();
-    const [viewType, setViewType] = useState("grid");
-    const [isAddOpen, setIsAddOpen] = useState(false);
+    // const [viewType, setViewType] = useState("grid");
+    // const [isAddOpen, setIsAddOpen] = useState(false);
     const [successData, setSuccessData] = useState(null);
     const [successType, setSuccessType] = useState('create');
     const [loading, setLoading] = useState(true);
@@ -425,11 +425,11 @@ const EmployeeLeaveApplicationGrid = () => {
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
             {/* Header */}
-            <EmployeeLeaveApplicationHeader
-                viewType={viewType}
-                setViewType={setViewType}
-                onAddClick={() => setIsAddOpen(true)}
-            />
+            {/*<EmployeeLeaveApplicationHeader*/}
+            {/*    viewType={viewType}*/}
+            {/*    setViewType={setViewType}*/}
+            {/*    onAddClick={() => setIsAddOpen(true)}*/}
+            {/*/>*/}
 
             {/* Stats */}
             <div className="mb-6">

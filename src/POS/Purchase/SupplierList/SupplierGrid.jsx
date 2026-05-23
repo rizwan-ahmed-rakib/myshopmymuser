@@ -14,10 +14,10 @@ import {usePosSuppliers} from "../../../context_or_provider/pos/Purchase/supplie
 import {posSupplierAPI} from "../../../context_or_provider/pos/Purchase/suppliers/supplierAPI";
 import AddSupplierDuePaymentModal from "./AddSupplierDuePaymentModal";
 
-const SupplierGrid = () => {
+const SupplierGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
     const {posSuppliers, setPosSuppliers} = usePosSuppliers();
-    const [viewType, setViewType] = useState("grid");
-    const [isAddOpen, setIsAddOpen] = useState(false);
+    // const [viewType, setViewType] = useState("grid");
+    // const [isAddOpen, setIsAddOpen] = useState(false);
     const [successData, setSuccessData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
@@ -260,11 +260,11 @@ const SupplierGrid = () => {
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
             {/* Header */}
-            <SupplierHeader
-                viewType={viewType}
-                setViewType={setViewType}
-                onAddClick={() => setIsAddOpen(true)}
-            />
+            {/*<SupplierHeader*/}
+            {/*    viewType={viewType}*/}
+            {/*    setViewType={setViewType}*/}
+            {/*    onAddClick={() => setIsAddOpen(true)}*/}
+            {/*/>*/}
 
             {/* Stats */}
             <div className="mb-6">

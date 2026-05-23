@@ -12,11 +12,9 @@ import EditCustomerDueCollectionModal from "./EditCustomerDueCollectionModal";
 import { usePosCustomers } from "../../../context_or_provider/pos/Sale/customer/PosCustomerProvider";
 import { posCustomerAPI } from "../../../context_or_provider/pos/Sale/customer/PosCustomerAPI";
 
-const CustomerDueCollectionGrid = () => {
+const CustomerDueCollectionGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
     const { posDueCollections, setPosDueCollections } = usePosDueCollection();
     const { posCustomers, setPosCustomers } = usePosCustomers();
-    const [viewType, setViewType] = useState("grid");
-    const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -113,12 +111,6 @@ const CustomerDueCollectionGrid = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-            <CustomerDueCollectionHeader 
-                viewType={viewType} 
-                setViewType={setViewType} 
-                onAddClick={() => setIsAddOpen(true)} 
-            />
-
             <div className="mb-8">
                 <CustomerDueCollectionStats stats={stats} />
             </div>

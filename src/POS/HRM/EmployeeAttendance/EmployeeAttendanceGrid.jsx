@@ -654,11 +654,11 @@ import SuccessModal from "./SuccessModal";
 import LoadingSpinner from "./LoadingSpinner";
 import {employeeAttendanceAPI} from "../../../context_or_provider/pos/EmployeeAttendance/employeeAttendanceAPI";
 
-const EmployeeAttendanceGrid = () => {
+const EmployeeAttendanceGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
     const [allAttendance, setAllAttendance] = useState([]); // সব ডাটা রাখার জন্য
     const [displayedAttendance, setDisplayedAttendance] = useState([]); // দেখানোর জন্য
-    const [viewType, setViewType] = useState("grid");
-    const [isAddOpen, setIsAddOpen] = useState(false);
+    // const [viewType, setViewType] = useState("grid");
+    // const [isAddOpen, setIsAddOpen] = useState(false);
     const [successData, setSuccessData] = useState(null);
     const [successType, setSuccessType] = useState('create');
     const [loading, setLoading] = useState(true);
@@ -821,11 +821,11 @@ const EmployeeAttendanceGrid = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            <EmployeeAttendanceHeader
-                viewType={viewType}
-                setViewType={setViewType}
-                onAddClick={() => setIsAddOpen(true)}
-            />
+            {/*<EmployeeAttendanceHeader*/}
+            {/*    viewType={viewType}*/}
+            {/*    setViewType={setViewType}*/}
+            {/*    onAddClick={() => setIsAddOpen(true)}*/}
+            {/*/>*/}
 
             <div className="mb-6">
                 <EmployeeStats stats={displayStats}/>

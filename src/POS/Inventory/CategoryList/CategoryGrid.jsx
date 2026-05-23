@@ -10,10 +10,10 @@ import LoadingSpinner from "./LoadingSpinner";
 import {usePosCategory} from "../../../context_or_provider/pos/categories/CategoryProvider";
 import {posCategoryAPI} from "../../../context_or_provider/pos/categories/categoryAPI";
 
-const CategoryGrid = () => {
+const CategoryGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
     const {posCategories, setPosCategories} = usePosCategory();
-    const [viewType, setViewType] = useState("grid");
-    const [isAddOpen, setIsAddOpen] = useState(false);
+    // const [viewType, setViewType] = useState("grid");
+    // const [isAddOpen, setIsAddOpen] = useState(false);
     // const [successData, setSuccessData] = useState(null);
     const {successData, setSuccessData} = usePosCategory();
     const [loading, setLoading] = useState(true);
@@ -160,11 +160,11 @@ const CategoryGrid = () => {
     return (
         // The PosCategoryProvider should wrap this component in the main App/Router file
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            <CategoryHeader
-                viewType={viewType}
-                setViewType={setViewType}
-                onAddClick={() => setIsAddOpen(true)}
-            />
+            {/*<CategoryHeader*/}
+            {/*    viewType={viewType}*/}
+            {/*    setViewType={setViewType}*/}
+            {/*    onAddClick={() => setIsAddOpen(true)}*/}
+            {/*/>*/}
             <div className="mb-6">
                 <CategoryStats stats={displayStats}/>
             </div>

@@ -12,11 +12,11 @@ import EditSupplierDuePaymentModal from "./EditSupplierDuePaymentModal";
 import { usePosSuppliers } from "../../../context_or_provider/pos/Purchase/suppliers/supplierProvider";
 import { posSupplierAPI } from "../../../context_or_provider/pos/Purchase/suppliers/supplierAPI";
 
-const SupplierDuePaymentGrid = () => {
+const SupplierDuePaymentGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
     const { posDuePayments, setPosDuePayments } = usePosDuePayment();
     const { posSuppliers, setPosSuppliers } = usePosSuppliers(); 
-    const [viewType, setViewType] = useState("grid");
-    const [isAddOpen, setIsAddOpen] = useState(false);
+    // const [viewType, setViewType] = useState("grid");
+    // const [isAddOpen, setIsAddOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -113,11 +113,11 @@ const SupplierDuePaymentGrid = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-            <SupplierDuePaymentHeader 
-                viewType={viewType} 
-                setViewType={setViewType} 
-                onAddClick={() => setIsAddOpen(true)} 
-            />
+            {/*<SupplierDuePaymentHeader */}
+            {/*    viewType={viewType} */}
+            {/*    setViewType={setViewType} */}
+            {/*    onAddClick={() => setIsAddOpen(true)} */}
+            {/*/>*/}
 
             <div className="mb-8">
                 <SupplierDuePaymentStats stats={stats} />

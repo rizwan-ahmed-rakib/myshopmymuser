@@ -73,15 +73,17 @@ const menuSections = [
     {
         label: 'Manage',
         items: [
-            {path: '/hrm', name: 'HRM', icon: '📋'},
-            {path: '/crm', name: 'CRM', icon: '📋'},
-            {path: '/marketing', name: 'Marketing', icon: '📋'},
-            {path: '/branches', name: 'Branches', icon: '📈'},
-            {path: '/users', name: 'Users', icon: '📈'},
-            {path: '/stock', name: 'Stock', icon: '📋'},
+            // {path: '/crm', name: 'CRM', icon: '📋'},
+            // {path: '/marketing', name: 'Marketing', icon: '📋'},
+            // {path: '/branches', name: 'Branches', icon: '📈'},
+            // {path: '/users', name: 'Users', icon: '📈'},
 
 
             {path: '/inventory', name: 'Inventory', icon: '📦'},
+            {path: '/stock', name: 'Stock', icon: '📋'},
+            {path: '/hrm', name: 'HRM', icon: '📋'},
+
+
             {path: '/reports', name: 'Reports', icon: '📈'},
             {path: '/Settings', name: 'Settings', icon: '⚙️'},
         ],

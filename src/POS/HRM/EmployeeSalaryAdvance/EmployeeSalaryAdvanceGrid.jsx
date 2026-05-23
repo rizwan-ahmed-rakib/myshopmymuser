@@ -14,11 +14,11 @@ import LoadingSpinner from "./LoadingSpinner";
 import {salaryAdvanceAPI} from "../../../context_or_provider/pos/EmployeeSalaryAdvance/salary_advanceAPI";
 import {useSalaryAdvances} from "../../../context_or_provider/pos/EmployeeSalaryAdvance/salary_advance_provider";
 
-const EmployeeSalaryAdvanceGrid = () => {
+const EmployeeSalaryAdvanceGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
     const {salaryAdvance, setSalaryAdvance} = useSalaryAdvances();
     // const { userWith_profile, setUserWith_profile } = useUserWithProfile();
-    const [viewType, setViewType] = useState("grid");
-    const [isAddOpen, setIsAddOpen] = useState(false);
+    // const [viewType, setViewType] = useState("grid");
+    // const [isAddOpen, setIsAddOpen] = useState(false);
     const [successData, setSuccessData] = useState(null);
     const [successType, setSuccessType] = useState('create');
     const [loading, setLoading] = useState(true);
@@ -425,11 +425,11 @@ const EmployeeSalaryAdvanceGrid = () => {
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
             {/* Header */}
-            <EmployeeSalaryAdvanceHeader
-                viewType={viewType}
-                setViewType={setViewType}
-                onAddClick={() => setIsAddOpen(true)}
-            />
+            {/*<EmployeeSalaryAdvanceHeader*/}
+            {/*    viewType={viewType}*/}
+            {/*    setViewType={setViewType}*/}
+            {/*    onAddClick={() => setIsAddOpen(true)}*/}
+            {/*/>*/}
 
             {/* Stats */}
             <div className="mb-6">

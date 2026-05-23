@@ -9,10 +9,10 @@ import LoadingSpinner from "./LoadingSpinner";
 import { usePosWarrantyPeriods } from "../../../context_or_provider/pos/warrantyPeriod/WarrantyPeriodProvider";
 import { posWarrantyPeriodAPI } from "../../../context_or_provider/pos/warrantyPeriod/WarrantyPeriodAPI";
 
-const WarrantyPeriodsGrid = () => {
+const WarrantyPeriodsGrid = ({viewType, isAddOpen, setIsAddOpen}) => {
     const { posWarrantyPeriods, setPosWarrantyPeriods } = usePosWarrantyPeriods();
-    const [viewType, setViewType] = useState("grid");
-    const [isAddOpen, setIsAddOpen] = useState(false);
+    // const [viewType, setViewType] = useState("grid");
+    // const [isAddOpen, setIsAddOpen] = useState(false);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState([]);
 
@@ -93,11 +93,11 @@ const WarrantyPeriodsGrid = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            <WarrantyPeriodHeader
-                viewType={viewType}
-                setViewType={setViewType}
-                onAddClick={() => setIsAddOpen(true)}
-            />
+            {/*<WarrantyPeriodHeader*/}
+            {/*    viewType={viewType}*/}
+            {/*    setViewType={setViewType}*/}
+            {/*    onAddClick={() => setIsAddOpen(true)}*/}
+            {/*/>*/}
             
             <div className="mb-6">
                 <WarrantyPeriodStats stats={stats} />

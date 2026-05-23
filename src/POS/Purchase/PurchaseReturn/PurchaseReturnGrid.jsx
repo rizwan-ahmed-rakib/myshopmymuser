@@ -11,12 +11,12 @@ import EditPurchaseReturnModal from "./EditPurchaseReturnModal";
 import {posPurchaseReturnAPI} from "../../../context_or_provider/pos/Purchase/purchaseReturnProduct/purchaseReturnAPI";
 import {usePosPurchaseReturn} from "../../../context_or_provider/pos/Purchase/purchaseReturnProduct/PurchaseReturn_provider";
 
-const PurchaseReturnGrid = () => {
+const PurchaseReturnGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
     const { posPurchaseReturn,  setPosPurchaseReturn} = usePosPurchaseReturn();
-    const [viewType, setViewType] = useState("grid");
+    // const [viewType, setViewType] = useState("grid");
 
     // State for modals
-    const [isAddOpen, setIsAddOpen] = useState(false);
+    // const [isAddOpen, setIsAddOpen] = useState(false);
     const [editingPurchaseReturn, seteditingPurchaseReturn] = useState(null);
     
     // State for success modals
@@ -154,11 +154,11 @@ const PurchaseReturnGrid = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            <ProductHeader
-                viewType={viewType}
-                setViewType={setViewType}
-                onAddClick={() => setIsAddOpen(true)}
-            />
+            {/*<ProductHeader*/}
+            {/*    viewType={viewType}*/}
+            {/*    setViewType={setViewType}*/}
+            {/*    onAddClick={() => setIsAddOpen(true)}*/}
+            {/*/>*/}
             <div className="mb-6">
                 <ProductStats stats={displayStats}/>
             </div>

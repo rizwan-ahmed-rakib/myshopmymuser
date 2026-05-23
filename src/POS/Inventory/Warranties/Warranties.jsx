@@ -8,7 +8,7 @@ import { posCategoryAPI } from '../../../context_or_provider/pos/categories/cate
 import { posSubCategoryAPI } from '../../../context_or_provider/pos/subcategories/subCategoryApi';
 import { posBrandAPI } from '../../../context_or_provider/pos/brands/brandAPI';
 
-const Warranties = () => {
+const Warranties = ({viewType, isAddOpen, setIsAddOpen}) => {
   const [instances, setInstances] = useState([]);
   const [categories, setCategories] = useState([]);
   const [allSubCategories, setAllSubCategories] = useState([]);

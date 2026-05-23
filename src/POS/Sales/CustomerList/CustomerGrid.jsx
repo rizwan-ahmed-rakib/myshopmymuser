@@ -14,10 +14,8 @@ import {posCustomerAPI} from "../../../context_or_provider/pos/Sale/customer/Pos
 import {usePosCustomers} from "../../../context_or_provider/pos/Sale/customer/PosCustomerProvider";
 import AddCustomerDueCollectionModal from "./AddCustomerDueCollectionModal";
 
-const CustomerGrid = () => {
+const CustomerGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
     const {posCustomers, setPosCustomers} = usePosCustomers();
-    const [viewType, setViewType] = useState("grid");
-    const [isAddOpen, setIsAddOpen] = useState(false);
     const [successData, setSuccessData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
@@ -259,13 +257,6 @@ const CustomerGrid = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            {/* Header */}
-            <CustomerHeader
-                viewType={viewType}
-                setViewType={setViewType}
-                onAddClick={() => setIsAddOpen(true)}
-            />
-
             {/* Stats */}
             <div className="mb-6">
                 <CustomerStats stats={displayStats}/>

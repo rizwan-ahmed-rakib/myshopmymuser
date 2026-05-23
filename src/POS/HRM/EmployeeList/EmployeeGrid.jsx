@@ -12,10 +12,10 @@ import SuccessModal from "./SuccessModal";
 import { employeeAPI } from "../../../context_or_provider/pos/profile/profileupdate";
 import LoadingSpinner from "./LoadingSpinner";
 
-const EmployeeGrid = () => {
+const EmployeeGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
     const { userWith_profile, setUserWith_profile } = useUserWithProfile();
-    const [viewType, setViewType] = useState("grid");
-    const [isAddOpen, setIsAddOpen] = useState(false);
+    // const [viewType, setViewType] = useState("grid");
+    // const [isAddOpen, setIsAddOpen] = useState(false);
     const [successData, setSuccessData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
@@ -254,11 +254,11 @@ const EmployeeGrid = () => {
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
             {/* Header */}
-            <EmployeeHeader
-                viewType={viewType}
-                setViewType={setViewType}
-                onAddClick={() => setIsAddOpen(true)}
-            />
+            {/*<EmployeeHeader*/}
+            {/*    viewType={viewType}*/}
+            {/*    setViewType={setViewType}*/}
+            {/*    onAddClick={() => setIsAddOpen(true)}*/}
+            {/*/>*/}
 
             {/* Stats */}
             <div className="mb-6">

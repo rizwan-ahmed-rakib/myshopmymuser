@@ -1,71 +1,195 @@
-// myshopPages/Stock.jsx
-import React, { useState } from 'react';
-import ManageStock from './ManageStock';
-import StockAdjustment from './StockAdjustment';
-import StockTransfer from './StockTransfer';
-import EmployeeGrid from "./EmployeeList/EmployeeGrid";
+// myshopPages/Inventory.jsx
+import React, {useState} from 'react';
 
-const Stock = () => {
-  const [activeSection, setActiveSection] = useState('manage-stock');
+import DamageProductGrid from "./DamageProductList/DamageProductGrid"
+import DamageStockGrid from "./DamageProductList/DamageStockGrid";
+import BarcodeQRList from './BarcodeQRList';
+import ProducLowstocktGrid from "./LowStock/ProducLowstocktGrid";
+import ExpiredProducts from "./Expeired products/ExpiredProducts";
+import {ChevronDown, FileSpreadsheet, FileText, LayoutGrid, List, Plus, RefreshCw} from "lucide-react";
 
-  const menuItems = [
-    { id: 'manage-stock', name: 'Manage Stock', icon: '📦' },
-    { id: 'stock-adjustment', name: 'Stock Adjustment', icon: '📊' },
-    { id: 'stock-transfer', name: 'Stock Transfer', icon: '🚚' },
-    { id: 'EmployeeSalaryAdvanceGrid-category', name: 'EmployeeGrid-category', icon: '🚚' },
-  ];
+const Inventory = () => {
+    // const [activeSection, setActiveSection] = useState('product_list');
+    const [activeTab, setActiveTab] = useState('product_list');
+    const [viewType, setViewType] = useState('grid');
+    const [isAddOpen, setIsAddOpen] = useState(false);
+    const [isActionOpen, setIsActionOpen] = useState(false);
+    // const menuItems = [
+    const tabs = [
 
-  const renderContent = () => {
-    switch (activeSection) {
-      case 'manage-stock':
-        return <ManageStock />;
-      case 'EmployeeSalaryAdvanceGrid-category':
-        return <EmployeeGrid />;
-      case 'stock-adjustment':
-        return <StockAdjustment />;
-      case 'stock-transfer':
-        return <StockTransfer />;
-      default:
-        return <ManageStock />;
-    }
-  };
 
-  return (
-    <div className="flex h-full bg-gray-50">
-      {/* Side Menu */}
-      <div className="w-64 bg-white shadow-lg">
-        <div className="p-4 border-b">
-          <h2 className="text-lg font-bold text-gray-800">Stock Management</h2>
+        {id: 'Print_Barcode', name: 'Print Barcode', icon: '👥', addLabel: 'Add Barcode'},
+        {id: 'Print_QRrcode', name: 'Print QR Code', icon: '👥', addLabel: 'Add QR Code'},
+        {id: 'Expired_products', name: 'Expired Products', icon: '👥', addLabel: 'Add Low_stocks'},
+        {id: 'Low_stocks', name: 'Low Stocks', icon: '👥', addLabel: 'Add Low_stocks'},
+        {id: 'Damage', name: 'Damages', icon: '👥', addLabel: 'Damage'},
+        {id: 'DamageStock', name: 'DamagesStock', icon: '👥', addLabel: 'Add DamageStock'},
+
+    ];
+
+    const currentTab = tabs.find(t => t.id === activeTab) || tabs[0];
+
+    // const renderContent = () => {
+    const renderTabContent = () => {
+
+        const commonProps = {
+            viewType,
+            isAddOpen,
+            setIsAddOpen,
+        };
+
+        // switch (activeSection) {
+        switch (activeTab) {
+
+
+            case 'Damage':
+                return <DamageProductGrid {...commonProps} />;
+            case 'DamageStock':
+                return <DamageStockGrid {...commonProps} />;
+            case 'Low_stocks':
+                return <ProducLowstocktGrid {...commonProps} />;
+            case 'Print_Barcode':
+                return <BarcodeQRList type="barcode" {...commonProps} />;
+            case 'Print_QRrcode':
+                return <BarcodeQRList type="qr" {...commonProps} />;
+            case 'Expired_products':
+                return <ExpiredProducts type="expire" {...commonProps} />;
+
+            default:
+                return <DamageProductGrid {...commonProps} />;
+        }
+    };
+
+
+    return (
+        <div className="h-full flex flex-col bg-gray-50">
+
+            {/* 🔥 Top Navigation Bar (ট্যাব বেশি হলে ভেঙে নিচে নামবে, বাটন পজিশন ঠিক থাকবে) */}
+            <div className="bg-white border-b px-4 py-3 flex flex-col md:flex-row md:items-start md:justify-between sticky top-0 z-30 shadow-sm gap-4">
+
+                {/* Left: Tabs Loop Container (`flex-wrap` ব্যবহারের কারণে স্ক্রলবার লাগবে না, অটো নিচে নামবে) */}
+                <div className="flex flex-wrap gap-2 flex-1">
+                    {tabs.map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => {
+                                setActiveTab(tab.id);
+                                setIsAddOpen(false);
+                            }}
+                            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2
+                                ${activeTab === tab.id
+                                ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md"
+                                : "text-gray-600 hover:bg-gray-100 bg-gray-50"
+                            }`}
+                        >
+                            <span>{tab.icon}</span>
+                            <span>{tab.name}</span>
+                        </button>
+                    ))}
+                </div>
+
+                {/* Right: Dynamic Actions Group (কখনোই ভাঙবে না বা সাইজ ছোট হবে name) */}
+                <div className="flex items-center gap-3 flex-shrink-0 self-end md:self-start">
+                    {/* Primary Add Button */}
+                    <button
+                        onClick={() => setIsAddOpen(true)}
+                        className="hidden sm:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors shadow-sm whitespace-nowrap"
+                    >
+                        <Plus size={18}/>
+                        {currentTab.addLabel}
+                    </button>
+
+                    {/* Actions Dropdown */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setIsActionOpen(!isActionOpen)}
+                            className="flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-all shadow-sm"
+                        >
+                            <ChevronDown size={16}
+                                         className={`transition-transform duration-200 ${isActionOpen ? 'rotate-180' : ''}`}/>
+                        </button>
+
+                        {isActionOpen && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setIsActionOpen(false)}></div>
+                                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl z-50 py-2 animate-in fade-in zoom-in duration-200">
+                                    {/* Mobile only Add button */}
+                                    <button
+                                        onClick={() => {
+                                            setIsAddOpen(true);
+                                            setIsActionOpen(false);
+                                        }}
+                                        className="sm:hidden flex items-center gap-3 w-full px-4 py-2.5 text-sm text-blue-600 hover:bg-blue-50 font-semibold border-b"
+                                    >
+                                        <Plus size={18}/>
+                                        {currentTab.addLabel}
+                                    </button>
+
+                                    <div className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                        View Mode
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setViewType('grid');
+                                            setIsActionOpen(false);
+                                        }}
+                                        className={`flex items-center gap-3 w-full px-4 py-2 text-sm transition-colors ${viewType === 'grid' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700 hover:bg-gray-100'}`}
+                                    >
+                                        <LayoutGrid size={18}/>
+                                        Grid View
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setViewType('list');
+                                            setIsActionOpen(false);
+                                        }}
+                                        className={`flex items-center gap-3 w-full px-4 py-2 text-sm transition-colors ${viewType === 'list' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700 hover:bg-gray-100'}`}
+                                    >
+                                        <List size={18}/>
+                                        List View
+                                    </button>
+
+                                    <div className="my-1 border-t border-gray-100"></div>
+                                    <div className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                        Export Data
+                                    </div>
+                                    <button
+                                        className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                                        <FileText size={18} className="text-red-500"/>
+                                        Export as PDF
+                                    </button>
+                                    <button
+                                        className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                                        <FileSpreadsheet size={18} className="text-green-600"/>
+                                        Export as Excel
+                                    </button>
+
+                                    <div className="my-1 border-t border-gray-100"></div>
+                                    <button
+                                        className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                                        <RefreshCw size={18} className="text-blue-500"/>
+                                        Refresh List
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* 🔥 Content */}
+            <div className="flex-1 p-2 overflow-auto">
+                <div className="bg-white rounded-md shadow-sm p-2">
+                    {renderTabContent()}
+                </div>
+            </div>
+
         </div>
-        <nav className="p-4">
-          <ul className="space-y-2">
-            {menuItems.map((item) => (
-              <li key={item.id}>
-                <button
-                  onClick={() => setActiveSection(item.id)}
-                  className={`w-full flex items-center px-4 py-3 rounded-lg transition-colors ${
-                    activeSection === item.id
-                      ? 'bg-blue-500 text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <span className="mr-3 text-lg">{item.icon}</span>
-                  <span className="font-medium">{item.name}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </div>
+    );
 
-      {/* Main Content */}
-      <div className="flex-1 p-6 overflow-auto">
-        <div className="bg-white rounded-lg shadow-md">
-          {renderContent()}
-        </div>
-      </div>
-    </div>
-  );
 };
 
-export default Stock;
+export default Inventory;
+
+
+

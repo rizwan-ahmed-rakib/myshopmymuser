@@ -10,10 +10,10 @@ import LoadingSpinner from "./LoadingSpinner";
 import {posBrandAPI} from "../../../context_or_provider/pos/brands/brandAPI";
 import {usePosBrands} from "../../../context_or_provider/pos/brands/BrandProvider";
 
-const BrandsGrid = () => {
+const BrandsGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
     const {posBrands, setPosBrands} = usePosBrands();
-    const [viewType, setViewType] = useState("grid");
-    const [isAddOpen, setIsAddOpen] = useState(false);
+    // const [viewType, setViewType] = useState("grid");
+    // const [isAddOpen, setIsAddOpen] = useState(false);
     const [successData, setSuccessData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
@@ -237,11 +237,11 @@ const BrandsGrid = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            <ProductHeader
-                viewType={viewType}
-                setViewType={setViewType}
-                onAddClick={() => setIsAddOpen(true)}
-            />
+            {/*<ProductHeader*/}
+            {/*    viewType={viewType}*/}
+            {/*    setViewType={setViewType}*/}
+            {/*    onAddClick={() => setIsAddOpen(true)}*/}
+            {/*/>*/}
             <div className="mb-6">
                 <ProductStats stats={displayStats}/>
             </div>

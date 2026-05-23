@@ -1,12 +1,12 @@
 import React from "react";
 
-const EmployeeHeader = ({viewType, setViewType, onAddClick}) => (
+const DamageProductsHeader = ({viewType, setViewType, onAddClick}) => (
     <div
         className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 p-6 bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="flex items-center mb-4 lg:mb-0">
             <div className="mr-6">
-                <h4 className="text-xl font-bold text-gray-900">Employees</h4>
-                <h6 className="text-gray-600">Manage your employees</h6>
+                <h4 className="text-xl font-bold text-gray-900">Products</h4>
+                <h6 className="text-gray-600">Manage your Products</h6>
             </div>
         </div>
 
@@ -26,8 +26,8 @@ const EmployeeHeader = ({viewType, setViewType, onAddClick}) => (
                         <line x1="3" y1="18" x2="3.01" y2="18"></line>
                     </svg>
 
-                    {/*employee list*/}
-                    {/*📋 employee list*/}
+                    {/*Products list*/}
+                    {/*📋 Products list*/}
                 </button>
                 <button
                     className={`p-2 ml-2 rounded ${viewType === "grid" ? "bg-blue-600 text-white" : "text-gray-500"}`}
@@ -41,8 +41,8 @@ const EmployeeHeader = ({viewType, setViewType, onAddClick}) => (
                         <rect x="3" y="14" width="7" height="7"></rect>
                     </svg>
 
-                    {/*employee grid*/}
-                    {/*⬜ employee grid*/}
+                    {/*Products grid*/}
+                    {/*⬜ Products grid*/}
                 </button>
             </div>
 
@@ -83,10 +83,10 @@ const EmployeeHeader = ({viewType, setViewType, onAddClick}) => (
                     <line x1="12" y1="8" x2="12" y2="16"></line>
                     <line x1="8" y1="12" x2="16" y2="12"></line>
                 </svg>
-                Add Employee
+                Add Products
             </button>
         </div>
     </div>
 );
 
-export default EmployeeHeader;
+export default DamageProductsHeader;

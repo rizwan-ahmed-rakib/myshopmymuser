@@ -15,10 +15,10 @@ import {posSubCategoryAPI} from "../../../context_or_provider/pos/subcategories/
 import {posCategoryAPI} from "../../../context_or_provider/pos/categories/categoryAPI";
 import {posSizeAPI} from "../../../context_or_provider/pos/sizes/sizeAPI";
 
-const ProductGrid = () => {
+const ProductGrid = ({viewType, isAddOpen, setIsAddOpen}) => {
     const {posProduct, setPosProduct} = usePosProducts();
-    const [viewType, setViewType] = useState("grid");
-    const [isAddOpen, setIsAddOpen] = useState(false);
+    // const [viewType, setViewType] = useState("grid");
+    // const [isAddOpen, setIsAddOpen] = useState(false);
     const [successData, setSuccessData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
@@ -62,11 +62,11 @@ const ProductGrid = () => {
         setLoading(true);
         try {
             const [
-                prodRes, 
-                catRes, 
-                subCatRes, 
-                brandRes, 
-                unitRes, 
+                prodRes,
+                catRes,
+                subCatRes,
+                brandRes,
+                unitRes,
                 sizeRes
             ] = await Promise.all([
                 posProductAPI.getAll(),
@@ -81,11 +81,11 @@ const ProductGrid = () => {
             calculateStats(prodRes.data);
 
             setOptions({
-                categories: catRes.data.map(i => ({ value: i.id, label: i.title })),
-                sub_categories: subCatRes.data.map(i => ({ value: i.id, label: i.title })),
-                brands: brandRes.data.map(i => ({ value: i.id, label: i.title })),
-                units: unitRes.data.map(i => ({ value: i.id, label: i.title })),
-                sizes: sizeRes.data.map(i => ({ value: i.id, label: i.title })),
+                categories: catRes.data.map(i => ({value: i.id, label: i.title})),
+                sub_categories: subCatRes.data.map(i => ({value: i.id, label: i.title})),
+                brands: brandRes.data.map(i => ({value: i.id, label: i.title})),
+                units: unitRes.data.map(i => ({value: i.id, label: i.title})),
+                sizes: sizeRes.data.map(i => ({value: i.id, label: i.title})),
             });
         } catch (error) {
             console.error("Error fetching initial data:", error);
@@ -112,7 +112,7 @@ const ProductGrid = () => {
         const totalPurchaseValue = products.reduce((acc, p) => acc + (Number(p.purchase_price || 0) * Number(p.stock || 0)), 0);
         const totalSellingValue = products.reduce((acc, p) => acc + (Number(p.selling_price || 0) * Number(p.stock || 0)), 0);
 
-        setStats({ total, inStock, outOfStock, totalPurchaseValue, totalSellingValue });
+        setStats({total, inStock, outOfStock, totalPurchaseValue, totalSellingValue});
     };
 
     const handleSearch = useCallback((query) => setSearchQuery(query), []);
@@ -178,13 +178,20 @@ const ProductGrid = () => {
         // 5. Sorting
         result.sort((a, b) => {
             switch (filters.sortBy) {
-                case "name_asc": return a.name.localeCompare(b.name);
-                case "name_desc": return b.name.localeCompare(a.name);
-                case "price_asc": return parseFloat(a.selling_price) - parseFloat(b.selling_price);
-                case "price_desc": return parseFloat(b.selling_price) - parseFloat(a.selling_price);
-                case "stock_asc": return a.stock - b.stock;
-                case "stock_desc": return b.stock - a.stock;
-                default: return 0;
+                case "name_asc":
+                    return a.name.localeCompare(b.name);
+                case "name_desc":
+                    return b.name.localeCompare(a.name);
+                case "price_asc":
+                    return parseFloat(a.selling_price) - parseFloat(b.selling_price);
+                case "price_desc":
+                    return parseFloat(b.selling_price) - parseFloat(a.selling_price);
+                case "stock_asc":
+                    return a.stock - b.stock;
+                case "stock_desc":
+                    return b.stock - a.stock;
+                default:
+                    return 0;
             }
         });
 
@@ -198,14 +205,27 @@ const ProductGrid = () => {
         fetchProductsOnly();
     };
 
-    const formatMoney = (value) => value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const formatMoney = (value) => value.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
 
     const displayStats = [
-        { title: 'Total Products', count: stats.total.toString(), bgColor: 'bg-blue-600', icon: '📦' },
-        { title: 'In Stock', count: stats.inStock.toString(), bgColor: 'bg-green-500', icon: '✅' },
-        { title: 'Out of Stock', count: stats.outOfStock.toString(), bgColor: 'bg-red-500', icon: '⚠️' },
-        { title: 'Purchase Value', count: `৳ ${formatMoney(stats.totalPurchaseValue)}`, bgColor: 'bg-yellow-600', icon: '🛒' },
-        { title: 'Selling Value', count: `৳ ${formatMoney(stats.totalSellingValue)}`, bgColor: 'bg-purple-600', icon: '💰' },
+        {title: 'Total Products', count: stats.total.toString(), bgColor: 'bg-blue-600', icon: '📦'},
+        {title: 'In Stock', count: stats.inStock.toString(), bgColor: 'bg-green-500', icon: '✅'},
+        {title: 'Out of Stock', count: stats.outOfStock.toString(), bgColor: 'bg-red-500', icon: '⚠️'},
+        {
+            title: 'Purchase Value',
+            count: `৳ ${formatMoney(stats.totalPurchaseValue)}`,
+            bgColor: 'bg-yellow-600',
+            icon: '🛒'
+        },
+        {
+            title: 'Selling Value',
+            count: `৳ ${formatMoney(stats.totalSellingValue)}`,
+            bgColor: 'bg-purple-600',
+            icon: '💰'
+        },
     ];
 
     if (loading) {
@@ -219,12 +239,12 @@ const ProductGrid = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            <ProductHeader viewType={viewType} setViewType={setViewType} onAddClick={() => setIsAddOpen(true)} />
+            {/*<ProductHeader viewType={viewType} setViewType={setViewType} onAddClick={() => setIsAddOpen(true)}/>*/}
             <div className="mb-6">
                 <ProductStats stats={displayStats}/>
             </div>
             <div className="mb-6">
-                <ProductSearchFilter onSearch={handleSearch} onFilter={handleFilter} dynamicOptions={options} />
+                <ProductSearchFilter onSearch={handleSearch} onFilter={handleFilter} dynamicOptions={options}/>
             </div>
             <div className="bg-white rounded-xl shadow-sm p-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
@@ -239,24 +259,27 @@ const ProductGrid = () => {
                 {viewType === "grid" ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {filteredProducts.map(product => (
-                            <ProductCard key={product.id} product={product} onEdit={fetchProductsOnly} onDelete={fetchProductsOnly} />
+                            <ProductCard key={product.id} product={product} onEdit={fetchProductsOnly}
+                                         onDelete={fetchProductsOnly}/>
                         ))}
                     </div>
                 ) : (
-                    <ProductList products={filteredProducts} onUpdate={fetchProductsOnly} />
+                    <ProductList products={filteredProducts} onUpdate={fetchProductsOnly}/>
                 )}
 
                 {filteredProducts.length === 0 && (
                     <div className="text-center py-12">
                         <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
                         <p className="text-gray-600 mb-4">Try changing your search or filter criteria</p>
-                        <button onClick={() => setIsAddOpen(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Add Product</button>
+                        <button onClick={() => setIsAddOpen(true)}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Add Product
+                        </button>
                     </div>
                 )}
             </div>
 
-            <AddProductModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onSuccess={handleProductAdded} />
-            <SuccessModal isOpen={!!successData} employee={successData} onClose={() => setSuccessData(null)} />
+            <AddProductModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onSuccess={handleProductAdded}/>
+            <SuccessModal isOpen={!!successData} employee={successData} onClose={() => setSuccessData(null)}/>
         </div>
     );
 };

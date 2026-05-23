@@ -11,11 +11,9 @@ import EditSaleModal from "./EditSaleModal";
 import {posSaleProductAPI} from "../../../context_or_provider/pos/Sale/saleProduct/productSaleAPI";
 import {usePosSaleProducts} from "../../../context_or_provider/pos/Sale/saleProduct/PosSaleProduct_provider";
 
-const SaleGrid = () => {
+const SaleGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
     const {posSaleProduct, setPosSaleProduct} = usePosSaleProducts();
-    const [viewType, setViewType] = useState("grid");
 
-    const [isAddOpen, setIsAddOpen] = useState(false);
     const [editingSale, setEditingSale] = useState(null);
 
     const [addSuccessData, setAddSuccessData] = useState(null);
@@ -150,11 +148,6 @@ const SaleGrid = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            <ProductHeader
-                viewType={viewType}
-                setViewType={setViewType}
-                onAddClick={() => setIsAddOpen(true)}
-            />
             <div className="mb-6">
                 <ProductStats stats={displayStats}/>
             </div>

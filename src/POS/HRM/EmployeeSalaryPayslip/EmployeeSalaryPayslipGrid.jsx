@@ -12,11 +12,11 @@ import LoadingSpinner from "./LoadingSpinner";
 import {salaryPayslipAPI} from "../../../context_or_provider/pos/EmployeeSalaryPayslip/salary_payslipAPI";
 import {useSalaryPaySlip} from "../../../context_or_provider/pos/EmployeeSalaryPayslip/salary_payslip_provider";
 
-const EmployeeSalaryPayslipGrid = () => {
+const EmployeeSalaryPayslipGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
     const { salaryPaySlip, setSalaryPaySlip} = useSalaryPaySlip();
     // const { userWith_profile, setUserWith_profile } = useUserWithProfile();
-    const [viewType, setViewType] = useState("grid");
-    const [isAddOpen, setIsAddOpen] = useState(false);
+    // const [viewType, setViewType] = useState("grid");
+    // const [isAddOpen, setIsAddOpen] = useState(false);
     const [successData, setSuccessData] = useState(null);
     const [successType, setSuccessType] = useState('create');
     const [loading, setLoading] = useState(true);
@@ -423,11 +423,11 @@ const EmployeeSalaryPayslipGrid = () => {
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
             {/* Header */}
-            <EmployeeSalaryPayslipHeader
-                viewType={viewType}
-                setViewType={setViewType}
-                onAddClick={() => setIsAddOpen(true)}
-            />
+            {/*<EmployeeSalaryPayslipHeader*/}
+            {/*    viewType={viewType}*/}
+            {/*    setViewType={setViewType}*/}
+            {/*    onAddClick={() => setIsAddOpen(true)}*/}
+            {/*/>*/}
 
             {/* Stats */}
             <div className="mb-6">

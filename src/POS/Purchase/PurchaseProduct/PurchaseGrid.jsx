@@ -13,12 +13,12 @@ import {
     usePosPurchaseProducts
 } from "../../../context_or_provider/pos/Purchase/purchaseProduct/PurchaseProduct_provider";
 
-const PurchaseGrid = () => {
+const PurchaseGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
     const {posPurchaseProduct, setPosPurchaseProduct} = usePosPurchaseProducts();
-    const [viewType, setViewType] = useState("grid");
+    // const [viewType, setViewType] = useState("grid");
 
     // State for modals
-    const [isAddOpen, setIsAddOpen] = useState(false);
+    // const [isAddOpen, setIsAddOpen] = useState(false);
     const [editingPurchase, setEditingPurchase] = useState(null);
 
     // State for success modals
@@ -159,11 +159,11 @@ const PurchaseGrid = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            <ProductHeader
-                viewType={viewType}
-                setViewType={setViewType}
-                onAddClick={() => setIsAddOpen(true)}
-            />
+            {/*<ProductHeader*/}
+            {/*    viewType={viewType}*/}
+            {/*    setViewType={setViewType}*/}
+            {/*    onAddClick={() => setIsAddOpen(true)}*/}
+            {/*/>*/}
             <div className="mb-6">
                 <ProductStats stats={displayStats}/>
             </div>

@@ -11,12 +11,10 @@ import EditSaleReturnModal from "./EditSaleReturnModal";
 import {posSaleReturnAPI} from "../../../context_or_provider/pos/Sale/saleReturnProduct/PosSaleReturnAPI";
 import {usePosSaleReturn} from "../../../context_or_provider/pos/Sale/saleReturnProduct/PosSaleReturn_provider";
 
-const SaleReturnGrid = () => {
+const SaleReturnGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
     const {  posSaleReturn,   setPosSaleReturn} = usePosSaleReturn();
-    const [viewType, setViewType] = useState("grid");
 
     // State for modals
-    const [isAddOpen, setIsAddOpen] = useState(false);
     const [editingPurchaseReturn, seteditingPurchaseReturn] = useState(null);
     
     // State for success modals
@@ -195,11 +193,6 @@ const SaleReturnGrid = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            <ProductHeader
-                viewType={viewType}
-                setViewType={setViewType}
-                onAddClick={() => setIsAddOpen(true)}
-            />
             <div className="mb-6">
                 <SaleReturnStats stats={displayStats}/>
             </div>

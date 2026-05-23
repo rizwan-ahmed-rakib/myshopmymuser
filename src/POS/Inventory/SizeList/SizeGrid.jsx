@@ -10,10 +10,10 @@ import LoadingSpinner from "./LoadingSpinner";
 import {posSizeAPI} from "../../../context_or_provider/pos/sizes/sizeAPI";
 import {usePosSizes} from "../../../context_or_provider/pos/sizes/SizeProvider";
 
-const SizeGrid = () => {
+const SizeGrid = ({viewType, isAddOpen, setIsAddOpen}) => {
     const {posSizes, setPosSizes} = usePosSizes();
-    const [viewType, setViewType] = useState("grid");
-    const [isAddOpen, setIsAddOpen] = useState(false);
+    // const [viewType, setViewType] = useState("grid");
+    // const [isAddOpen, setIsAddOpen] = useState(false);
     const [successData, setSuccessData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
@@ -236,11 +236,11 @@ const SizeGrid = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            <ProductHeader
-                viewType={viewType}
-                setViewType={setViewType}
-                onAddClick={() => setIsAddOpen(true)}
-            />
+            {/*<ProductHeader*/}
+            {/*    viewType={viewType}*/}
+            {/*    setViewType={setViewType}*/}
+            {/*    onAddClick={() => setIsAddOpen(true)}*/}
+            {/*/>*/}
             <div className="mb-6">
                 <ProductStats stats={displayStats}/>
             </div>

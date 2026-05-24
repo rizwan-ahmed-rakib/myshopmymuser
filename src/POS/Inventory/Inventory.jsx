@@ -9,11 +9,11 @@ import BrandsGrid from "./BrandList/BrandsGrid";
 import SubCateforyGrid from "./SubcategoryList/SubCateforyGrid";
 import UnitGrid from "./UnitList/UnitGrid";
 import SizeGrid from "./SizeList/SizeGrid";
-import DamageProductGrid from "./DamageProductList/DamageProductGrid"
-import DamageStockGrid from "./DamageProductList/DamageStockGrid";
+// import DamageProductGrid from "./DamageProductList/DamageProductGrid"
+// import DamageStockGrid from "./DamageProductList/DamageStockGrid";
 import BarcodeQRList from './BarcodeQRList';
-import ProducLowstocktGrid from "./LowStock/ProducLowstocktGrid";
-import ExpiredProducts from "./Expeired products/ExpiredProducts";
+// import ProducLowstocktGrid from "./LowStock/ProducLowstocktGrid";
+// import ExpiredProducts from "./Expeired products/ExpiredProducts";
 import Warranties from "./Warranties/Warranties";
 import WarrantyPeriodsGrid from "./WarrantyPeriod/WarrantyPeriodsGrid";
 import {ChevronDown, FileSpreadsheet, FileText, LayoutGrid, List, Plus, RefreshCw} from "lucide-react";
@@ -77,18 +77,18 @@ const Inventory = () => {
                 return <AddPurchase {...commonProps} />;
             case 'suppliers':
                 return <Suppliers {...commonProps} />;
-            case 'Damage':
-                return <DamageProductGrid {...commonProps} />;
-            case 'DamageStock':
-                return <DamageStockGrid {...commonProps} />;
-            case 'Low_stocks':
-                return <ProducLowstocktGrid {...commonProps} />;
+            // case 'Damage':
+            //     return <DamageProductGrid {...commonProps} />;
+            // case 'DamageStock':
+            //     return <DamageStockGrid {...commonProps} />;
+            // case 'Low_stocks':
+            //     return <ProducLowstocktGrid {...commonProps} />;
             case 'Print_Barcode':
                 return <BarcodeQRList type="barcode" {...commonProps} />;
             case 'Print_QRrcode':
                 return <BarcodeQRList type="qr" {...commonProps} />;
-            case 'Expired_products':
-                return <ExpiredProducts type="expire" {...commonProps} />;
+            // case 'Expired_products':
+                // return <ExpiredProducts type="expire" {...commonProps} />;
             case 'Warranties':
                 return <Warranties type="warranties" {...commonProps} />;
             default:

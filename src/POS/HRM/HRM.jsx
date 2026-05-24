@@ -18,13 +18,13 @@ const HRM = () => {
     const [isActionOpen, setIsActionOpen] = useState(false);
     // const menuItems = [
     const tabs = [
-        {id: 'employee_list', name: 'Employee List', icon: '📋'},
+        {id: 'employee_list', name: 'Employee List', icon: '📋', addLabel: 'Add Employee'},
         {id: 'attendance', name: 'Attendances', icon: '📋', addLabel: 'Add attendance'},
-        {id: 'holydays', name: 'Holydays/Off Day', icon: '📋'},
-        {id: 'salary_payslip', name: 'Payslip/salary', icon: '➕'},
-        {id: 'salary_advance', name: 'Salary Advance', icon: '➕'},
-        {id: 'employee_loan', name: 'Employee Loan', icon: '➕'},
-        {id: 'leave_applications', name: 'Leave Application', icon: '➕'},
+        // {id: 'holydays', name: 'Holydays/Off Day', icon: '📋', addLabel: 'Add holyday'},
+        {id: 'salary_payslip', name: 'Payslip/salary', icon: '➕', addLabel: 'Add Payslip/salary'},
+        {id: 'salary_advance', name: 'Salary Advance', icon: '➕', addLabel: 'Add Salary Advance'},
+        {id: 'employee_loan', name: 'Employee Loan', icon: '➕', addLabel: 'Add Employee Loan'},
+        {id: 'leave_applications', name: 'Leave Application', icon: '➕', addLabel: 'Add Leave Application'},
     ];
 
     const currentTab = tabs.find(t => t.id === activeTab) || tabs[0];

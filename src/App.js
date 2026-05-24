@@ -199,8 +199,8 @@ import SaleDetailsPage from "./POS/Sales/SaleProduct/SaleDetailsPage";
 import SaleReturnDetailsPage from "./POS/Sales/SaleReturn/SaleReturnDetailsPage";
 import CustomerProfilePage from "./POS/Sales/CustomerList/CustomerProfilePage";
 import CustomerGrid from "./POS/Sales/CustomerList/CustomerGrid";
-import DamageProductDetailsPage from "./POS/Inventory/DamageProductList/DamageProductDetailsPage";
-import DamageProductGrid from "./POS/Inventory/DamageProductList/DamageProductGrid";
+// import DamageProductDetailsPage from "./POS/Inventory/DamageProductList/DamageProductDetailsPage";
+// import DamageProductGrid from "./POS/Inventory/DamageProductList/DamageProductGrid";
 import ReportDetail from "./POS/Reports/ReportDetail";
 import SupplierDuePaymentDetails from "./POS/Purchase/SupplierDuePayment/SupplierDuePaymentDetailsPage";
 import CustomerDueCollectionDetails from "./POS/Sales/CustomerDueCollection/CustomerDueCollectionDetailsPage";
@@ -209,6 +209,8 @@ import ReportsList from "./POS/Reports/ReportsList";
 import EmployeeSalaryAdvanceDetailsPage from "./POS/HRM/EmployeeSalaryAdvance/EmployeeSalaryAdvanceDetailsPage";
 import EmployeeSalaryPayslipDetailsPage from "./POS/HRM/EmployeeSalaryPayslip/EmployeeSalaryPayslipDetailsPage";
 import SettingsPage from "./POS/Settings/SettingsPage";
+import DamageProductGrid from "./POS/Stock/DamageProductList/DamageProductGrid";
+import DamageProductDetailsPage from "./POS/Stock/DamageProductList/DamageProductDetailsPage";
 
 // import {CartProvider} from "./context_or_provider/CartContext";
 

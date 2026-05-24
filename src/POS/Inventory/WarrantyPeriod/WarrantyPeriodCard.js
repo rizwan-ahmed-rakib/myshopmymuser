@@ -84,10 +84,10 @@ const WarrantyPeriodCard = ({warrantyPeriod, onEdit, onDelete}) => {
                                 <div
                                     className="absolute right-0 mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
                                     <button onClick={handleEdit}
-                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Edit
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Edit Warranty
                                     </button>
                                     <button onClick={handleDelete}
-                                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50">Delete
+                                            className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50">Delete Warranty
                                     </button>
                                 </div>
                             )}

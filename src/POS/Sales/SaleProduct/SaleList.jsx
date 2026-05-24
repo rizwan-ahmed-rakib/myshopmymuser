@@ -8,7 +8,7 @@ const SaleList = ({products, onEdit, onDelete}) => {
     const [loadingId, setLoadingId] = useState(null);
 
     const handleViewDetails = (product) => {
-        navigate(`/Sale/sale/details/${product.id}`);
+        navigate(`/sales/details/${product.id}`);
     };
 
     const handleEdit = (product) => {

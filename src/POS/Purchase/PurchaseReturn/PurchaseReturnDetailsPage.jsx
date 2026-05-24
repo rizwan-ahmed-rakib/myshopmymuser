@@ -75,7 +75,7 @@ const PurchaseReturnDetailsPage = () => {
           <FaExclamationTriangle className="mx-auto text-5xl text-red-500 mb-4" />
           <h2 className="text-2xl font-bold mb-4">Purchase Return Not Found</h2>
           <button
-            onClick={() => navigate("/purchase/purchase-return")}
+            onClick={() => navigate("/purchase")}
             className="bg-blue-600 text-white px-6 py-2 rounded-lg"
           >
             Back to List
@@ -104,7 +104,7 @@ const PurchaseReturnDetailsPage = () => {
 
         {/* BACK */}
         <button
-          onClick={() => navigate("/purchase/purchase-return")}
+          onClick={() => navigate("/purchase")}
           className="flex items-center text-gray-600 hover:text-blue-700 font-semibold mb-6 transition-colors"
         >
           <FaUndo className="mr-2" />

@@ -209,8 +209,10 @@ import ReportsList from "./POS/Reports/ReportsList";
 import EmployeeSalaryAdvanceDetailsPage from "./POS/HRM/EmployeeSalaryAdvance/EmployeeSalaryAdvanceDetailsPage";
 import EmployeeSalaryPayslipDetailsPage from "./POS/HRM/EmployeeSalaryPayslip/EmployeeSalaryPayslipDetailsPage";
 import SettingsPage from "./POS/Settings/SettingsPage";
-import DamageProductGrid from "./POS/Stock/DamageProductList/DamageProductGrid";
-import DamageProductDetailsPage from "./POS/Stock/DamageProductList/DamageProductDetailsPage";
+import DamageProductDetailsPage from "./POS/Stock/DamageProductList/DamageStockDetailsPage";
+import DamageStockDetailsPage from "./POS/Stock/DamageProductList/DamageStockDetailsPage";
+// import DamageProductGrid from "./POS/Stock/DamageProductList/DamageProductGrid";
+// import DamageStockDetailsPage from "./POS/Stock/DamageProductList/DamageStockDetailsPage";
 
 // import {CartProvider} from "./context_or_provider/CartContext";
 
@@ -316,65 +318,48 @@ const App = () => {
                     <Layout>
                         <Routes>
                             <Route path="/dashboard" element={<Dashboard/>}/>
-                            <Route path="/cashbox" element={<Cashbox/>}/>
-                            <Route path="/sales" element={<Sales/>}/>
-                            {/*<Route path="/reports" element={<Reports/>}/>*/}
-                            <Route path="/stock" element={<Stock/>}/>
-                            <Route path="/purchase" element={<Purchase/>}/>
-                            <Route path="/inventory" element={<Inventory/>}/>
-                            <Route path="/hrm" element={<HRM/>}/>
+                            <Route path="/reports" element={<ReportsList/>}/>
+                            <Route path="/reports/detail" element={<ReportDetail/>}/>
                             <Route path="/crm" element={<CRM/>}/>
                             <Route path="/marketing" element={<Marketing/>}/>
                             <Route path="/branches" element={<Branches/>}/>
                             <Route path="/users" element={<Users/>}/>
-                            {/*<Route path="/settings" element={<Settings/>}/>*/}
                             <Route path="/settings" element={<SettingsPage/>}/>
-                            <Route path="/reports" element={<ReportsList/>}/>
-                            <Route path="/reports/detail" element={<ReportDetail/>}/>
-
-                            {/*route for back track*/}
-                            <Route path="/employees" element={<EmployeeGrid/>}/>
-                            <Route path="/supplier" element={<SupplierGrid/>}/>
-                            <Route path="/customer" element={<CustomerGrid/>}/>
-
-                            <Route path="/inventoryProducts" element={<ProductGrid/>}/>
-                            <Route path="/inventory/DamageProducts" element={<DamageProductGrid/>}/>
-                            <Route path="/inventory/categories" element={<CategoryGrid/>}/>
-                            <Route path="/inventory/subcategories" element={<SubCateforyGrid/>}/>
-                            <Route path="/inventory/brands" element={<BrandsGrid/>}/>
-                            <Route path="/inventory/units" element={<UnitGrid/>}/>
-                            <Route path="/inventory/sizes" element={<SizeGrid/>}/>
-                            <Route path="/purchase/purchase" element={<PurchaseGrid/>}/>
-                            <Route path="/sale/sale" element={<SaleGrid/>}/>
-                            <Route path="/purchase/purchase-return" element={<PurchaseReturnGrid/>}/>
-                            <Route path="/sale/sale-return" element={<SaleReturnGrid/>}/>
 
 
-                            {/*route for details page*/}
+                            <Route path="/cashbox" element={<Cashbox/>}/>
+                            <Route path="/sales" element={<Sales/>}>
+                                <Route path="details/:id" element={<SaleDetailsPage/>}/>
+                                <Route path="sale-return/details/:id" element={<SaleReturnDetailsPage/>}/>
+                                <Route path="due-collection/details/:id" element={<CustomerDueCollectionDetails/>}/>
+                                <Route path="customer/profile/:id" element={<CustomerProfilePage/>}/>
+                            </Route>
+                            {/*<Route path="/reports" element={<Reports/>}/>*/}
+                            <Route path="/stock" element={<Stock/>}>
+                                <Route path="details/:id" element={<DamageStockDetailsPage/>}/>
+                            </Route>
 
-                            <Route path="/employee/profile/:id" element={<EmployeeProfilePage/>}/>
-                            <Route path="/supplier/profile/:id" element={<SupplierProfilePage/>}/>
-                            <Route path="/customer/profile/:id" element={<CustomerProfilePage/>}/>
-
-                            <Route path="/inventory/product/details/:id" element={<ProductDetailsPage/>}/>
-                            <Route path="/inventory/damage-product/details/:id" element={<DamageProductDetailsPage/>}/>
-                            <Route path="/inventory/category/details/:id" element={<CategoryDetailsPage/>}/>
-                            <Route path="/inventory/subcategory/details/:id" element={<SubCategoryDetailsPage/>}/>
-                            <Route path="/inventory/brand/details/:id" element={<BrandDetailsPage/>}/>
-                            <Route path="/inventory/unit/details/:id" element={<UnitDetailsPage/>}/>
-                            <Route path="/inventory/size/details/:id" element={<SizeDetailsPage/>}/>
-                            <Route path="/Purchase/purchase/details/:id" element={<PurchaseDetailsPage/>}/>
-                            <Route path="/Purchase/purchase-return/details/:id" element={<PurchaseReturnDetailsPage/>}/>
-
-                            <Route path="/Sale/sale/details/:id" element={<SaleDetailsPage/>}/>
-                            <Route path="/Sale/sale-return/details/:id" element={<SaleReturnDetailsPage/>}/>
-
-
-                            <Route path="/purchase/due-payment/details/:id" element={<SupplierDuePaymentDetails/>}/>
-                            <Route path="/sales/due-collection/details/:id" element={<CustomerDueCollectionDetails/>}/>
-                            <Route path="/hrm/loan/details/:id" element={<EmployeeLoanDetails/>}/>
-                            <Route path="/hrm/advance/details/:id" element={<EmployeeSalaryAdvanceDetailsPage/>}/>
-                            <Route path="/hrm/payslip/details/:id" element={<EmployeeSalaryPayslipDetailsPage/>}/>
+                            <Route path="/purchase" element={<Purchase/>}>
+                                <Route path="purchase/details/:id" element={<PurchaseDetailsPage/>}/>
+                                <Route path="purchase-return/details/:id" element={<PurchaseReturnDetailsPage/>}/>
+                                <Route path="due-payment/details/:id" element={<SupplierDuePaymentDetails/>}/>
+                                <Route path="supplier/profile/:id" element={<SupplierProfilePage/>}/>
+                            </Route>
+                            <Route path="/inventory" element={<Inventory/>}>
+                                <Route path="product/details/:id" element={<ProductDetailsPage/>}/>
+                                <Route path="damage-product/details/:id" element={<DamageProductDetailsPage/>}/>
+                                <Route path="category/details/:id" element={<CategoryDetailsPage/>}/>
+                                <Route path="subcategory/details/:id" element={<SubCategoryDetailsPage/>}/>
+                                <Route path="brand/details/:id" element={<BrandDetailsPage/>}/>
+                                <Route path="unit/details/:id" element={<UnitDetailsPage/>}/>
+                                <Route path="size/details/:id" element={<SizeDetailsPage/>}/>
+                            </Route>
+                            <Route path="/hrm" element={<HRM/>}>
+                                <Route path="employee/profile/:id" element={<EmployeeProfilePage/>}/>
+                                <Route path="loan/details/:id" element={<EmployeeLoanDetails/>}/>
+                                <Route path="advance/details/:id" element={<EmployeeSalaryAdvanceDetailsPage/>}/>
+                                <Route path="payslip/details/:id" element={<EmployeeSalaryPayslipDetailsPage/>}/>
+                            </Route>
 
 
                         </Routes>

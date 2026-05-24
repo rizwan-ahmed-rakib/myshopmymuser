@@ -16,7 +16,7 @@ const EmployeeList = ({ employees, onUpdate }) => {
     const [successMessage, setSuccessMessage] = useState("");
 
     const handleViewProfile = (employee) => {
-        navigate(`/employee/profile/${employee.id}`);
+        navigate(`/hrm/employee/profile/${employee.id}`);
     };
 
     const handleEdit = (employee) => {

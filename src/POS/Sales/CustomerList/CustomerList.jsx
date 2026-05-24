@@ -16,7 +16,7 @@ const CustomerList = ({employees, onUpdate}) => {
     const [successMessage, setSuccessMessage] = useState("");
 
     const handleViewProfile = (employee) => {
-        navigate(`/customer/profile/${employee.id}`);
+        navigate(`/sales/customer/profile/${employee.id}`);
     };
 
     const handleEdit = (employee) => {

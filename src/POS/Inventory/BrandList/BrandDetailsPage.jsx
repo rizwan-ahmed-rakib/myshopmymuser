@@ -59,7 +59,7 @@ const BrandDetailsPage = () => {
                     <h2 className="text-2xl font-bold text-gray-800 mb-4">Product Not Found</h2>
                     <button
                         // onClick={() => navigate("/inventory/products")}
-                        onClick={() => navigate("/inventory/brands")}
+                        onClick={() => navigate("/inventory")}
                         className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     >
                         Back to Product List
@@ -87,7 +87,7 @@ const BrandDetailsPage = () => {
                 <div className="mb-6">
                     <button
                         // onClick={() => navigate("/inventory/products")}
-                        onClick={() => navigate("/inventory/brands")}
+                        onClick={() => navigate("/inventory")}
                         className="flex items-center text-gray-600 hover:text-blue-700 mb-4 font-medium"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">

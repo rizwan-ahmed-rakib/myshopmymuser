@@ -1,4 +1,5 @@
 import React, {useState} from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import PurchaseList from './PurchaseList';
 import AddPurchase from './AddPurchase';
 import Suppliers from './Suppliers';
@@ -16,6 +17,8 @@ const HRM = () => {
     const [viewType, setViewType] = useState('grid');
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isActionOpen, setIsActionOpen] = useState(false);
+     const navigate = useNavigate(); // 💡 নেভিগেশন ইনিশিয়ালাইজ করা হলো
+
     // const menuItems = [
     const tabs = [
         {id: 'employee_list', name: 'Employee List', icon: '📋', addLabel: 'Add Employee'},
@@ -65,42 +68,11 @@ const HRM = () => {
     };
 
 
-    // return (
-    //     <div className="h-full flex flex-col bg-gray-50">
-    //
-    //         {/* 🔥 Top Tabs */}
-    //         <div className="bg-white border-b px-3 py-2">
-    //             <div className="flex gap-2 overflow-x-auto">
-    //
-    //                 {tabs.map((tab) => (
-    //                     <button
-    //                         key={tab.id}
-    //                         onClick={() => setActiveTab(tab.id)}
-    //                         className={`px-4 py-1.5 text-sm rounded-md whitespace-nowrap transition
-    //
-    //           ${
-    //                             activeTab === tab.id
-    //                                 ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white"
-    //                                 : "text-gray-600 hover:bg-gray-100"
-    //                         }`}
-    //                     >
-    //                         {tab.name}
-    //                     </button>
-    //                 ))}
-    //
-    //             </div>
-    //         </div>
-    //
-    //         {/* 🔥 Content */}
-    //         <div className="flex-1 p-2 overflow-auto">
-    //             <div className="bg-white rounded-md shadow-sm p-2">
-    //                 {renderTabContent()}
-    //             </div>
-    //         </div>
-    //
-    //     </div>
-    // );
 
+
+
+    const location = useLocation();
+    const isRootHRMPath = location.pathname === '/hrm' || location.pathname === '/hrm/';
 
     return (
         <div className="h-full flex flex-col bg-gray-50">
@@ -117,6 +89,12 @@ const HRM = () => {
                             onClick={() => {
                                 setActiveTab(tab.id);
                                 setIsAddOpen(false);
+
+                                // 💡 ম্যাজিক লাইন: ট্যাবে ক্লিক করলে যদি আমরা কোনো সাব-রুটে (ডিটেইলস পেজে) থাকি,
+                                // তবে সেটিকে রিডাইরেক্ট করে মেইন স্টক পাথে নিয়ে আসবে।
+                                if (!isRootHRMPath) {
+                                    navigate('/hrm');
+                                }
                             }}
                             className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2
                                 ${activeTab === tab.id
@@ -133,13 +111,15 @@ const HRM = () => {
                 {/* Right: Dynamic Actions Group (কখনোই ভাঙবে না বা সাইজ ছোট হবে name) */}
                 <div className="flex items-center gap-3 flex-shrink-0 self-end md:self-start">
                     {/* Primary Add Button */}
-                    <button
-                        onClick={() => setIsAddOpen(true)}
-                        className="hidden sm:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors shadow-sm whitespace-nowrap"
-                    >
-                        <Plus size={18}/>
-                        {currentTab.addLabel}
-                    </button>
+                    {isRootHRMPath && (
+                        <button
+                            onClick={() => setIsAddOpen(true)}
+                            className="hidden sm:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors shadow-sm whitespace-nowrap"
+                        >
+                            <Plus size={18}/>
+                            {currentTab.addLabel}
+                        </button>
+                    )}
 
                     {/* Actions Dropdown */}
                     <div className="relative">
@@ -156,43 +136,48 @@ const HRM = () => {
                                 <div className="fixed inset-0 z-40" onClick={() => setIsActionOpen(false)}></div>
                                 <div
                                     className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl z-50 py-2 animate-in fade-in zoom-in duration-200">
-                                    {/* Mobile only Add button */}
-                                    <button
-                                        onClick={() => {
-                                            setIsAddOpen(true);
-                                            setIsActionOpen(false);
-                                        }}
-                                        className="sm:hidden flex items-center gap-3 w-full px-4 py-2.5 text-sm text-blue-600 hover:bg-blue-50 font-semibold border-b"
-                                    >
-                                        <Plus size={18}/>
-                                        {currentTab.addLabel}
-                                    </button>
+                                    {isRootHRMPath && (
+                                        <>
+                                            {/* Mobile only Add button */}
+                                            <button
+                                                onClick={() => {
+                                                    setIsAddOpen(true);
+                                                    setIsActionOpen(false);
+                                                }}
+                                                className="sm:hidden flex items-center gap-3 w-full px-4 py-2.5 text-sm text-blue-600 hover:bg-blue-50 font-semibold border-b"
+                                            >
+                                                <Plus size={18}/>
+                                                {currentTab.addLabel}
+                                            </button>
 
-                                    <div className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                        View Mode
-                                    </div>
-                                    <button
-                                        onClick={() => {
-                                            setViewType('grid');
-                                            setIsActionOpen(false);
-                                        }}
-                                        className={`flex items-center gap-3 w-full px-4 py-2 text-sm transition-colors ${viewType === 'grid' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700 hover:bg-gray-100'}`}
-                                    >
-                                        <LayoutGrid size={18}/>
-                                        Grid View
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setViewType('list');
-                                            setIsActionOpen(false);
-                                        }}
-                                        className={`flex items-center gap-3 w-full px-4 py-2 text-sm transition-colors ${viewType === 'list' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700 hover:bg-gray-100'}`}
-                                    >
-                                        <List size={18}/>
-                                        List View
-                                    </button>
+                                            <div className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                                View Mode
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    setViewType('grid');
+                                                    setIsActionOpen(false);
+                                                }}
+                                                className={`flex items-center gap-3 w-full px-4 py-2 text-sm transition-colors ${viewType === 'grid' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700 hover:bg-gray-100'}`}
+                                            >
+                                                <LayoutGrid size={18}/>
+                                                Grid View
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setViewType('list');
+                                                    setIsActionOpen(false);
+                                                }}
+                                                className={`flex items-center gap-3 w-full px-4 py-2 text-sm transition-colors ${viewType === 'list' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700 hover:bg-gray-100'}`}
+                                            >
+                                                <List size={18}/>
+                                                List View
+                                            </button>
 
-                                    <div className="my-1 border-t border-gray-100"></div>
+                                            <div className="my-1 border-t border-gray-100"></div>
+                                        </>
+                                    )}
+
                                     <div className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
                                         Export Data
                                     </div>
@@ -220,10 +205,10 @@ const HRM = () => {
                 </div>
             </div>
 
-            {/* 🔥 Content */}
+            {/* 🔥 Content Area */}
             <div className="flex-1 p-2 overflow-auto">
                 <div className="bg-white rounded-md shadow-sm p-2">
-                    {renderTabContent()}
+                    {isRootHRMPath ? renderTabContent() : <Outlet />}
                 </div>
             </div>
         </div>

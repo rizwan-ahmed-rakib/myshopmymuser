@@ -20,7 +20,7 @@ const PurchaseCard = ({product, onEdit, onDelete}) => {
     }, []);
 
     const handleNameClick = () => {
-        navigate(`/Purchase/purchase/details/${product.id}`);
+        navigate(`/purchase/purchase/details/${product.id}`);
     };
 
     // The handleEdit function now simply calls the onEdit prop passed from the parent

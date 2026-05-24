@@ -18,14 +18,14 @@ const DamageStockList = ({ records, onUpdate }) => {
     };
 
     const handleDelete = async (record) => {
-        if (!window.confirm(`আপনি কি ${record.product_name} ড্যামেজ রেকর্ডটি ডিলিট করতে চান?`)) {
+        if (!window.confirm(`Are you sure you want to delete the damage record for ${record.product_name}?`)) {
             return;
         }
 
         setLoadingId(record.id);
         try {
             await posDamageProductAPI.delete(record.id);
-            setSuccessMessage(`${record.product_name} ড্যামেজ রেকর্ড সফলভাবে ডিলিট করা হয়েছে!`);
+            setSuccessMessage(`${record.product_name} damage record deleted successfully!`);
             setShowSuccess(true);
 
             if (onUpdate) {
@@ -33,7 +33,7 @@ const DamageStockList = ({ records, onUpdate }) => {
             }
         } catch (error) {
             console.error("Delete error:", error);
-            alert("রেকর্ড ডিলিট করতে সমস্যা হয়েছে।");
+            alert("Problem deleting the record.");
         } finally {
             setLoadingId(null);
         }
@@ -41,7 +41,7 @@ const DamageStockList = ({ records, onUpdate }) => {
 
     const handleUpdateSuccess = () => {
         setShowEditModal(false);
-        setSuccessMessage("রেকর্ড সফলভাবে আপডেট করা হয়েছে!");
+        setSuccessMessage("Record updated successfully!");
         setShowSuccess(true);
 
         if (onUpdate) {
@@ -50,7 +50,7 @@ const DamageStockList = ({ records, onUpdate }) => {
     };
 
     const formatMoney = (value) => {
-        return new Intl.NumberFormat('bn-BD', {
+        return new Intl.NumberFormat('en-US', {
             style: 'currency',
             currency: 'BDT',
             minimumFractionDigits: 2,
@@ -60,7 +60,7 @@ const DamageStockList = ({ records, onUpdate }) => {
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
-        return date.toLocaleDateString('bn-BD', {
+        return date.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
@@ -69,17 +69,17 @@ const DamageStockList = ({ records, onUpdate }) => {
 
     const getDamageTypeBadge = (type) => {
         if (type === 'returnable') {
-            return <span className="px-2 py-1 text-xs font-bold text-green-700 bg-green-100 rounded-full">রিটার্নযোগ্য</span>;
+            return <span className="px-2 py-1 text-xs font-bold text-green-700 bg-green-100 rounded-full">Returnable</span>;
         } else {
-            return <span className="px-2 py-1 text-xs font-bold text-red-700 bg-red-100 rounded-full">নন-রিটার্নযোগ্য</span>;
+            return <span className="px-2 py-1 text-xs font-bold text-red-700 bg-red-100 rounded-full">Non-Returnable</span>;
         }
     }
 
     const getCompensationBadge = (isCompensated) => {
         if (isCompensated) {
-            return <span className="px-2 py-1 text-xs font-bold text-green-700 bg-green-100 rounded-full">দেওয়া হয়েছে</span>;
+            return <span className="px-2 py-1 text-xs font-bold text-green-700 bg-green-100 rounded-full">Compensated</span>;
         } else {
-            return <span className="px-2 py-1 text-xs font-bold text-yellow-700 bg-yellow-100 rounded-full">বাকি</span>;
+            return <span className="px-2 py-1 text-xs font-bold text-yellow-700 bg-yellow-100 rounded-full">Pending</span>;
         }
     }
 
@@ -89,14 +89,14 @@ const DamageStockList = ({ records, onUpdate }) => {
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">প্রোডাক্ট</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ধরণ</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">পরিমাণ</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ইউনিট খরচ</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">মোট ক্ষতি</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ক্ষতিপূরণ</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">তারিখ</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">অ্যাকশন</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Cost</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Loss</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Compensation</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -105,14 +105,14 @@ const DamageStockList = ({ records, onUpdate }) => {
                                 <td className="px-6 py-4">
                                     <div>
                                         <div className="font-medium text-gray-900">{record.product_name}</div>
-                                        <div className="text-sm text-gray-500">কোড: {record.product_code}</div>
+                                        <div className="text-sm text-gray-500">Code: {record.product_code}</div>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">
                                     {getDamageTypeBadge(record.damage_type)}
                                 </td>
                                 <td className="px-6 py-4">
-                                    <span className="font-medium">{record.quantity}</span> পিস
+                                    <span className="font-medium">{record.quantity}</span> pcs
                                 </td>
                                 <td className="px-6 py-4">
                                     {formatMoney(record.unit_cost)}
@@ -129,16 +129,16 @@ const DamageStockList = ({ records, onUpdate }) => {
                                 <td className="px-6 py-4">
                                     <div className="flex space-x-2">
                                         <button
-                                            onClick={() => navigate(`/inventory/damage-stock/details/${record.id}`)}
+                                            onClick={() => navigate(`/stock/details/${record.id}`)}
                                             className="text-blue-600 hover:text-blue-800"
-                                            title="বিস্তারিত"
+                                            title="Details"
                                         >
                                             👁️
                                         </button>
                                         <button
                                             onClick={() => handleEdit(record)}
                                             className="text-green-600 hover:text-green-800"
-                                            title="এডিট"
+                                            title="Edit"
                                             disabled={loadingId === record.id}
                                         >
                                             ✏️
@@ -146,7 +146,7 @@ const DamageStockList = ({ records, onUpdate }) => {
                                         <button
                                             onClick={() => handleDelete(record)}
                                             className="text-red-600 hover:text-red-800"
-                                            title="ডিলিট"
+                                            title="Delete"
                                             disabled={loadingId === record.id}
                                         >
                                             🗑️

@@ -58,7 +58,7 @@ const ProductDetailsPage = () => {
                 <div className="text-center p-8 bg-white rounded-lg shadow-md">
                     <h2 className="text-2xl font-bold text-gray-800 mb-4">Product Not Found</h2>
                     <button
-                        onClick={() => navigate("/inventoryProducts")}
+                        onClick={() => navigate("/inventory")}
                         // onClick={() => navigate("/inventory/units")}
                         className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     >
@@ -86,7 +86,7 @@ const ProductDetailsPage = () => {
             <div className="max-w-7xl mx-auto">
                 <div className="mb-6">
                     <button
-                        onClick={() => navigate("/inventoryProducts")}
+                        onClick={() => navigate("/inventory")}
                         // onClick={() => navigate("/inventory/units")}
                         className="flex items-center text-gray-600 hover:text-blue-700 mb-4 font-medium"
                     >

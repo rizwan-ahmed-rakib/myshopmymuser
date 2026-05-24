@@ -46,7 +46,7 @@ const DamageStockSearchFilter = ({ onSearch, onFilter }) => {
                 <div className="flex-1 relative">
                     <input
                         type="text"
-                        placeholder="প্রোডাক্টের নাম, কোড বা কারণে সার্চ করুন..."
+                        placeholder="Search by product name, code, or reason..."
                         value={searchTerm}
                         onChange={handleSearchChange}
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -67,7 +67,7 @@ const DamageStockSearchFilter = ({ onSearch, onFilter }) => {
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                     </svg>
-                    ফিল্টার
+                    Filters
                 </button>
             </div>
 
@@ -78,60 +78,60 @@ const DamageStockSearchFilter = ({ onSearch, onFilter }) => {
                         {/* Damage Type Filter */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                ড্যামেজ টাইপ
+                                Damage Type
                             </label>
                             <select
                                 value={filters.damageType}
                                 onChange={(e) => handleFilterChange('damageType', e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             >
-                                <option value="all">সব</option>
-                                <option value="returnable">রিটার্নযোগ্য</option>
-                                <option value="non_returnable">নন-রিটার্নযোগ্য</option>
+                                <option value="all">All</option>
+                                <option value="returnable">Returnable</option>
+                                <option value="non_returnable">Non-Returnable</option>
                             </select>
                         </div>
 
                         {/* Compensation Status Filter */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                ক্ষতিপূরণ স্ট্যাটাস
+                                Compensation Status
                             </label>
                             <select
                                 value={filters.compensationStatus}
                                 onChange={(e) => handleFilterChange('compensationStatus', e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             >
-                                <option value="all">সব</option>
-                                <option value="compensated">ক্ষতিপূরণ দেওয়া হয়েছে</option>
-                                <option value="uncompensated">ক্ষতিপূরণ বাকি</option>
+                                <option value="all">All</option>
+                                <option value="compensated">Compensated</option>
+                                <option value="uncompensated">Pending Compensation</option>
                             </select>
                         </div>
 
                         {/* Sort By */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                সাজান
+                                Sort By
                             </label>
                             <select
                                 value={filters.sortBy}
                                 onChange={(e) => handleFilterChange('sortBy', e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             >
-                                <option value="date_desc">তারিখ (নতুন প্রথম)</option>
-                                <option value="date_asc">তারিখ (পুরাতন প্রথম)</option>
-                                <option value="name_asc">নাম (ক-হ)</option>
-                                <option value="name_desc">নাম (হ-ক)</option>
-                                <option value="quantity_desc">পরিমাণ (বেশি প্রথম)</option>
-                                <option value="quantity_asc">পরিমাণ (কম প্রথম)</option>
-                                <option value="loss_desc">ক্ষতি (বেশি প্রথম)</option>
-                                <option value="loss_asc">ক্ষতি (কম প্রথম)</option>
+                                <option value="date_desc">Date (Newest First)</option>
+                                <option value="date_asc">Date (Oldest First)</option>
+                                <option value="name_asc">Name (A-Z)</option>
+                                <option value="name_desc">Name (Z-A)</option>
+                                <option value="quantity_desc">Quantity (Highest First)</option>
+                                <option value="quantity_asc">Quantity (Lowest First)</option>
+                                <option value="loss_desc">Loss (Highest First)</option>
+                                <option value="loss_asc">Loss (Lowest First)</option>
                             </select>
                         </div>
 
                         {/* Date Range */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                তারিখ রেঞ্জ
+                                Date Range
                             </label>
                             <div className="flex space-x-2">
                                 <input
@@ -159,7 +159,7 @@ const DamageStockSearchFilter = ({ onSearch, onFilter }) => {
                             <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
-                            ফিল্টার ক্লিয়ার করুন
+                            Clear Filters
                         </button>
                     </div>
                 </div>

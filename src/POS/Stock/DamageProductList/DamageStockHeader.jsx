@@ -4,8 +4,8 @@ const DamageStockHeader = ({ viewType, setViewType, onAddClick }) => {
     return (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">ড্যামেজ স্টক ম্যানেজমেন্ট</h1>
-                <p className="text-sm text-gray-500 mt-1">ক্ষতিগ্রস্ত পণ্যের তালিকা দেখুন ও ব্যবস্থাপনা করুন</p>
+                <h1 className="text-2xl font-bold text-gray-900">Damage Stock Management</h1>
+                <p className="text-sm text-gray-500 mt-1">View and manage the list of damaged products</p>
             </div>
 
             <div className="flex items-center space-x-3 mt-4 sm:mt-0">
@@ -18,7 +18,7 @@ const DamageStockHeader = ({ viewType, setViewType, onAddClick }) => {
                                 ? "bg-white shadow-sm text-blue-600" 
                                 : "text-gray-500 hover:text-gray-700"
                         }`}
-                        title="গ্রিড ভিউ"
+                        title="Grid View"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -32,7 +32,7 @@ const DamageStockHeader = ({ viewType, setViewType, onAddClick }) => {
                                 ? "bg-white shadow-sm text-blue-600" 
                                 : "text-gray-500 hover:text-gray-700"
                         }`}
-                        title="লিস্ট ভিউ"
+                        title="List View"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -49,7 +49,7 @@ const DamageStockHeader = ({ viewType, setViewType, onAddClick }) => {
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    নতুন ড্যামেজ রেকর্ড
+                    New Damage Record
                 </button>
             </div>
         </div>

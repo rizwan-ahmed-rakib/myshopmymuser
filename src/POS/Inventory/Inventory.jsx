@@ -1,5 +1,7 @@
 ﻿// myshopPages/Inventory.jsx
 import React, {useState} from 'react';
+// import {Outlet, useLocation} from 'react-router-dom';
+import {Outlet, useLocation, useNavigate} from 'react-router-dom';
 import PurchaseList from './PurchaseList';
 import AddPurchase from './AddPurchase';
 import Suppliers from './Suppliers';
@@ -17,6 +19,7 @@ import BarcodeQRList from './BarcodeQRList';
 import Warranties from "./Warranties/Warranties";
 import WarrantyPeriodsGrid from "./WarrantyPeriod/WarrantyPeriodsGrid";
 import {ChevronDown, FileSpreadsheet, FileText, LayoutGrid, List, Plus, RefreshCw} from "lucide-react";
+// import DamageStockGrid from "../Stock/DamageProductList/DamageStockGrid";
 
 const Inventory = () => {
     // const [activeSection, setActiveSection] = useState('product_list');
@@ -24,6 +27,8 @@ const Inventory = () => {
     const [viewType, setViewType] = useState('grid');
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [isActionOpen, setIsActionOpen] = useState(false);
+    const navigate = useNavigate(); // 💡 নেভিগেশন ইনিশিয়ালাইজ করা হলো
+
     // const menuItems = [
     const tabs = [
 
@@ -88,7 +93,7 @@ const Inventory = () => {
             case 'Print_QRrcode':
                 return <BarcodeQRList type="qr" {...commonProps} />;
             // case 'Expired_products':
-                // return <ExpiredProducts type="expire" {...commonProps} />;
+            // return <ExpiredProducts type="expire" {...commonProps} />;
             case 'Warranties':
                 return <Warranties type="warranties" {...commonProps} />;
             default:
@@ -97,11 +102,15 @@ const Inventory = () => {
     };
 
 
+    const location = useLocation();
+    const isRootInventoryPath = location.pathname === '/inventory' || location.pathname === '/inventory/';
+
     return (
         <div className="h-full flex flex-col bg-gray-50">
 
             {/* 🔥 Top Navigation Bar (ট্যাব বেশি হলে ভেঙে নিচে নামবে, বাটন পজিশন ঠিক থাকবে) */}
-            <div className="bg-white border-b px-4 py-3 flex flex-col md:flex-row md:items-start md:justify-between sticky top-0 z-30 shadow-sm gap-4">
+            <div
+                className="bg-white border-b px-4 py-3 flex flex-col md:flex-row md:items-start md:justify-between sticky top-0 z-30 shadow-sm gap-4">
 
                 {/* Left: Tabs Loop Container (`flex-wrap` ব্যবহারের কারণে স্ক্রলবার লাগবে না, অটো নিচে নামবে) */}
                 <div className="flex flex-wrap gap-2 flex-1">
@@ -111,6 +120,12 @@ const Inventory = () => {
                             onClick={() => {
                                 setActiveTab(tab.id);
                                 setIsAddOpen(false);
+
+                                // 💡 ম্যাজিক লাইন: ট্যাবে ক্লিক করলে যদি আমরা কোনো সাব-রুটে (ডিটেইলস পেজে) থাকি,
+                                // তবে সেটিকে রিডাইরেক্ট করে মেইন স্টক পাথে নিয়ে আসবে।
+                                if (!isRootInventoryPath) {
+                                    navigate('/inventory');
+                                }
                             }}
                             className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2
                                 ${activeTab === tab.id
@@ -127,13 +142,15 @@ const Inventory = () => {
                 {/* Right: Dynamic Actions Group (কখনোই ভাঙবে না বা সাইজ ছোট হবে name) */}
                 <div className="flex items-center gap-3 flex-shrink-0 self-end md:self-start">
                     {/* Primary Add Button */}
-                    <button
-                        onClick={() => setIsAddOpen(true)}
-                        className="hidden sm:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors shadow-sm whitespace-nowrap"
-                    >
-                        <Plus size={18}/>
-                        {currentTab.addLabel}
-                    </button>
+                    {isRootInventoryPath && (
+                        <button
+                            onClick={() => setIsAddOpen(true)}
+                            className="hidden sm:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors shadow-sm whitespace-nowrap"
+                        >
+                            <Plus size={18}/>
+                            {currentTab.addLabel}
+                        </button>
+                    )}
 
                     {/* Actions Dropdown */}
                     <div className="relative">
@@ -148,44 +165,51 @@ const Inventory = () => {
                         {isActionOpen && (
                             <>
                                 <div className="fixed inset-0 z-40" onClick={() => setIsActionOpen(false)}></div>
-                                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl z-50 py-2 animate-in fade-in zoom-in duration-200">
-                                    {/* Mobile only Add button */}
-                                    <button
-                                        onClick={() => {
-                                            setIsAddOpen(true);
-                                            setIsActionOpen(false);
-                                        }}
-                                        className="sm:hidden flex items-center gap-3 w-full px-4 py-2.5 text-sm text-blue-600 hover:bg-blue-50 font-semibold border-b"
-                                    >
-                                        <Plus size={18}/>
-                                        {currentTab.addLabel}
-                                    </button>
+                                <div
+                                    className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl z-50 py-2 animate-in fade-in zoom-in duration-200">
+                                    {isRootInventoryPath && (
+                                        <>
+                                            {/* Mobile only Add button */}
+                                            <button
+                                                onClick={() => {
+                                                    setIsAddOpen(true);
+                                                    setIsActionOpen(false);
+                                                }}
+                                                className="sm:hidden flex items-center gap-3 w-full px-4 py-2.5 text-sm text-blue-600 hover:bg-blue-50 font-semibold border-b"
+                                            >
+                                                <Plus size={18}/>
+                                                {currentTab.addLabel}
+                                            </button>
 
-                                    <div className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                        View Mode
-                                    </div>
-                                    <button
-                                        onClick={() => {
-                                            setViewType('grid');
-                                            setIsActionOpen(false);
-                                        }}
-                                        className={`flex items-center gap-3 w-full px-4 py-2 text-sm transition-colors ${viewType === 'grid' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700 hover:bg-gray-100'}`}
-                                    >
-                                        <LayoutGrid size={18}/>
-                                        Grid View
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setViewType('list');
-                                            setIsActionOpen(false);
-                                        }}
-                                        className={`flex items-center gap-3 w-full px-4 py-2 text-sm transition-colors ${viewType === 'list' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700 hover:bg-gray-100'}`}
-                                    >
-                                        <List size={18}/>
-                                        List View
-                                    </button>
+                                            <div
+                                                className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                                View Mode
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    setViewType('grid');
+                                                    setIsActionOpen(false);
+                                                }}
+                                                className={`flex items-center gap-3 w-full px-4 py-2 text-sm transition-colors ${viewType === 'grid' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700 hover:bg-gray-100'}`}
+                                            >
+                                                <LayoutGrid size={18}/>
+                                                Grid View
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setViewType('list');
+                                                    setIsActionOpen(false);
+                                                }}
+                                                className={`flex items-center gap-3 w-full px-4 py-2 text-sm transition-colors ${viewType === 'list' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700 hover:bg-gray-100'}`}
+                                            >
+                                                <List size={18}/>
+                                                List View
+                                            </button>
 
-                                    <div className="my-1 border-t border-gray-100"></div>
+                                            <div className="my-1 border-t border-gray-100"></div>
+                                        </>
+                                    )}
+
                                     <div className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
                                         Export Data
                                     </div>
@@ -213,13 +237,12 @@ const Inventory = () => {
                 </div>
             </div>
 
-            {/* 🔥 Content */}
+            {/* 🔥 Content Area */}
             <div className="flex-1 p-2 overflow-auto">
                 <div className="bg-white rounded-md shadow-sm p-2">
-                    {renderTabContent()}
+                    {isRootInventoryPath ? renderTabContent() : <Outlet/>}
                 </div>
             </div>
-
         </div>
     );
 

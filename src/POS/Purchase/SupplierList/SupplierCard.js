@@ -27,7 +27,7 @@ const SupplierCard = ({employee, onEdit, onDelete}) => {
     }, []);
 
     const handleNameClick = () => {
-        navigate(`/supplier/profile/${employee.id}`);
+        navigate(`/purchase/supplier/profile/${employee.id}`);
     };
 
     // const handleEdit = (e) => {
@@ -154,7 +154,7 @@ const SupplierCard = ({employee, onEdit, onDelete}) => {
                                         </button>
                                         <div className="border-t border-gray-100 my-1"></div>
                                         <button
-                                            onClick={() => navigate(`/supplier/profile/${employee.id}`)}
+                                            onClick={() => navigate(`/purchase/supplier/profile/${employee.id}`)}
                                             className="flex items-center w-full px-4 py-2 text-sm text-blue-600 hover:bg-gray-50"
                                         >
                                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor"

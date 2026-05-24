@@ -381,7 +381,7 @@ const EmployeeLeaveApplicationCard = ({ advance, onEdit, onDelete }) => {
     }, []);
 
     const handleUserClick = () => {
-        navigate(`/employee/profile/${advance.user}`);
+        navigate(`/hrm/employee/profile/${advance.user}`);
     };
 
     const handleEdit = () => {
@@ -472,7 +472,7 @@ const EmployeeLeaveApplicationCard = ({ advance, onEdit, onDelete }) => {
                                 </button>
 
                                 <button
-                                    onClick={() => navigate(`/employee/profile/${advance.user}`)}
+                                    onClick={() => navigate(`/hrm/employee/profile/${advance.user}`)}
                                     className="block w-full text-left px-2 py-1 text-blue-600 hover:bg-gray-100"
                                 >
                                     View Profile

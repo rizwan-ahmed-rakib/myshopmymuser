@@ -17,7 +17,7 @@ const SupplierList = ({employees, onUpdate}) => {
     const [successMessage, setSuccessMessage] = useState("");
 
     const handleViewProfile = (employee) => {
-        navigate(`/supplier/profile/${employee.id}`);
+        navigate(`/purchase/supplier/profile/${employee.id}`);
     };
 
     const handleEdit = (employee) => {

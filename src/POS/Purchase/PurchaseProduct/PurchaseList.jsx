@@ -8,7 +8,7 @@ const PurchaseList = ({products, onEdit, onDelete}) => {
     const [loadingId, setLoadingId] = useState(null);
 
     const handleViewDetails = (product) => {
-        navigate(`/Purchase/purchase/details/${product.id}`);
+        navigate(`/purchase/purchase/details/${product.id}`);
     };
 
     const handleEdit = (product) => {

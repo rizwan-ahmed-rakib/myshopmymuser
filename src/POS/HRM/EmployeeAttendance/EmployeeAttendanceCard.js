@@ -365,7 +365,7 @@ const EmployeeAttendanceCard = ({ attendance, onEdit, onDelete }) => {
     }, []);
 
     const handleUserClick = () => {
-        navigate(`/employee/profile/${attendance.marketing_officer}`);
+        navigate(`/hrm/employee/profile/${attendance.marketing_officer}`);
     };
 
     const handleEdit = (attendance) => {
@@ -528,7 +528,7 @@ const EmployeeAttendanceCard = ({ attendance, onEdit, onDelete }) => {
 
                                     <div className="border-t border-gray-100 my-1"></div>
                                     <button
-                                        onClick={() => navigate(`/employee/profile/${attendance.marketing_officer}`)}
+                                        onClick={() => navigate(`/hrm/employee/profile/${attendance.marketing_officer}`)}
                                         className="flex items-center w-full px-4 py-2 text-sm text-blue-600 hover:bg-gray-50"
                                     >
                                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

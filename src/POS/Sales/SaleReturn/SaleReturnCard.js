@@ -20,7 +20,7 @@ const SaleReturnCard = ({product, onEdit, onDelete}) => {
     }, []);
 
     const handleNameClick = () => {
-        navigate(`/Sale/sale-return/details/${product.id}`);
+        navigate(`/sales/sale-return/details/${product.id}`);
     };
 
     // The handleEdit function now simply calls the onEdit prop passed from the parent

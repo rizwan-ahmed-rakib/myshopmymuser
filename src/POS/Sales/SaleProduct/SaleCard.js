@@ -20,7 +20,7 @@ const SaleCard = ({product, onEdit, onDelete}) => {
     }, []);
 
     const handleNameClick = () => {
-        navigate(`/Sale/sale/details/${product.id}`);
+        navigate(`/sales/details/${product.id}`);
     };
 
     const handleEdit = () => {

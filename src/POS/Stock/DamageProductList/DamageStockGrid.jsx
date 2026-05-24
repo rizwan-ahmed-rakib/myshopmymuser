@@ -10,10 +10,10 @@ import LoadingSpinner from "./LoadingSpinner";
 import {usePosDamageProducts} from "../../../context_or_provider/pos/damageProducts/damage_product_provider";
 import {posDamageProductAPI} from "../../../context_or_provider/pos/damageProducts/damage_productAPI";
 
-const DamageStockGrid = () => {
+const DamageStockGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
     const { posDamageProduct, setPosDamageProduct} = usePosDamageProducts();
-    const [viewType, setViewType] = useState("grid");
-    const [isAddOpen, setIsAddOpen] = useState(false);
+    // const [viewType, setViewType] = useState("grid");
+    // const [isAddOpen, setIsAddOpen] = useState(false);
     const [successData, setSuccessData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
@@ -191,43 +191,43 @@ const DamageStockGrid = () => {
 
     const displayStats = [
         {
-            title: 'মোট ড্যামেজ রেকর্ড',
+            title: 'Total Damage Records',
             count: stats.total?.toString() || "0",
             bgColor: 'bg-blue-600',
             icon: '📦'
         },
         {
-            title: 'মোট পরিমাণ (পিস)',
+            title: 'Total Quantity (pcs)',
             count: stats.totalQuantity?.toString() || "0",
             bgColor: 'bg-orange-500',
             icon: '🔢'
         },
         {
-            title: 'রিটার্নযোগ্য',
+            title: 'Returnable',
             count: stats.returnableCount?.toString() || "0",
             bgColor: 'bg-green-500',
             icon: '↩️'
         },
         {
-            title: 'নন-রিটার্নযোগ্য',
+            title: 'Non-Returnable',
             count: stats.nonReturnableCount?.toString() || "0",
             bgColor: 'bg-red-500',
             icon: '❌'
         },
         {
-            title: 'ক্ষতিপূরণ দেওয়া',
+            title: 'Compensated',
             count: stats.compensatedCount?.toString() || "0",
             bgColor: 'bg-teal-500',
             icon: '✅'
         },
         {
-            title: 'ক্ষতিপূরণ বাকি',
+            title: 'Pending Compensation',
             count: stats.uncompensatedCount?.toString() || "0",
             bgColor: 'bg-yellow-500',
             icon: '⏳'
         },
         {
-            title: 'মোট আর্থিক ক্ষতি',
+            title: 'Total Financial Loss',
             count: `৳ ${formatMoney(stats.totalLoss || 0)}`,
             bgColor: 'bg-purple-600',
             icon: '💰'
@@ -238,18 +238,18 @@ const DamageStockGrid = () => {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <LoadingSpinner size="lg"/>
-                <p className="mt-4 text-gray-600">ড্যামেজ স্টক লোড হচ্ছে...</p>
+                <p className="mt-4 text-gray-600">Loading damage stock...</p>
             </div>
         );
     }
 
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            <DamageStockHeader
-                viewType={viewType}
-                setViewType={setViewType}
-                onAddClick={() => setIsAddOpen(true)}
-            />
+            {/*<DamageStockHeader*/}
+            {/*    viewType={viewType}*/}
+            {/*    setViewType={setViewType}*/}
+            {/*    onAddClick={() => setIsAddOpen(true)}*/}
+            {/*/>*/}
 
             <div className="mb-6">
                 <DamageStockStats stats={displayStats}/>
@@ -265,10 +265,10 @@ const DamageStockGrid = () => {
             <div className="bg-white rounded-xl shadow-sm p-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
                     <h2 className="text-lg font-semibold text-gray-800 mb-2 sm:mb-0">
-                        {viewType === "grid" ? "ড্যামেজ স্টক গ্রিড" : "ড্যামেজ স্টক লিস্ট"}
+                        {viewType === "grid" ? "Damage Stock Grid" : "Damage Stock List"}
                     </h2>
                     <div className="text-sm text-gray-500">
-                        {filteredRecords.length} টি রেকর্ড দেখানো হচ্ছে (মোট {posDamageProduct?.length || 0} টির মধ্যে)
+                        Showing {filteredRecords.length} records (out of total {posDamageProduct?.length || 0})
                     </div>
                 </div>
 
@@ -292,18 +292,18 @@ const DamageStockGrid = () => {
 
                 {filteredRecords.length === 0 && (
                     <div className="text-center py-12">
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">কোনো রেকর্ড পাওয়া যায়নি</h3>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No records found</h3>
                         <p className="text-gray-600 mb-4">
                             {searchQuery || filters.damageType !== "all" || filters.compensationStatus !== "all"
-                                ? "অনুগ্রহ করে সার্চ বা ফিল্টার পরিবর্তন করুন"
-                                : "প্রথম ড্যামেজ রেকর্ড যোগ করুন"
+                                ? "Please change your search or filter criteria"
+                                : "Add your first damage record"
                             }
                         </p>
                         <button
                             onClick={() => setIsAddOpen(true)}
                             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                         >
-                            ড্যামেজ রেকর্ড যোগ করুন
+                            Add Damage Record
                         </button>
                     </div>
                 )}
@@ -319,7 +319,7 @@ const DamageStockGrid = () => {
                 isOpen={!!successData}
                 data={successData}
                 onClose={() => setSuccessData(null)}
-                message="ড্যামেজ রেকর্ড সফলভাবে যোগ করা হয়েছে"
+                message="Damage record added successfully"
             />
         </div>
     );

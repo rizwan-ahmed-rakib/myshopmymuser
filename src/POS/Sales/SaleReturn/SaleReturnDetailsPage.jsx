@@ -108,7 +108,7 @@ const SaleReturnDetailsPage = () => {
 
         {/* BACK */}
         <button
-          onClick={() => navigate("/sale/sale-return")}
+          onClick={() => navigate("/sales")}
           className="flex items-center text-gray-600 hover:text-blue-700 font-semibold mb-6 transition-colors"
         >
           <FaUndo className="mr-2" />

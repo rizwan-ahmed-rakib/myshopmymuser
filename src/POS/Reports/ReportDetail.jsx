@@ -2,9 +2,10 @@ import {useLocation, useNavigate} from 'react-router-dom';
 import {ArrowLeft, Download, Printer, X, TrendingUp, TrendingDown, Package, Users, Truck, Box, AlertTriangle, DollarSign, RefreshCw, ShoppingCart, Wallet,} from 'lucide-react';
 import {BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area,} from  'recharts';
 import {useCallback, useEffect, useMemo, useState} from "react";
+import BASE_URL_of_POS from "../../posConfig";
 
 // ─── API ──────────────────────────────────────────────────────────────────────
-const BASE = 'https://pos.myshopmym.com/api';
+const BASE = `${BASE_URL_of_POS}/api`;
 const EP = {
     sales: `${BASE}/sale/sales/`,
     customers: `${BASE}/sale/customers/`,

@@ -184,7 +184,7 @@ const PurchaseDetailsPage = () => {
                 <div className="text-center p-8 bg-white rounded-lg shadow-md">
                     <h2 className="text-2xl font-bold text-gray-800 mb-4">Purchase Not Found</h2>
                     <button
-                        onClick={() => navigate("/purchase/purchase")}
+                        onClick={() => navigate("/purchase")}
                         className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     >
                         Back to Purchase List
@@ -213,7 +213,7 @@ const PurchaseDetailsPage = () => {
             <div className="max-w-7xl mx-auto">
                 <div className="mb-6 flex justify-between items-center">
                     <button
-                        onClick={() => navigate("/purchase/purchase")}
+                        onClick={() => navigate("/purchase")}
                         className="flex items-center text-gray-500 hover:text-blue-600 transition-colors font-bold uppercase text-xs tracking-widest"
                     >
                         <FaUndo className="mr-2"/>

@@ -66,7 +66,7 @@ const EmployeeLeaveApplicationDetailsPage = () => {
                 <div className="text-center">
                     <h2 className="text-2xl font-bold text-gray-800 mb-2">Employee not found</h2>
                     <button
-                        onClick={() => navigate("/employees")}
+                        onClick={() => navigate("/hrm")}
                         className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                     >
                         Back to Employees
@@ -82,7 +82,7 @@ const EmployeeLeaveApplicationDetailsPage = () => {
                 {/* Header with Back Button */}
                 <div className="mb-6">
                     <button
-                        onClick={() => navigate("/employees")}
+                        onClick={() => navigate("/hrm")}
                         className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
                     >
                         <svg xmlns="http://www.w3.org2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20"

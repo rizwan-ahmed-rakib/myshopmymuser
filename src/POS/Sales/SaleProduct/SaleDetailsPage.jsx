@@ -156,7 +156,7 @@ const SaleDetailsPage = () => {
         <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8 font-sans">
             <div className="max-w-7xl mx-auto">
                 <div className="mb-6 flex justify-between items-center">
-                    <button onClick={() => navigate("/sale/sale")} className="flex items-center text-gray-500 hover:text-blue-600 transition-colors font-bold uppercase text-xs tracking-widest"><FaUndo className="mr-2"/>Back to List</button>
+                    <button onClick={() => navigate("/sales")} className="flex items-center text-gray-500 hover:text-blue-600 transition-colors font-bold uppercase text-xs tracking-widest"><FaUndo className="mr-2"/>Back to List</button>
                     <div className="flex gap-3">
                         <button onClick={handlePrint} className="p-2 bg-white text-gray-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-gray-200" title="Print Invoice"><FaPrint size={18}/></button>
                         <button onClick={() => setEditOpen(true)} className="p-2 bg-white text-gray-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-gray-200" title="Edit Sale"><FaEdit size={18}/></button>

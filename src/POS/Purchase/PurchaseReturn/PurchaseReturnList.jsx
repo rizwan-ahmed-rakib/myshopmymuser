@@ -8,7 +8,7 @@ const PurchaseReturnList = ({purchaseReturns, onEdit, onDelete}) => {
     const [loadingId, setLoadingId] = useState(null);
 
     const handleViewDetails = (item) => {
-        navigate(`/Purchase/purchase-return/details/${item.id}`);
+        navigate(`/purchase/purchase-return/details/${item.id}`);
     };
 
     // The handleEdit function now simply calls the onEdit prop passed from the parent

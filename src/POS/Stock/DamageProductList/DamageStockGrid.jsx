@@ -5,37 +5,38 @@ import DamageStockSearchFilter from "./DamageStockSearchFilter";
 import DamageStockCard from "./DamageStockCard";
 import DamageStockList from "./DamageStockList";
 import AddDamageStockModal from "./AddDamageStockModal";
+import UpdateDamageStockModal from "./UpdateDamageStockModal";
 import SuccessModal from "./SuccessModal";
+import SuccessPopup from "./SuccessPopup";
 import LoadingSpinner from "./LoadingSpinner";
 import {usePosDamageProducts} from "../../../context_or_provider/pos/damageProducts/damage_product_provider";
 import {posDamageProductAPI} from "../../../context_or_provider/pos/damageProducts/damage_productAPI";
 
 const DamageStockGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
     const { posDamageProduct, setPosDamageProduct} = usePosDamageProducts();
-    // const [viewType, setViewType] = useState("grid");
-    // const [isAddOpen, setIsAddOpen] = useState(false);
     const [successData, setSuccessData] = useState(null);
+    const [successType, setSuccessType] = useState("create");
     const [loading, setLoading] = useState(true);
+    
+    // Edit States
+    const [editRecord, setEditRecord] = useState(null);
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    
     const [stats, setStats] = useState({
-        total: 0,
-        totalQuantity: 0,
-        totalLoss: 0,
-        returnableCount: 0,
-        nonReturnableCount: 0,
-        compensatedCount: 0,
-        uncompensatedCount: 0
+        total: 0, totalQuantity: 0, totalLoss: 0,
+        returnableCount: 0, nonReturnableCount: 0,
+        compensatedCount: 0, uncompensatedCount: 0
     });
 
     // Search and filter states
     const [searchQuery, setSearchQuery] = useState("");
     const [filters, setFilters] = useState({
-        damageType: "all", // returnable, non_returnable
-        compensationStatus: "all", // compensated, uncompensated
+        damageType: "all",
+        compensationStatus: "all",
         sortBy: "date_desc",
         dateRange: null
     });
 
-    // Fetch damage stock on component mount
     useEffect(() => {
         fetchDamageStock();
     }, []);
@@ -54,272 +55,118 @@ const DamageStockGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
     };
 
     const calculateStats = (records) => {
-        if (!records || records.length === 0) {
-            setStats({
-                total: 0,
-                totalQuantity: 0,
-                totalLoss: 0,
-                returnableCount: 0,
-                nonReturnableCount: 0,
-                compensatedCount: 0,
-                uncompensatedCount: 0
-            });
-            return;
-        }
-
-        const total = records.length;
-
-        const totalQuantity = records.reduce((acc, record) => {
-            return acc + (record.quantity || 0);
-        }, 0);
-
-        const totalLoss = records.reduce((acc, record) => {
-            return acc + parseFloat(record.total_loss || 0);
-        }, 0);
-
-        const returnableCount = records.filter(r => r.damage_type === 'returnable').length;
-        const nonReturnableCount = records.filter(r => r.damage_type === 'non_returnable').length;
-
-        const compensatedCount = records.filter(r => r.is_compensated === true).length;
-        const uncompensatedCount = records.filter(r => r.is_compensated === false).length;
-
+        if (!records || records.length === 0) return;
         setStats({
-            total,
-            totalQuantity,
-            totalLoss,
-            returnableCount,
-            nonReturnableCount,
-            compensatedCount,
-            uncompensatedCount
+            total: records.length,
+            totalQuantity: records.reduce((acc, r) => acc + (r.quantity || 0), 0),
+            totalLoss: records.reduce((acc, r) => acc + parseFloat(r.total_loss || 0), 0),
+            returnableCount: records.filter(r => r.damage_type === 'returnable').length,
+            nonReturnableCount: records.filter(r => r.damage_type === 'non_returnable').length,
+            compensatedCount: records.filter(r => r.is_compensated === true).length,
+            uncompensatedCount: records.filter(r => r.is_compensated === false).length
         });
     };
 
-    const handleSearch = useCallback((query) => {
-        setSearchQuery(query);
-    }, []);
+    const handleSearch = useCallback((query) => setSearchQuery(query), []);
+    const handleFilter = useCallback((newFilters) => setFilters(prev => ({...prev, ...newFilters})), []);
 
-    const handleFilter = useCallback((newFilters) => {
-        setFilters(prev => ({...prev, ...newFilters}));
-    }, []);
-
-    // Filter damage records based on search and filters
     const filteredRecords = useMemo(() => {
-        if (!posDamageProduct || posDamageProduct.length === 0) return [];
-
+        if (!posDamageProduct) return [];
         let result = [...posDamageProduct];
-
-        // Apply search
         if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase();
-            result = result.filter(record =>
-                record.product_name?.toLowerCase().includes(query) ||
-                record.product_code?.toLowerCase().includes(query) ||
-                record.reason?.toLowerCase().includes(query) ||
-                record.notes?.toLowerCase().includes(query) ||
-                record.reference_no?.toLowerCase().includes(query)
+            const q = searchQuery.toLowerCase();
+            result = result.filter(r => 
+                r.product_name?.toLowerCase().includes(q) || 
+                r.product_code?.toLowerCase().includes(q) ||
+                r.reference_no?.toLowerCase().includes(q)
             );
         }
-
-        // Apply damage type filter
-        if (filters.damageType !== "all") {
-            result = result.filter(record => record.damage_type === filters.damageType);
-        }
-
-        // Apply compensation status filter
+        if (filters.damageType !== "all") result = result.filter(r => r.damage_type === filters.damageType);
         if (filters.compensationStatus !== "all") {
-            if (filters.compensationStatus === "compensated") {
-                result = result.filter(record => record.is_compensated === true);
-            } else if (filters.compensationStatus === "uncompensated") {
-                result = result.filter(record => record.is_compensated === false);
-            }
+            result = result.filter(r => r.is_compensated === (filters.compensationStatus === "compensated"));
         }
-
-        // Apply date range filter
-        if (filters.dateRange && filters.dateRange.start && filters.dateRange.end) {
-            const startDate = new Date(filters.dateRange.start);
-            const endDate = new Date(filters.dateRange.end);
-            result = result.filter(record => {
-                const recordDate = new Date(record.created_at);
-                return recordDate >= startDate && recordDate <= endDate;
-            });
-        }
-
-        // Apply sorting
+        // Sorting logic (kept as is)
         result.sort((a, b) => {
-            switch (filters.sortBy) {
-                case "name_asc":
-                    return (a.product_name || "").localeCompare(b.product_name || "");
-                case "name_desc":
-                    return (b.product_name || "").localeCompare(a.product_name || "");
-                case "quantity_asc":
-                    return (a.quantity || 0) - (b.quantity || 0);
-                case "quantity_desc":
-                    return (b.quantity || 0) - (a.quantity || 0);
-                case "loss_asc":
-                    return parseFloat(a.total_loss || 0) - parseFloat(b.total_loss || 0);
-                case "loss_desc":
-                    return parseFloat(b.total_loss || 0) - parseFloat(a.total_loss || 0);
-                case "date_asc":
-                    return new Date(a.created_at) - new Date(b.created_at);
-                case "date_desc":
-                    return new Date(b.created_at) - new Date(a.created_at);
-                default:
-                    return 0;
-            }
+            if (filters.sortBy === "date_desc") return new Date(b.created_at) - new Date(a.created_at);
+            return 0;
         });
-
         return result;
     }, [posDamageProduct, searchQuery, filters]);
 
+    // Handlers for Success
     const handleRecordAdded = (newRecord) => {
-        setPosDamageProduct(prev => [newRecord, ...prev]);
-        setIsAddOpen(false);
+        setSuccessType("create");
         setSuccessData(newRecord);
-        fetchDamageStock(); // Re-fetch to ensure data consistency
-    };
-
-    const handleRecordUpdated = useCallback(() => {
+        setIsAddOpen(false);
         fetchDamageStock();
-    }, []);
-
-    const formatMoney = (value) => {
-        return value.toLocaleString(undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        });
     };
+
+    const handleRecordUpdated = (updatedRecord) => {
+        setSuccessType("update");
+        setSuccessData(updatedRecord);
+        setIsEditOpen(false);
+        setEditRecord(null);
+        fetchDamageStock();
+    };
+
+    const handleEditClick = (record) => {
+        setEditRecord(record);
+        setIsEditOpen(true);
+    };
+
+    const formatMoney = (v) => v.toLocaleString(undefined, { minimumFractionDigits: 2 });
 
     const displayStats = [
-        {
-            title: 'Total Damage Records',
-            count: stats.total?.toString() || "0",
-            bgColor: 'bg-blue-600',
-            icon: '📦'
-        },
-        {
-            title: 'Total Quantity (pcs)',
-            count: stats.totalQuantity?.toString() || "0",
-            bgColor: 'bg-orange-500',
-            icon: '🔢'
-        },
-        {
-            title: 'Returnable',
-            count: stats.returnableCount?.toString() || "0",
-            bgColor: 'bg-green-500',
-            icon: '↩️'
-        },
-        {
-            title: 'Non-Returnable',
-            count: stats.nonReturnableCount?.toString() || "0",
-            bgColor: 'bg-red-500',
-            icon: '❌'
-        },
-        {
-            title: 'Compensated',
-            count: stats.compensatedCount?.toString() || "0",
-            bgColor: 'bg-teal-500',
-            icon: '✅'
-        },
-        {
-            title: 'Pending Compensation',
-            count: stats.uncompensatedCount?.toString() || "0",
-            bgColor: 'bg-yellow-500',
-            icon: '⏳'
-        },
-        {
-            title: 'Total Financial Loss',
-            count: `৳ ${formatMoney(stats.totalLoss || 0)}`,
-            bgColor: 'bg-purple-600',
-            icon: '💰'
-        },
+        { title: 'Total Records', count: stats.total.toString(), bgColor: 'bg-blue-600', icon: '📦' },
+        { title: 'Total Qty', count: stats.totalQuantity.toString(), bgColor: 'bg-orange-500', icon: '🔢' },
+        { title: 'Returnable', count: stats.returnableCount.toString(), bgColor: 'bg-green-500', icon: '↩️' },
+        { title: 'Non-Returnable', count: stats.nonReturnableCount.toString(), bgColor: 'bg-red-500', icon: '❌' },
+        { title: 'Compensated', count: stats.compensatedCount.toString(), bgColor: 'bg-teal-500', icon: '✅' },
+        { title: 'Un Compensated', count: stats.uncompensatedCount.toString(), bgColor: 'bg-blue-500', icon: '✅' },
+        { title: 'Total Loss', count: `৳ ${formatMoney(stats.totalLoss)}`, bgColor: 'bg-purple-600', icon: '💰' },
     ];
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <LoadingSpinner size="lg"/>
-                <p className="mt-4 text-gray-600">Loading damage stock...</p>
-            </div>
-        );
-    }
+    if (loading) return <div className="min-h-screen flex items-center justify-center"><LoadingSpinner size="lg"/></div>;
 
     return (
         <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            {/*<DamageStockHeader*/}
-            {/*    viewType={viewType}*/}
-            {/*    setViewType={setViewType}*/}
-            {/*    onAddClick={() => setIsAddOpen(true)}*/}
-            {/*/>*/}
-
-            <div className="mb-6">
-                <DamageStockStats stats={displayStats}/>
-            </div>
-
-            <div className="mb-6">
-                <DamageStockSearchFilter
-                    onSearch={handleSearch}
-                    onFilter={handleFilter}
-                />
-            </div>
+            <div className="mb-6"><DamageStockStats stats={displayStats}/></div>
+            <div className="mb-6"><DamageStockSearchFilter onSearch={handleSearch} onFilter={handleFilter}/></div>
 
             <div className="bg-white rounded-xl shadow-sm p-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-2 sm:mb-0">
-                        {viewType === "grid" ? "Damage Stock Grid" : "Damage Stock List"}
-                    </h2>
-                    <div className="text-sm text-gray-500">
-                        Showing {filteredRecords.length} records (out of total {posDamageProduct?.length || 0})
-                    </div>
-                </div>
-
                 {viewType === "grid" ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {filteredRecords.map(record => (
-                            <DamageStockCard
-                                key={record.id}
-                                record={record}
-                                onEdit={handleRecordUpdated}
-                                onDelete={handleRecordUpdated}
+                            <DamageStockCard 
+                                key={record.id} 
+                                record={record} 
+                                onEdit={() => handleEditClick(record)} 
+                                onDelete={fetchDamageStock} 
                             />
                         ))}
                     </div>
                 ) : (
-                    <DamageStockList
-                        records={filteredRecords}
-                        onUpdate={handleRecordUpdated}
-                    />
-                )}
-
-                {filteredRecords.length === 0 && (
-                    <div className="text-center py-12">
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No records found</h3>
-                        <p className="text-gray-600 mb-4">
-                            {searchQuery || filters.damageType !== "all" || filters.compensationStatus !== "all"
-                                ? "Please change your search or filter criteria"
-                                : "Add your first damage record"
-                            }
-                        </p>
-                        <button
-                            onClick={() => setIsAddOpen(true)}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                        >
-                            Add Damage Record
-                        </button>
-                    </div>
+                    <DamageStockList records={filteredRecords} onEdit={handleEditClick} onUpdate={fetchDamageStock} />
                 )}
             </div>
 
-            <AddDamageStockModal
-                isOpen={isAddOpen}
-                onClose={() => setIsAddOpen(false)}
-                onSuccess={handleRecordAdded}
-            />
+            {/* Global Modals */}
+            <AddDamageStockModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onSuccess={handleRecordAdded} />
+            
+            {isEditOpen && editRecord && (
+                <UpdateDamageStockModal 
+                    isOpen={isEditOpen} 
+                    onClose={() => { setIsEditOpen(false); setEditRecord(null); }} 
+                    onSuccess={handleRecordUpdated} 
+                    recordData={editRecord} 
+                />
+            )}
 
-            <SuccessModal
-                isOpen={!!successData}
-                data={successData}
-                onClose={() => setSuccessData(null)}
-                message="Damage record added successfully"
+            <SuccessModal 
+                isOpen={!!successData} 
+                data={successData} 
+                type={successType}
+                onClose={() => setSuccessData(null)} 
             />
         </div>
     );

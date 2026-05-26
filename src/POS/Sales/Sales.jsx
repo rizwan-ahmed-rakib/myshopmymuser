@@ -52,8 +52,7 @@ const Sales = () => {
         <div className="h-full flex flex-col bg-gray-50">
             {/* 🔥 Top Navigation Bar (ট্যাব বেশি হলে ভেঙে নিচে নামবে, বাটন পজিশন ঠিক থাকবে) */}
             {/* 🔥 Top Navigation Bar */}
-            <div
-                className="bg-white border-b px-4 py-3 flex flex-col md:flex-row md:items-start md:justify-between sticky top-0 z-30 shadow-sm gap-4">
+            <div className="bg-white border-b px-4 py-3 flex flex-col md:flex-row md:items-start md:justify-between sticky top-0 z-30 shadow-sm gap-4">
                 {/* Left: Tabs Loop Container (`flex-wrap` ব্যবহারের কারণে স্ক্রলবার লাগবে না, অটো নিচে নামবে) */}
                 {/* Left: Tabs Loop Container */}
                 <div className="flex flex-wrap gap-2 flex-1">

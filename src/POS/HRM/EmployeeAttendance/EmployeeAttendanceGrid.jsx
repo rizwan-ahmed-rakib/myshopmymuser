@@ -644,21 +644,25 @@
 
 
 import React, {useState, useEffect, useMemo, useCallback} from 'react';
-import EmployeeAttendanceHeader from "./EmployeeAttendanceHeader";
-import EmployeeStats from "./EmployeeStats";
-import EmployeeAttendanceSearchFilter from "./EmployeeAttendanceSearchFilter";
 import EmployeeAttendanceCard from "./EmployeeAttendanceCard";
 import EmployeeAttendanceList from "./EmployeeAttendanceList";
 import AddEmployeeAttendanceModal from "./AddEmployeeAttendanceModal";
 import SuccessModal from "./SuccessModal";
 import LoadingSpinner from "./LoadingSpinner";
 import {employeeAttendanceAPI} from "../../../context_or_provider/pos/EmployeeAttendance/employeeAttendanceAPI";
+import { Activity, Calendar, UserCheck, UserX, Clock, ClipboardList, Search, ArrowUpDown } from 'lucide-react';
 
-const EmployeeAttendanceGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
+const EmployeeAttendanceGrid = ({ 
+    viewType, 
+    isAddOpen, 
+    setIsAddOpen,
+    onStatsLoaded,
+    searchQuery,
+    filters,
+    setFilterConfig
+}) => {
     const [allAttendance, setAllAttendance] = useState([]); // সব ডাটা রাখার জন্য
     const [displayedAttendance, setDisplayedAttendance] = useState([]); // দেখানোর জন্য
-    // const [viewType, setViewType] = useState("grid");
-    // const [isAddOpen, setIsAddOpen] = useState(false);
     const [successData, setSuccessData] = useState(null);
     const [successType, setSuccessType] = useState('create');
     const [loading, setLoading] = useState(true);
@@ -670,31 +674,47 @@ const EmployeeAttendanceGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
     const [nextPage, setNextPage] = useState(null);
     const [previousPage, setPreviousPage] = useState(null);
 
-    // Search and filter states
-    const [searchQuery, setSearchQuery] = useState("");
-    const [filters, setFilters] = useState({
-        designation: "all",
-        status: "all",
-        dateRange: "all",
-        sortBy: "name_asc",
-    });
-
-    const [stats, setStats] = useState({
-        total: 0,
-        present: 0,
-        absent: 0,
-        totalWorkHours: 0
-    });
+    // Provide filter configuration to parent on mount
+    useEffect(() => {
+        if (setFilterConfig) {
+            setFilterConfig({
+                searchPlaceholder: "Search by employee name or designation...",
+                filtersConfig: [
+                    { 
+                        key: "status", 
+                        label: "Status", 
+                        icon: <Activity className="w-3.5 h-3.5" />, 
+                        options: [
+                            { value: "all", label: "All Status" },
+                            { value: "present", label: "Present" },
+                            { value: "absent", label: "Absent" }
+                        ] 
+                    },
+                    { 
+                        key: "dateRange", 
+                        label: "Quick Date", 
+                        icon: <Calendar className="w-3.5 h-3.5" />, 
+                        options: [
+                            { value: "all", label: "All Records" },
+                            { value: "today", label: "Today" },
+                            { value: "week", label: "This Week" },
+                            { value: "month", label: "This Month" }
+                        ] 
+                    }
+                ],
+                advancedConfig: [
+                    { key: "workHours", type: "range", label: "Work Hours", minPlaceholder: "Min Hours", maxPlaceholder: "Max Hours" },
+                    { key: "customDateRange", type: "date-range", label: "Custom Date Range" }
+                ]
+            });
+        }
+    }, [setFilterConfig]);
 
     // ✅ API থেকে ডাটা আনার ফাংশন
-    const fetchAttendance = async (page = 1) => {
+    const fetchAttendance = useCallback(async (page = 1) => {
         setLoading(true);
         try {
-            console.log("🟡 Fetching page:", page);
             const response = await employeeAttendanceAPI.getAll(page);
-            console.log("🟢 API Response:", response.data);
-
-            // ডাটা সেট করা
             const results = response.data.results || [];
             setAllAttendance(results);
             setDisplayedAttendance(results);
@@ -705,152 +725,145 @@ const EmployeeAttendanceGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
             setTotalPages(pages);
             setNextPage(response.data.next);
             setPreviousPage(response.data.previous);
-            setCurrentPage(page); // current page আপডেট করা
+            setCurrentPage(page);
 
-            // স্ট্যাটস ক্যালকুলেশন
-            calculateStats(results);
-
-            console.log("📄 Current Page:", page, "Total Pages:", pages);
-
+            calculateStats(results, response.data.count || 0);
         } catch (error) {
             console.error("🔴 Error fetching attendance:", error);
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     // ✅ পেজ চেঞ্জ হ্যান্ডলার
     const handlePageChange = (newPage) => {
-        console.log("🟡 Page change requested to:", newPage);
         if (newPage >= 1 && newPage <= totalPages) {
             fetchAttendance(newPage);
         }
     };
 
-    const handleNextPage = () => {
-        if (nextPage) {
-            const nextPageNum = currentPage + 1;
-            console.log("🟡 Next page clicked, going to:", nextPageNum);
-            fetchAttendance(nextPageNum);
-        }
-    };
-
-    const handlePrevPage = () => {
-        if (previousPage) {
-            const prevPageNum = currentPage - 1;
-            console.log("🟡 Previous page clicked, going to:", prevPageNum);
-            fetchAttendance(prevPageNum);
-        }
-    };
-
-    const calculateStats = (data) => {
-        const total = data?.length || 0;
+    const calculateStats = useCallback((data, totalCount) => {
         const present = data?.filter(d => d.is_present).length || 0;
         const absent = data?.filter(d => !d.is_present).length || 0;
-        const totalWorkHours = data?.reduce((sum, d) => sum + (d.daily_work_time || 0), 0) || 0;
+        const totalWorkHours = data?.reduce((sum, d) => sum + (parseFloat(d.daily_work_time) || 0), 0) || 0;
 
-        setStats({ total, present, absent, totalWorkHours });
-    };
+        const displayStats = [
+            { 
+                title: 'Total Records', 
+                count: totalCount, 
+                bgColor: 'bg-brand-primary', 
+                icon: <ClipboardList size={24} /> 
+            },
+            { 
+                title: 'Present', 
+                count: present, 
+                bgColor: 'bg-emerald-500', 
+                icon: <UserCheck size={24} /> 
+            },
+            { 
+                title: 'Absent', 
+                count: absent, 
+                bgColor: 'bg-rose-500', 
+                icon: <UserX size={24} /> 
+            },
+            { 
+                title: 'Total Hours', 
+                count: `${totalWorkHours.toFixed(1)}h`, 
+                bgColor: 'bg-amber-500', 
+                icon: <Clock size={24} /> 
+            }
+        ];
 
-    // Generate page numbers
-    const getPageNumbers = () => {
-        const pages = [];
-        const maxVisible = 5;
-        let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-        let end = Math.min(totalPages, start + maxVisible - 1);
-
-        if (end - start + 1 < maxVisible) {
-            start = Math.max(1, end - maxVisible + 1);
-        }
-
-        for (let i = start; i <= end; i++) {
-            pages.push(i);
-        }
-        return pages;
-    };
+        if (onStatsLoaded) onStatsLoaded(displayStats);
+    }, [onStatsLoaded]);
 
     // Initial load
     useEffect(() => {
         fetchAttendance(1);
-    }, []); // শুধু প্রথমবার
+    }, [fetchAttendance]);
 
-    const handleSearch = useCallback((query) => {
-        setSearchQuery(query);
-        if (query) {
-            // search logic
-            const filtered = allAttendance.filter(item =>
-                item.name?.toLowerCase().includes(query.toLowerCase()) ||
-                item.user_designation?.toLowerCase().includes(query.toLowerCase())
-            );
-            setDisplayedAttendance(filtered);
-        } else {
-            setDisplayedAttendance(allAttendance);
-        }
-    }, [allAttendance]);
-
-    const handleFilter = useCallback((newFilters) => {
-        setFilters(prev => ({ ...prev, ...newFilters }));
+    // Apply filtering and search
+    useEffect(() => {
         let filtered = [...allAttendance];
 
-        if (newFilters.status !== "all") {
+        // Search
+        if (searchQuery && searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
             filtered = filtered.filter(item =>
-                newFilters.status === "present" ? item.is_present : !item.is_present
+                item.name?.toLowerCase().includes(query) ||
+                item.user_designation?.toLowerCase().includes(query)
             );
+        }
+
+        // Quick Status Filter
+        if (filters.status && filters.status !== "all") {
+            filtered = filtered.filter(item =>
+                filters.status === "present" ? item.is_present : !item.is_present
+            );
+        }
+
+        // Quick Date Filter
+        if (filters.dateRange && filters.dateRange !== "all") {
+            const today = new Date();
+            filtered = filtered.filter(item => {
+                const date = new Date(item.date);
+                if (filters.dateRange === "today") return date.toDateString() === today.toDateString();
+                if (filters.dateRange === "week") return date >= new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+                if (filters.dateRange === "month") return date >= new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+                return true;
+            });
+        }
+
+        // Advanced Work Hours Filter
+        if (filters.workHours) {
+            filtered = filtered.filter(item => {
+                const hours = parseFloat(item.daily_work_time) || 0;
+                const min = filters.workHours.min ? parseFloat(filters.workHours.min) : 0;
+                const max = filters.workHours.max ? parseFloat(filters.workHours.max) : Infinity;
+                return hours >= min && hours <= max;
+            });
+        }
+
+        // Custom Date Range
+        if (filters.customDateRange?.from && filters.customDateRange?.to) {
+            const from = new Date(filters.customDateRange.from);
+            const to = new Date(filters.customDateRange.to);
+            filtered = filtered.filter(item => {
+                const date = new Date(item.date);
+                return date >= from && date <= to;
+            });
         }
 
         setDisplayedAttendance(filtered);
-    }, [allAttendance]);
-
-    const displayStats = [
-        { title: 'Total Records', count: totalItems, bgColor: 'bg-purple-600', icon: '📊' },
-        { title: 'Present', count: stats.present, bgColor: 'bg-green-500', icon: '✅' },
-        { title: 'Absent', count: stats.absent, bgColor: 'bg-red-500', icon: '❌' },
-        { title: 'Total Hours', count: `${stats.totalWorkHours}h`, bgColor: 'bg-blue-500', icon: '⏱️' }
-    ];
+    }, [allAttendance, searchQuery, filters]);
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <LoadingSpinner size="lg"/>
-                    <p className="mt-4 text-gray-600">Loading attendance records...</p>
-                </div>
+            <div className="flex flex-col items-center justify-center py-20 w-full">
+                <LoadingSpinner size="lg" />
+                <p className="mt-4 text-gray-500 text-sm">Loading attendance records...</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            {/*<EmployeeAttendanceHeader*/}
-            {/*    viewType={viewType}*/}
-            {/*    setViewType={setViewType}*/}
-            {/*    onAddClick={() => setIsAddOpen(true)}*/}
-            {/*/>*/}
-
-            <div className="mb-6">
-                <EmployeeStats stats={displayStats}/>
-            </div>
-
-            <div className="mb-6">
-                <EmployeeAttendanceSearchFilter
-                    onSearch={handleSearch}
-                    onFilter={handleFilter}
-                />
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm p-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-2 sm:mb-0">
-                        {viewType === "grid" ? "Attendance Grid" : "Attendance List"}
+        <div className="space-y-4">
+            
+            {/* Main Content Viewport */}
+            <div className="p-1">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 px-1">
+                    <h2 className="text-sm font-bold text-gray-700 uppercase tracking-tight flex items-center gap-2">
+                        <ClipboardList size={16} className="text-brand-primary" />
+                        {viewType === "grid" ? "Attendance Grid" : "Attendance Table"}
                     </h2>
-                    <div className="text-sm text-gray-500">
-                        Showing {displayedAttendance.length} of {totalItems} records
-                        {totalPages > 0 && ` | Page ${currentPage} of ${totalPages}`}
+                    <div className="text-[11px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
+                        SHOWING {displayedAttendance.length} OF {totalItems} RECORDS
+                        {totalPages > 1 && ` | PAGE ${currentPage} OF ${totalPages}`}
                     </div>
                 </div>
 
                 {viewType === "grid" ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {displayedAttendance.map(att => (
                             <EmployeeAttendanceCard
                                 key={att.id}
@@ -868,44 +881,54 @@ const EmployeeAttendanceGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
                     />
                 )}
 
-                {/* ✅ Pagination Component - কাজ করবে ইনশাল্লাহ */}
+                {/* ✅ Pagination Component */}
                 {totalPages > 1 && (
-                    <div className="flex justify-center items-center gap-2 mt-6 pt-4 border-t">
+                    <div className="flex justify-center items-center gap-2 mt-8 pt-4 border-t border-gray-100">
                         <button
-                            onClick={handlePrevPage}
+                            onClick={() => handlePageChange(currentPage - 1)}
                             disabled={!previousPage}
-                            className={`px-3 py-2 rounded-lg transition-colors ${
+                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
                                 previousPage 
-                                    ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' 
-                                    : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                                    ? 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50' 
+                                    : 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
                             }`}
                         >
                             Previous
                         </button>
 
                         <div className="flex gap-1">
-                            {getPageNumbers().map(page => (
-                                <button
-                                    key={page}
-                                    onClick={() => handlePageChange(page)}
-                                    className={`px-3 py-2 rounded-lg transition-colors ${
-                                        currentPage === page
-                                            ? 'bg-blue-600 text-white'
-                                            : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                                    }`}
-                                >
-                                    {page}
-                                </button>
-                            ))}
+                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                // Simple page windowing
+                                let pageNum = i + 1;
+                                if (currentPage > 3 && totalPages > 5) {
+                                    pageNum = currentPage - 2 + i;
+                                    if (pageNum > totalPages) pageNum = totalPages - (4 - i);
+                                }
+                                if (pageNum < 1) return null;
+                                
+                                return (
+                                    <button
+                                        key={pageNum}
+                                        onClick={() => handlePageChange(pageNum)}
+                                        className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                                            currentPage === pageNum
+                                                ? 'bg-brand-primary text-white shadow-md'
+                                                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        {pageNum}
+                                    </button>
+                                );
+                            })}
                         </div>
 
                         <button
-                            onClick={handleNextPage}
+                            onClick={() => handlePageChange(currentPage + 1)}
                             disabled={!nextPage}
-                            className={`px-3 py-2 rounded-lg transition-colors ${
+                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
                                 nextPage 
-                                    ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' 
-                                    : 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                                    ? 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50' 
+                                    : 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
                             }`}
                         >
                             Next
@@ -914,8 +937,20 @@ const EmployeeAttendanceGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
                 )}
 
                 {displayedAttendance.length === 0 && (
-                    <div className="text-center py-12">
-                        <p className="text-gray-500">No attendance records found</p>
+                    <div className="text-center py-16 border border-dashed border-gray-200 rounded-xl bg-gray-50/30 mt-4">
+                        <div className="bg-white w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm border border-gray-100">
+                            <ClipboardList className="w-8 h-8 text-gray-300" />
+                        </div>
+                        <h3 className="text-base font-bold text-gray-800 mb-1">No attendance records found</h3>
+                        <p className="text-xs text-gray-400 max-w-xs mx-auto mb-6">
+                            Try adjusting your filters or search query to find what you're looking for.
+                        </p>
+                        <button
+                            onClick={() => setIsAddOpen(true)}
+                            className="px-6 py-2 bg-brand-primary hover:bg-brand-primaryHover text-white rounded-lg text-xs font-bold transition-all shadow-md active:scale-95"
+                        >
+                            Add Attendance Record
+                        </button>
                     </div>
                 )}
             </div>

@@ -1,3 +1,257 @@
+// import React, {useState, useEffect} from "react";
+// import {posDamageProductAPI} from "../../../context_or_provider/pos/damageProducts/damage_productAPI";
+// import {posProductAPI} from "../../../context_or_provider/pos/products/productAPI";
+// import {
+//     FaBox, FaExclamationTriangle, FaSearch,
+//     FaDollarSign, FaWarehouse, FaTag, FaSave, FaTimes,
+//     FaInfoCircle, FaArrowLeft, FaCheck,
+//     FaFileInvoice, FaBalanceScale
+// } from "react-icons/fa";
+// import {posSupplierAPI} from "../../../context_or_provider/pos/Purchase/suppliers/supplierAPI";
+// import {posCustomerAPI} from "../../../context_or_provider/pos/Sale/customer/PosCustomerAPI";
+// import BaseModal from "../../components/BaseModal";
+//
+// const AddDamageStockModal = ({isOpen, onClose, onSuccess, initialProduct, initialSupplier, initialCustomer}) => {
+//     // ============ STATE MANAGEMENT ============
+//     const [step, setStep] = useState(1);
+//     const [selectedProduct, setSelectedProduct] = useState(initialProduct || null);
+//     const [searchQuery, setSearchQuery] = useState("");
+//     const [searchResults, setSearchResults] = useState([]);
+//     const [searchLoading, setSearchLoading] = useState(false);
+//     const [searchDebounce, setSearchDebounce] = useState(null);
+//
+//     const [form, setForm] = useState({
+//         damage_type: "returnable",
+//         source_type: "manual",
+//         quantity: "",
+//         reason: "",
+//         notes: "",
+//         unit_cost: "",
+//         supplier: null,
+//         customer: null,
+//         reference_no: "",
+//         is_compensated: false,
+//         compensated_amount: ""
+//     });
+//
+//     const [loading, setLoading] = useState(false);
+//     const [errors, setErrors] = useState({});
+//     const [showCompensation, setShowCompensation] = useState(false);
+//     const [suppliers, setSuppliers] = useState([]);
+//     const [customers, setCustomers] = useState([]);
+//
+//     // ============ INITIALIZE ============
+//     useEffect(() => {
+//         if (isOpen) {
+//             resetForm();
+//             if (initialProduct) {
+//                 setSelectedProduct(initialProduct);
+//                 setForm(prev => ({
+//                     ...prev,
+//                     unit_cost: initialProduct.purchase_price || "",
+//                     reference_no: generateReferenceNo(),
+//                     supplier: initialSupplier?.id || null,
+//                     customer: initialCustomer?.id || null
+//                 }));
+//                 setStep(2);
+//             }
+//             loadSuppliers();
+//             loadCustomers();
+//         }
+//     }, [isOpen, initialProduct]);
+//
+//     const loadSuppliers = async () => {
+//         try { const res = await posSupplierAPI.getAll(); setSuppliers(res.data || []); } catch (e) {}
+//     };
+//
+//     const loadCustomers = async () => {
+//         try { const res = await posCustomerAPI.getAll(); setCustomers(res.data || []); } catch (e) {}
+//     };
+//
+//     const generateReferenceNo = () => {
+//         const d = new Date();
+//         return `DMG-${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}-${Math.floor(Math.random()*1000).toString().padStart(3,'0')}`;
+//     };
+//
+//     const handleProductSearch = (query) => {
+//         setSearchQuery(query);
+//         if (searchDebounce) clearTimeout(searchDebounce);
+//         if (!query.trim()) { setSearchResults([]); return; }
+//         setSearchDebounce(setTimeout(async () => {
+//             setSearchLoading(true);
+//             try {
+//                 const res = await posProductAPI.search(query);
+//                 setSearchResults(res.data || []);
+//             } catch (error) {} finally { setSearchLoading(false); }
+//         }, 500));
+//     };
+//
+//     const handleSelectProduct = (p) => {
+//         setSelectedProduct(p);
+//         setForm(prev => ({ ...prev, unit_cost: p.purchase_price || "", reference_no: generateReferenceNo() }));
+//         setStep(2);
+//     };
+//
+//     const validateForm = () => {
+//         const newErrors = {};
+//         if (!form.quantity || form.quantity <= 0) newErrors.quantity = "Quantity must be > 0";
+//         if (!form.reason?.trim()) newErrors.reason = "Reason is required";
+//         if (!form.unit_cost || form.unit_cost <= 0) newErrors.unit_cost = "Valid cost required";
+//         setErrors(newErrors);
+//         return Object.keys(newErrors).length === 0;
+//     };
+//
+//     const handleSubmit = async (e) => {
+//         e.preventDefault();
+//         if (!validateForm()) return;
+//         setLoading(true);
+//         try {
+//             const payload = {
+//                 product: selectedProduct.id,
+//                 ...form,
+//                 quantity: Number(form.quantity),
+//                 unit_cost: Number(form.unit_cost),
+//                 compensated_amount: form.is_compensated ? Number(form.compensated_amount) : 0
+//             };
+//             const res = await posDamageProductAPI.create(payload);
+//             onSuccess?.({ ...res.data, product_name: selectedProduct.name, product_code: selectedProduct.product_code });
+//             resetForm();
+//             onClose();
+//         } catch (err) {
+//             if (err.response?.data) setErrors(err.response.data);
+//             else alert("Failed to create damage entry.");
+//         } finally { setLoading(false); }
+//     };
+//
+//     const resetForm = () => {
+//         setForm({
+//             damage_type: "returnable", source_type: "manual", quantity: "", reason: "",
+//             notes: "", unit_cost: "", supplier: null, customer: null,
+//             reference_no: generateReferenceNo(), is_compensated: false, compensated_amount: ""
+//         });
+//         setSelectedProduct(null); setSearchQuery(""); setSearchResults([]);
+//         setErrors({}); setStep(1); setShowCompensation(false);
+//     };
+//
+//     const totalLoss = (Number(form.quantity) || 0) * (Number(form.unit_cost) || 0);
+//     const pendingAmount = totalLoss - (Number(form.compensated_amount) || 0);
+//
+//     const ProductSearchStep = () => (
+//         <div className="p-6">
+//             <div className="relative mb-6">
+//                 <input
+//                     type="text" value={searchQuery} onChange={(e) => handleProductSearch(e.target.value)}
+//                     placeholder="Search product by name or code..."
+//                     className="w-full p-4 pl-12 border-2 border-gray-100 rounded-xl focus:border-red-500 transition-all outline-none"
+//                     autoFocus
+//                 />
+//                 <FaSearch className="absolute left-4 top-4 text-gray-400 text-xl"/>
+//                 {searchLoading && <div className="absolute right-4 top-4 animate-spin rounded-full h-5 w-5 border-b-2 border-red-600"></div>}
+//             </div>
+//             <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+//                 {searchResults.map(p => (
+//                     <button key={p.id} onClick={() => handleSelectProduct(p)} className="w-full text-left p-4 border-2 border-gray-50 rounded-xl hover:border-red-200 hover:bg-red-50 transition-all group">
+//                         <div className="flex items-center gap-4">
+//                             <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+//                                 <FaBox className="text-gray-400"/>
+//                             </div>
+//                             <div className="flex-1">
+//                                 <h4 className="font-bold text-gray-800">{p.name}</h4>
+//                                 <p className="text-xs text-gray-500">{p.product_code} | Stock: {p.stock}</p>
+//                             </div>
+//                             <FaCheck className="text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"/>
+//                         </div>
+//                     </button>
+//                 ))}
+//             </div>
+//         </div>
+//     );
+//
+//     const DamageEntryStep = () => (
+//         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+//             <div className="bg-red-50 p-4 rounded-xl flex items-center justify-between border border-red-100">
+//                 <div className="flex items-center gap-4">
+//                     <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-sm">
+//                         <FaBox className="text-red-500 text-xl"/>
+//                     </div>
+//                     <div>
+//                         <h3 className="font-bold text-gray-800">{selectedProduct?.name}</h3>
+//                         <p className="text-xs text-gray-500">Stock: {selectedProduct?.stock} units</p>
+//                     </div>
+//                 </div>
+//                 <button type="button" onClick={() => setStep(1)} className="text-xs font-bold text-red-600 bg-white px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 transition-all">
+//                     Change Product
+//                 </button>
+//             </div>
+//
+//             <div className="grid grid-cols-2 gap-6">
+//                 <div className="space-y-4">
+//                     <div>
+//                         <label className="block text-sm font-bold text-gray-700 mb-1.5">Damage Type</label>
+//                         <div className="flex gap-2">
+//                             <button type="button" onClick={() => setForm(prev => ({...prev, damage_type: "returnable"}))} className={`flex-1 py-2.5 rounded-lg border-2 text-sm font-bold transition-all ${form.damage_type === "returnable" ? "border-yellow-500 bg-yellow-50 text-yellow-700" : "border-gray-100 text-gray-500"}`}>Returnable</button>
+//                             <button type="button" onClick={() => setForm(prev => ({...prev, damage_type: "non_returnable"}))} className={`flex-1 py-2.5 rounded-lg border-2 text-sm font-bold transition-all ${form.damage_type === "non_returnable" ? "border-red-500 bg-red-50 text-red-700" : "border-gray-100 text-gray-500"}`}>Non-Returnable</button>
+//                         </div>
+//                     </div>
+//                     <div>
+//                         <label className="block text-sm font-bold text-gray-700 mb-1.5">Quantity (pcs)</label>
+//                         <input type="number" name="quantity" value={form.quantity} onChange={(e) => setForm(p => ({...p, quantity: e.target.value}))} className="w-full p-2.5 border-2 border-gray-100 rounded-lg focus:border-red-500 outline-none"/>
+//                     </div>
+//                     <div>
+//                         <label className="block text-sm font-bold text-gray-700 mb-1.5">Unit Cost (৳)</label>
+//                         <input type="number" name="unit_cost" value={form.unit_cost} onChange={(e) => setForm(p => ({...p, unit_cost: e.target.value}))} className="w-full p-2.5 border-2 border-gray-100 rounded-lg focus:border-red-500 outline-none"/>
+//                     </div>
+//                 </div>
+//                 <div className="space-y-4">
+//                     <div>
+//                         <label className="block text-sm font-bold text-gray-700 mb-1.5">Reason</label>
+//                         <select name="reason" value={form.reason} onChange={(e) => setForm(p => ({...p, reason: e.target.value}))} className="w-full p-2.5 border-2 border-gray-100 rounded-lg focus:border-red-500 outline-none">
+//                             <option value="">Select Reason</option>
+//                             <option value="customer_return">Customer Return</option>
+//                             <option value="transit_damage">Transit Damage</option>
+//                             <option value="storage_damage">Storage Damage</option>
+//                             <option value="expired">Expired</option>
+//                             <option value="defective">Defective</option>
+//                         </select>
+//                     </div>
+//                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+//                         <p className="text-xs font-bold text-gray-400 uppercase mb-2 tracking-wider">Loss Summary</p>
+//                         <div className="flex justify-between items-center font-black text-red-600 text-lg">
+//                             <span>Total Loss:</span>
+//                             <span>৳{totalLoss.toFixed(2)}</span>
+//                         </div>
+//                     </div>
+//                 </div>
+//             </div>
+//
+//             <div className="flex gap-3">
+//                 <button type="button" onClick={onClose} className="flex-1 px-6 py-3 border-2 border-gray-100 text-gray-600 font-bold rounded-xl hover:bg-gray-50 transition-all">Cancel</button>
+//                 <button type="submit" disabled={loading} className="flex-[2] px-6 py-3 bg-gradient-to-r from-red-600 to-orange-600 text-white font-bold rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2">
+//                     {loading ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : <><FaSave /> Create Entry</>}
+//                 </button>
+//             </div>
+//         </form>
+//     );
+//
+//     return (
+//         <BaseModal
+//             isOpen={isOpen}
+//             onClose={onClose}
+//             title={step === 1 ? "Select Product" : "Damage Details"}
+//             maxWidth="max-w-3xl"
+//             headerColor="bg-gradient-to-r from-red-600 to-orange-600"
+//             icon={<FaExclamationTriangle className="text-white text-xl"/>}
+//         >
+//             {step === 1 ? <ProductSearchStep /> : <DamageEntryStep />}
+//         </BaseModal>
+//     );
+// };
+//
+// export default AddDamageStockModal;
+
+
+
+
 import React, {useState, useEffect} from "react";
 import {posDamageProductAPI} from "../../../context_or_provider/pos/damageProducts/damage_productAPI";
 import {posProductAPI} from "../../../context_or_provider/pos/products/productAPI";

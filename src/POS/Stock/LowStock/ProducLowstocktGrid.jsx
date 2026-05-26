@@ -15,11 +15,16 @@ import {posBrandAPI} from "../../../context_or_provider/pos/brands/brandAPI";
 import {posSubCategoryAPI} from "../../../context_or_provider/pos/subcategories/subCategoryApi";
 import {posCategoryAPI} from "../../../context_or_provider/pos/categories/categoryAPI";
 import {posSizeAPI} from "../../../context_or_provider/pos/sizes/sizeAPI";
+import GenericModuleLayout from "../../components/GenericModuleLayout";
+import UpdateProductModal from "./UpdateProductModal";
 
-const ProducLowstocktGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
+const ProducLowstocktGrid = ({ viewType,setViewType, isAddOpen, setIsAddOpen }) => {
     const {posProduct, setPosProduct} = usePosProducts();
     // const [viewType, setViewType] = useState("list");
     // const [isAddOpen, setIsAddOpen] = useState(false);
+    const [isEditOpen, setIsEditOpen] = useState(false);
+    const [editRecord, setEditRecord] = useState(null);
+    const [successType, setSuccessType] = useState("create");
     const [successData, setSuccessData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({

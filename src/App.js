@@ -211,6 +211,9 @@ import EmployeeSalaryPayslipDetailsPage from "./POS/HRM/EmployeeSalaryPayslip/Em
 import SettingsPage from "./POS/Settings/SettingsPage";
 import DamageProductDetailsPage from "./POS/Stock/DamageProductList/DamageStockDetailsPage";
 import DamageStockDetailsPage from "./POS/Stock/DamageProductList/DamageStockDetailsPage";
+import EmployeeAttendanceDetailsPage from "./POS/HRM/EmployeeAttendance/EmployeeAttendanceDetailsPage";
+import EmployeeLeaveApplicationDetailsPage
+    from "./POS/HRM/EmployeeLeaveApplication/EmployeeLeaveApplicationDetailsPage";
 // import DamageProductGrid from "./POS/Stock/DamageProductList/DamageProductGrid";
 // import DamageStockDetailsPage from "./POS/Stock/DamageProductList/DamageStockDetailsPage";
 
@@ -359,6 +362,8 @@ const App = () => {
                                 <Route path="loan/details/:id" element={<EmployeeLoanDetails/>}/>
                                 <Route path="advance/details/:id" element={<EmployeeSalaryAdvanceDetailsPage/>}/>
                                 <Route path="payslip/details/:id" element={<EmployeeSalaryPayslipDetailsPage/>}/>
+                                <Route path="attendance/details/:id" element={<EmployeeAttendanceDetailsPage/>}/>
+                                <Route path="leave-application/details/:id" element={<EmployeeLeaveApplicationDetailsPage/>}/>
                             </Route>
 
 

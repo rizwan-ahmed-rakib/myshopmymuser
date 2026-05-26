@@ -1,243 +1,4 @@
-// import React, {useState} from "react";
-// import {useNavigate} from "react-router-dom";
-// import {ROLE_COLORS, ROLE_OPTIONS} from "./roles";
-// import UpdateEmployeeAttendanceSuccessPopup from "./UpdateEmployeeAttendanceSuccessPopup";
-// import LoadingSpinner from "./LoadingSpinner";
-// import UpdateSalaryAdvanceModal from "./UpdateEmployeeAttendanceModal";
-// import {employeeAttendanceAPI} from "../../../context_or_provider/pos/EmployeeAttendance/employeeAttendanceAPI";
-//
-// // const EmployeeSalaryAdvanceList = ({ advances, onUpdate}) => {
-// const EmployeeAttendanceList = ({attendance, onEdit, onDelete}) => {
-//     const navigate = useNavigate();
-//     const [loadingId, setLoadingId] = useState(null);
-//     const [showEditModal, setShowEditModal] = useState(false);
-//     const [selectedAdvance, setselectedAdvance] = useState(null);
-//     // const [selectedEmployee, setSelectedEmployee] = useState(null);
-//     // const [selectedAdvance, setSelectedAdvance] = useState(null);
-//     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-//     const [showSuccess, setShowSuccess] = useState(false);
-//     const [successMessage, setSuccessMessage] = useState("");
-//
-//     const handleViewProfile = (advance) => {
-//         navigate(`/employee/profile/${advance.id}`);
-//     };
-//
-//     const handleEdit = (advance) => {
-//         setselectedAdvance(advance);
-//         setShowEditModal(true);
-//     };
-//
-//     const handleDelete = async (advance) => {
-//         if (!window.confirm(`Are you sure you want to delete ${advance.name}?`)) {
-//             return;
-//         }
-//
-//         setLoadingId(advance.id);
-//         try {
-//             await employeeAttendanceAPI.delete(advance.id);
-//             setSuccessMessage(`${advance.name} deleted successfully!`);
-//             setShowSuccess(true);
-//
-//             // Refresh employee list
-//             if (onEdit) {
-//                 onEdit();
-//             }
-//         } catch (error) {
-//             console.error("Delete error:", error);
-//             alert("Failed to delete employee.");
-//         } finally {
-//             setLoadingId(null);
-//         }
-//     };
-//
-//     const handleUpdateSuccess = (updatedData) => {
-//         setShowEditModal(false);
-//         setSuccessMessage("Employee updated successfully!");
-//         setShowSuccess(true);
-//
-//         // Refresh employee list
-//         if (onEdit) {
-//             onEdit(updatedData);
-//         }
-//     };
-//
-//     const formatDate = (dateString) => {
-//         if (!dateString) return "N/A";
-//         const date = new Date(dateString);
-//         return date.toLocaleDateString('en-US', {
-//             year: 'numeric',
-//             month: 'short',
-//             day: 'numeric',
-//             // hour12:'2-digit',
-//             // minute:'2-digit',
-//             // second:'2-digit'
-//         });
-//     };
-//
-//     const getRoleLabel = (roleValue) => {
-//         const role = ROLE_OPTIONS.find(r => r.value === roleValue);
-//         return role ? role.label : roleValue;
-//     };
-//
-//     return (
-//         <>
-//             <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-//                 <div className="overflow-x-auto">
-//                     {/*<div className="min-w-[1000px]">*/}
-//                     {/* Header */}
-//                     {/*<div className="grid grid-cols-12 px-6 py-4 bg-gray-50 text-xs font-bold text-gray-500 uppercase tracking-wider border-b">*/}
-//                     {/*    <div className="col-span-3">Employee / Designation</div>*/}
-//                     {/*    <div className="col-span-1">Amount</div>*/}
-//                     {/*    <div className="col-span-2">Req. Date</div>*/}
-//                     {/*    <div className="col-span-2 text-center">Status</div>*/}
-//                     {/*    <div className="col-span-2">App. Date</div>*/}
-//                     {/*    <div className="col-span-1">Reason</div>*/}
-//                     {/*    <div className="col-span-1 text-right">Actions</div>*/}
-//                     {/*</div>*/}
-//
-//                     <div className="grid grid-cols-12 px-6 py-4 bg-gray-50 text-xs font-bold">
-//                         <div className="col-span-3">Employee / Designation</div>
-//                         <div className="col-span-2">Date</div>
-//                         <div className="col-span-1 text-center">Status</div>
-//                         <div className="col-span-2">Check In</div>
-//                         <div className="col-span-2">Check Out</div>
-//                         <div className="col-span-1 text-center">Work Hours</div>
-//                         <div className="col-span-1 text-right">Actions</div>
-//
-//                     </div>
-//
-//                     {/* Body */}
-//                     <div className="divide-y divide-gray-100">
-//                         {attendance?.map((item) => (
-//                             <div key={item.id}
-//                                  className="grid grid-cols-12 px-6 py-4 items-center hover:bg-gray-50 transition-colors">
-//
-//
-//
-//                                 <div className="col-span-3 flex items-center gap-2">
-//                                     <img src={item.profile_picture} className="w-8 h-8 rounded-full"/>
-//                                     <div>
-//                                         <div className="font-medium">{item.name}</div>
-//                                         <div className="text-xs text-gray-500">{item.user_designation}</div>
-//                                     </div>
-//                                 </div>
-//
-//
-//
-//
-//                                 <div className="col-span-2 text-sm text-gray-600">
-//                                     {formatDate(item.date)}
-//                                 </div>
-//
-//                                 <div className="col-span-1 flex justify-center">
-//                                         <span
-//                                             className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-//                                                 item.is_present
-//                                                     ? "bg-green-100 text-green-700"
-//                                                     : "bg-yellow-100 text-yellow-700"
-//                                             }`}>
-//                                             {item.is_present ? "Present" : "Absent"}
-//                                         </span>
-//                                 </div>
-//
-//
-//
-//                                 {/*<div className="col-span-2">{formatDate(item.check_in_time) || '—'}</div>*/}
-//                                 {/*<div className="col-span-2">{formatDate(item.check_out_time) || '—'}</div>*/}
-//
-//
-//                                 <div className="col-span-2">{(item.check_in_time) || '—'}</div>
-//                                 <div className="col-span-2">{(item.check_out_time) || '—'}</div>
-//                                 <div className="col-span-1 text-center font-medium">{item.daily_work_time}h</div>
-//                                 <div className="col-span-1 flex justify-end gap-3">
-//                                     {/* Edit */}
-//                                     <button
-//                                         onClick={() => handleEdit(item)}
-//                                         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-//                                         title="Edit"
-//                                     >
-//                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-//                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-//                                                   d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-//                                         </svg>
-//                                     </button>
-//
-//                                     {/* Delete */}
-//                                     <button
-//                                         onClick={() => handleDelete(item)}
-//                                         className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-//                                         title="Delete"
-//                                     >
-//                                         {loadingId === item.id ? (
-//                                             <LoadingSpinner size="xs"/>
-//                                         ) : (
-//                                             <svg className="w-5 h-5" fill="none" stroke="currentColor"
-//                                                  viewBox="0 0 24 24">
-//                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-//                                                       d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-//                                             </svg>
-//                                         )}
-//                                     </button>
-//                                 </div>
-//                             </div>
-//                         ))}
-//
-//                         {(!attendance || attendance.length === 0) && (
-//                             <div className="text-center py-20 bg-gray-50/50">
-//                                 <div
-//                                     className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 text-gray-400 mb-4">
-//                                     <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-//                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-//                                               d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-//                                     </svg>
-//                                 </div>
-//                                 <p className="text-gray-500 font-medium">No Salary Advances Found</p>
-//                             </div>
-//                         )}
-//                     </div>
-//                     {/*</div>*/}
-//                 </div>
-//             </div>
-//
-//
-//             {/* Edit Modal */}
-//             {showEditModal && selectedAdvance && (
-//                 <UpdateSalaryAdvanceModal
-//                     isOpen={showEditModal}
-//                     onClose={() => {
-//                         setShowEditModal(false);
-//                         setselectedAdvance(null);
-//                     }}
-//                     onSuccess={handleUpdateSuccess}
-//                     advanceData={selectedAdvance}
-//                 />
-//             )}
-//
-//             {/* Success Popup */}
-//             {/*{showSuccess && (*/}
-//             {/*    <UpdateSuccessSalaryAdvancePopup*/}
-//             {/*        message={successMessage}*/}
-//             {/*        onClose={() => setShowSuccess(false)}*/}
-//             {/*        duration={3000}*/}
-//             {/*    />*/}
-//             {/*)}*/}
-//
-//             {showSuccess && (
-//                 <UpdateEmployeeAttendanceSuccessPopup
-//                     message={successMessage || "Advance updated"}
-//                     subtitle="Approved successfully"
-//                     onClose={() => setShowSuccess(false)}   // ✅ FIXED
-//                     duration={3000}
-//                 />
-//             )}
-//         </>
-//     );
-// };
-//
-// export default EmployeeAttendanceList;
 
-
-//////////////////////////////////////////////
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -257,6 +18,9 @@ const EmployeeAttendanceList = ({ attendance, onEdit, onDelete }) => {
     const handleEdit = (item) => {
         setSelectedAttendance(item);
         setShowEditModal(true);
+    };
+    const handleViewDetails = (item) => {
+        navigate(`/hrm/attendance/details/${item.id}`);
     };
 
     const handleDelete = async (item) => {
@@ -446,6 +210,19 @@ const EmployeeAttendanceList = ({ attendance, onEdit, onDelete }) => {
 
                                 {/* Actions */}
                                 <div className="col-span-1 flex justify-end gap-2">
+                                                                        {/* View Button */}
+                                    <button
+                                        onClick={() => handleViewDetails(item)}
+                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                        title="View Profile"
+                                    >
+                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                                  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                    </button>
                                     <button
                                         onClick={() => handleEdit(item)}
                                         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"

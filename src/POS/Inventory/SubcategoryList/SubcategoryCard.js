@@ -4,7 +4,7 @@ import UpdateSubcategoryModal from "./UpdateSubcategoryModal";
 import SuccessPopup from "./SuccessPopup";
 import {posSubCategoryAPI} from "../../../context_or_provider/pos/subcategories/subCategoryApi";
 
-const ProductCard = ({product, onEdit, onDelete}) => {
+const SubcategoryCard = ({product, onEdit, onDelete}) => {
     const navigate = useNavigate();
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -173,4 +173,4 @@ const ProductCard = ({product, onEdit, onDelete}) => {
     );
 };
 
-export default ProductCard;
+export default SubcategoryCard;

@@ -1,38 +1,38 @@
-// import React, { useState } from "react";
-// import { useNavigate } from "react-router-dom";
+// import React, {useState} from "react";
+// import {useNavigate} from "react-router-dom";
 // import LoadingSpinner from "./LoadingSpinner";
-// import UpdateCategoryModal from "./UpdateCategoryModal";
-// import { posCategoryAPI } from "../../../context_or_provider/pos/categories/categoryAPI";
+// import UpdateProductModal from "./UpdateBrandModal";
 // import SuccessPopup from "./SuccessPopup";
+// import {posBrandAPI} from "../../../context_or_provider/pos/brands/brandAPI";
 //
-// const CategoryList = ({ categories, onUpdate }) => {
+// const ProductBrandList = ({products, onUpdate}) => {
 //     const navigate = useNavigate();
 //     const [loadingId, setLoadingId] = useState(null);
 //     const [showEditModal, setShowEditModal] = useState(false);
-//     const [selectedCategory, setSelectedCategory] = useState(null);
+//     const [selectedProduct, setSelectedProduct] = useState(null);
 //     const [showSuccess, setShowSuccess] = useState(false);
 //     const [successMessage, setSuccessMessage] = useState("");
 //
-//     const handleViewDetails = (category) => {
-//         // TODO: Update to category details page if it exists
-//         navigate(`/inventory/category/details/${category.id}`);
-//         console.log("View details for:", category);
+//     const handleViewDetails = (product) => {
+//         navigate(`/inventory/product/brand/${product.id}`);
+//         // navigate(`/inventory/products/${product.id}`);
+//
 //     };
 //
-//     const handleEdit = (category) => {
-//         setSelectedCategory(category);
+//     const handleEdit = (product) => {
+//         setSelectedProduct(product);
 //         setShowEditModal(true);
 //     };
 //
-//     const handleDelete = async (category) => {
-//         if (!window.confirm(`Are you sure you want to delete ${category.title}?`)) {
+//     const handleDelete = async (product) => {
+//         if (!window.confirm(`Are you sure you want to delete ${product.name}?`)) {
 //             return;
 //         }
 //
-//         setLoadingId(category.id);
+//         setLoadingId(product.id);
 //         try {
-//             await posCategoryAPI.delete(category.id);
-//             setSuccessMessage(`${category.title} deleted successfully!`);
+//             await posBrandAPI.delete(product.id);
+//             setSuccessMessage(`${product.name} deleted successfully!`);
 //             setShowSuccess(true);
 //
 //             if (onUpdate) {
@@ -40,7 +40,7 @@
 //             }
 //         } catch (error) {
 //             console.error("Delete error:", error);
-//             alert("Failed to delete category.");
+//             alert("Failed to delete product.");
 //         } finally {
 //             setLoadingId(null);
 //         }
@@ -48,7 +48,7 @@
 //
 //     const handleUpdateSuccess = (updatedData) => {
 //         setShowEditModal(false);
-//         setSuccessMessage("Category updated successfully!");
+//         setSuccessMessage("Product updated successfully!");
 //         setShowSuccess(true);
 //
 //         if (onUpdate) {
@@ -61,12 +61,27 @@
 //             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
 //                 <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
 //                     <div className="grid grid-cols-12 gap-4">
-//                         <div className="col-span-8">
+//                         <div className="col-span-4">
+//                             <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+//                                 Product
+//                             </span>
+//                         </div>
+//                         <div className="col-span-2">
 //                             <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
 //                                 Category
 //                             </span>
 //                         </div>
-//                         <div className="col-span-4 text-right">
+//                         <div className="col-span-2">
+//                             <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+//                                 Price
+//                             </span>
+//                         </div>
+//                         <div className="col-span-2">
+//                             <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+//                                 Stock
+//                             </span>
+//                         </div>
+//                         <div className="col-span-2 text-right">
 //                             <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
 //                                 Actions
 //                             </span>
@@ -75,19 +90,19 @@
 //                 </div>
 //
 //                 <div className="divide-y divide-gray-100">
-//                     {categories?.filter(c => c).map((category) => (
+//                     {products?.filter(p => p).map((product) => (
 //                         <div
-//                             key={category.id}
+//                             key={product.id}
 //                             className="px-6 py-4 hover:bg-gray-50 transition-colors duration-150"
 //                         >
 //                             <div className="grid grid-cols-12 gap-4 items-center">
-//                                 <div className="col-span-8">
+//                                 <div className="col-span-4">
 //                                     <div className="flex items-center">
 //                                         <div className="flex-shrink-0">
 //                                             <img
 //                                                 className="h-10 w-10 rounded-lg border border-gray-200"
-//                                                 src={category.image || "https://ps.w.org/rdv-category-image/assets/icon-256x256.png?rev=2599260"}
-//                                                 alt={category.title}
+//                                                 src={product.image || "https://via.placeholder.com/150"}
+//                                                 alt={product.name}
 //                                                 onError={(e) => {
 //                                                     e.target.src = "https://via.placeholder.com/150";
 //                                                 }}
@@ -95,19 +110,34 @@
 //                                         </div>
 //                                         <div className="ml-4">
 //                                             <p className="text-sm font-medium text-gray-900">
-//                                                 {category.title}
+//                                                 {product.name}
 //                                             </p>
 //                                             <p className="text-xs text-gray-500">
-//                                                 ID: {category.id}
+//                                                 Code: {product.product_code}
 //                                             </p>
 //                                         </div>
 //                                     </div>
 //                                 </div>
 //
-//                                 <div className="col-span-4">
+//                                 <div className="col-span-2">
+//                                     <span
+//                                         className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+//                                         {product.category_name || "N/A"}
+//                                     </span>
+//                                 </div>
+//
+//                                 <div className="col-span-2">
+//                                     <p className="text-sm text-gray-900">৳{product.selling_price}</p>
+//                                 </div>
+//
+//                                 <div className="col-span-2">
+//                                     <p className="text-sm text-gray-900">{product.stock}</p>
+//                                 </div>
+//
+//                                 <div className="col-span-2">
 //                                     <div className="flex items-center justify-end space-x-2">
 //                                         <button
-//                                             onClick={() => handleViewDetails(category)}
+//                                             onClick={() => handleViewDetails(product)}
 //                                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
 //                                             title="View Details"
 //                                         >
@@ -121,10 +151,10 @@
 //                                         </button>
 //
 //                                         <button
-//                                             onClick={() => handleEdit(category)}
+//                                             onClick={() => handleEdit(product)}
 //                                             className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
 //                                             title="Edit"
-//                                             disabled={loadingId === category.id}
+//                                             disabled={loadingId === product.id}
 //                                         >
 //                                             <svg className="w-4 h-4" fill="none" stroke="currentColor"
 //                                                  viewBox="0 0 24 24">
@@ -134,12 +164,12 @@
 //                                         </button>
 //
 //                                         <button
-//                                             onClick={() => handleDelete(category)}
+//                                             onClick={() => handleDelete(product)}
 //                                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
 //                                             title="Delete"
-//                                             disabled={loadingId === category.id}
+//                                             disabled={loadingId === product.id}
 //                                         >
-//                                             {loadingId === category.id ? (
+//                                             {loadingId === product.id ? (
 //                                                 <LoadingSpinner size="xs"/>
 //                                             ) : (
 //                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor"
@@ -155,29 +185,29 @@
 //                         </div>
 //                     ))}
 //
-//                     {(!categories || categories.length === 0) && (
+//                     {(!products || products.length === 0) && (
 //                         <div className="px-6 py-12 text-center">
 //                             <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24"
 //                                  stroke="currentColor">
 //                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
 //                                       d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
 //                             </svg>
-//                             <h3 className="mt-2 text-sm font-medium text-gray-900">No categories</h3>
-//                             <p className="mt-1 text-sm text-gray-500">Get started by creating a new category.</p>
+//                             <h3 className="mt-2 text-sm font-medium text-gray-900">No products</h3>
+//                             <p className="mt-1 text-sm text-gray-500">Get started by creating a new product.</p>
 //                         </div>
 //                     )}
 //                 </div>
 //             </div>
 //
-//             {showEditModal && selectedCategory && (
-//                 <UpdateCategoryModal
+//             {showEditModal && selectedProduct && (
+//                 <UpdateProductModal
 //                     isOpen={showEditModal}
 //                     onClose={() => {
 //                         setShowEditModal(false);
-//                         setSelectedCategory(null);
+//                         setSelectedProduct(null);
 //                     }}
 //                     onSuccess={handleUpdateSuccess}
-//                     categoryData={selectedCategory}
+//                     productData={selectedProduct}
 //                 />
 //             )}
 //
@@ -192,7 +222,7 @@
 //     );
 // };
 //
-// export default CategoryList;
+// export default ProductBrandList;
 
 
 
@@ -201,46 +231,47 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Edit, Trash2, Eye } from 'lucide-react';
 import BackboneTable from "../../components/BackboneTable";
+import StatusBadge from "../../components/StatusBadge";
 import LoadingSpinner from "./LoadingSpinner";
-import UpdateCategoryModal from "./UpdateCategoryModal";
+import UpdateProductModal from "./UpdateBrandModal";
 import SuccessPopup from "./SuccessPopup";
-import { posCategoryAPI } from "../../../context_or_provider/pos/categories/categoryAPI";
+import { posBrandAPI } from "../../../context_or_provider/pos/brands/brandAPI";
 
 /**
- * CategoryList - Refactored to use BackboneTable.
- * Standardized list view for Categories.
+ * ProductBrandList - Refactored to use BackboneTable and StatusBadge.
+ * Standardized list view for Product Brands.
  */
-const CategoryList = ({ categories, onUpdate }) => {
+const ProductBrandList = ({ products, onUpdate }) => {
     const navigate = useNavigate();
     const [loadingId, setLoadingId] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
-    const [selectedCategory, setSelectedCategory] = useState(null);
+    const [selectedProduct, setSelectedProduct] = useState(null);
     const [showSuccess, setShowSuccess] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
 
     // --- Actions ---
-    const handleEdit = (category) => {
-        setSelectedCategory(category);
+    const handleEdit = (product) => {
+        setSelectedProduct(product);
         setShowEditModal(true);
     };
 
-    const handleViewDetails = (category) => {
-        navigate(`/inventory/category/details/${category.id}`);
+    const handleViewDetails = (product) => {
+        navigate(`/inventory/product/brand/${product.id}`);
     };
 
-    const handleDelete = async (category) => {
-        const displayName = category.title || "this category";
+    const handleDelete = async (product) => {
+        const displayName = product.name || product.title || "this brand";
         if (!window.confirm(`Are you sure you want to delete ${displayName}?`)) return;
 
-        setLoadingId(category.id);
+        setLoadingId(product.id);
         try {
-            await posCategoryAPI.delete(category.id);
+            await posBrandAPI.delete(product.id);
             setSuccessMessage(`${displayName} deleted successfully!`);
             setShowSuccess(true);
             if (onUpdate) onUpdate();
         } catch (error) {
             console.error("Delete error:", error);
-            alert("Failed to delete category.");
+            alert("Failed to delete product.");
         } finally {
             setLoadingId(null);
         }
@@ -248,7 +279,7 @@ const CategoryList = ({ categories, onUpdate }) => {
 
     const handleUpdateSuccess = () => {
         setShowEditModal(false);
-        setSuccessMessage("Category updated successfully!");
+        setSuccessMessage("Product updated successfully!");
         setShowSuccess(true);
         if (onUpdate) onUpdate();
     };
@@ -256,15 +287,15 @@ const CategoryList = ({ categories, onUpdate }) => {
     // --- Table Column Configuration ---
     const columns = [
         {
-            header: "Category / ID",
-            accessor: "title",
-            render: (category) => (
+            header: "Product / Code",
+            accessor: "name",
+            render: (product) => (
                 <div className="flex items-center gap-3">
                     <div className="flex-shrink-0">
                         <img
                             className="h-10 w-10 rounded-lg border border-gray-200 object-cover"
-                            src={category.image || "https://ps.w.org/rdv-category-image/assets/icon-256x256.png?rev=2599260"}
-                            alt={category.title || "Category"}
+                            src={product.image || "https://via.placeholder.com/150"}
+                            alt={product.name || "Brand"}
                             onError={(e) => {
                                 e.target.src = "https://via.placeholder.com/150";
                             }}
@@ -272,43 +303,80 @@ const CategoryList = ({ categories, onUpdate }) => {
                     </div>
                     <div className="flex flex-col min-w-0">
                         <span className="font-bold text-gray-900 truncate">
-                            {category.title || "N/A"}
+                            {product.name || product.title || "N/A"}
                         </span>
                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">
-                            ID: {category.id || "N/A"}
+                            Code: {product.product_code || "N/A"}
                         </span>
                     </div>
                 </div>
             )
         },
         {
+            header: "Category",
+            accessor: "category_name",
+            render: (product) => (
+                <StatusBadge
+                    type="info"
+                    label={product.category_name || "N/A"}
+                />
+            )
+        },
+        {
+            header: "Selling Price",
+            accessor: "selling_price",
+            render: (product) => (
+                <span className="font-bold text-gray-900">
+                    ৳{parseFloat(product.selling_price || 0).toLocaleString()}
+                </span>
+            )
+        },
+        {
+            header: "Stock",
+            accessor: "stock",
+            render: (product) => {
+                const stockCount = Number(product.stock || 0);
+                let badgeType = "success";
+
+                if (stockCount === 0) badgeType = "danger";
+                else if (stockCount <= 5) badgeType = "warning"; // Warning state for low stock
+
+                return (
+                    <StatusBadge
+                        type={badgeType}
+                        label={`${stockCount} Units`}
+                    />
+                );
+            }
+        },
+        {
             header: "Actions",
             accessor: "actions",
             className: "text-right w-1 whitespace-nowrap",
-            render: (category) => (
+            render: (product) => (
                 <div className="flex justify-end gap-1">
                     <button
-                        onClick={() => handleViewDetails(category)}
+                        onClick={() => handleViewDetails(product)}
                         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="View Details"
                     >
                         <Eye size={16} />
                     </button>
                     <button
-                        onClick={() => handleEdit(category)}
+                        onClick={() => handleEdit(product)}
                         className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                         title="Edit"
-                        disabled={loadingId === category.id}
+                        disabled={loadingId === product.id}
                     >
                         <Edit size={16} />
                     </button>
                     <button
-                        onClick={() => handleDelete(category)}
+                        onClick={() => handleDelete(product)}
                         className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                         title="Delete"
-                        disabled={loadingId === category.id}
+                        disabled={loadingId === product.id}
                     >
-                        {loadingId === category.id ? <LoadingSpinner size="xs" /> : <Trash2 size={16} />}
+                        {loadingId === product.id ? <LoadingSpinner size="xs" /> : <Trash2 size={16} />}
                     </button>
                 </div>
             )
@@ -319,19 +387,19 @@ const CategoryList = ({ categories, onUpdate }) => {
         <>
             <BackboneTable
                 columns={columns}
-                data={categories}
+                data={products}
             />
 
             {/* Modals & Popups */}
-            {showEditModal && selectedCategory && (
-                <UpdateCategoryModal
+            {showEditModal && selectedProduct && (
+                <UpdateProductModal
                     isOpen={showEditModal}
                     onClose={() => {
                         setShowEditModal(false);
-                        setSelectedCategory(null);
+                        setSelectedProduct(null);
                     }}
                     onSuccess={handleUpdateSuccess}
-                    categoryData={selectedCategory}
+                    productData={selectedProduct}
                 />
             )}
 
@@ -346,4 +414,4 @@ const CategoryList = ({ categories, onUpdate }) => {
     );
 };
 
-export default CategoryList;
+export default ProductBrandList;

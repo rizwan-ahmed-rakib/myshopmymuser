@@ -4,7 +4,7 @@ import UpdateUnitModal from "./UpdateUnitModal";
 import SuccessPopup from "./SuccessPopup";
 import {posUnitAPI} from "../../../context_or_provider/pos/units/unitAPI";
 
-const ProductCard = ({product, onEdit, onDelete}) => {
+const UnitCard = ({product, onEdit, onDelete}) => {
     const navigate = useNavigate();
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -173,4 +173,4 @@ const ProductCard = ({product, onEdit, onDelete}) => {
     );
 };
 
-export default ProductCard;
+export default UnitCard;

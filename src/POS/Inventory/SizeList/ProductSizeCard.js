@@ -4,7 +4,7 @@ import UpdateSizeModal from "./UpdateSizeModal";
 import SuccessPopup from "./SuccessPopup";
 import {posSizeAPI} from "../../../context_or_provider/pos/sizes/sizeAPI";
 
-const ProductCard = ({product, onEdit, onDelete}) => {
+const ProductSizeCard = ({product, onEdit, onDelete}) => {
     const navigate = useNavigate();
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
@@ -173,4 +173,4 @@ const ProductCard = ({product, onEdit, onDelete}) => {
     );
 };
 
-export default ProductCard;
+export default ProductSizeCard;

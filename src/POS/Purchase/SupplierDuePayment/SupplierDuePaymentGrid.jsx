@@ -1,172 +1,240 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import SupplierDuePaymentHeader from "./SupplierDuePaymentHeader";
-import SupplierDuePaymentStats from "./SupplierDuePaymentStats";
-import SupplierDuePaymentSearchFilter from "./SupplierDuePaymentSearchFilter";
+import React, {useState, useEffect, useCallback} from 'react';
 import SupplierDuePaymentCard from "./SupplierDuePaymentCard";
 import SupplierDuePaymentList from "./SupplierDuePaymentList";
 import LoadingSpinner from "./LoadingSpinner";
-import { posDuePaymentAPI } from "../../../context_or_provider/pos/Purchase/duePayment/duePaymentAPI";
-import { usePosDuePayment } from "../../../context_or_provider/pos/Purchase/duePayment/DuePaymentProvider";
+import {posDuePaymentAPI} from "../../../context_or_provider/pos/Purchase/duePayment/duePaymentAPI";
+import {usePosDuePayment} from "../../../context_or_provider/pos/Purchase/duePayment/DuePaymentProvider";
 import AddSupplierDuePaymentModal from "../../Purchase/SupplierList/AddSupplierDuePaymentModal";
 import EditSupplierDuePaymentModal from "./EditSupplierDuePaymentModal";
-import { usePosSuppliers } from "../../../context_or_provider/pos/Purchase/suppliers/supplierProvider";
-import { posSupplierAPI } from "../../../context_or_provider/pos/Purchase/suppliers/supplierAPI";
+import {usePosSuppliers} from "../../../context_or_provider/pos/Purchase/suppliers/supplierProvider";
+import {posSupplierAPI} from "../../../context_or_provider/pos/Purchase/suppliers/supplierAPI";
+import {Receipt, Banknote, CreditCard, Wallet, Activity, Calendar, ArrowUpDown} from 'lucide-react';
+import useModuleData from "../../hooks/useModuleData";
+import EmptyState from "../../components/EmptyState";
 
-const SupplierDuePaymentGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
-    const { posDuePayments, setPosDuePayments } = usePosDuePayment();
-    const { posSuppliers, setPosSuppliers } = usePosSuppliers(); 
-    // const [viewType, setViewType] = useState("grid");
-    // const [isAddOpen, setIsAddOpen] = useState(false);
+const SupplierDuePaymentGrid = ({
+                                    viewType,
+                                    isAddOpen,
+                                    setIsAddOpen,
+                                    onStatsLoaded,
+                                    searchQuery,
+                                    filters,
+                                    setFilterConfig
+                                }) => {
+    const {setPosDuePayments} = usePosDuePayment();
+    const {posSuppliers, setPosSuppliers} = usePosSuppliers();
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [filters, setFilters] = useState({ method: "all", sortBy: "date_desc" });
 
-    const fetchInitialData = useCallback(async () => {
-        setLoading(true);
-        try {
-            const [paymentsRes, suppliersRes] = await Promise.all([
-                posDuePaymentAPI.getAll(),
-                posSupplierAPI.getAll()
-            ]);
-            
-            const paymentsData = Array.isArray(paymentsRes.data) ? paymentsRes.data : (paymentsRes.data.results || []);
-            setPosDuePayments(paymentsData);
-            setPosSuppliers(suppliersRes.data);
-        } catch (error) {
-            console.error("Error fetching initial data:", error);
-        } finally {
-            setLoading(false);
+    // 1. Provide filter configuration
+    useEffect(() => {
+        if (setFilterConfig) {
+            setFilterConfig({
+                searchPlaceholder: "Search by Invoice or Supplier...",
+                filtersConfig: [
+                    {
+                        key: "method", label: "Payment Method", icon: <Banknote className="w-3.5 h-3.5"/>, options: [
+                            {value: "all", label: "All Methods"},
+                            {value: "cash", label: "Cash"},
+                            {value: "bank", label: "Bank"},
+                            {value: "mobile", label: "Mobile Banking"}
+                        ]
+                    },
+                    {
+                        key: "dateRange", label: "Payment Date", icon: <Calendar className="w-3.5 h-3.5"/>, options: [
+                            {value: "all", label: "All Time"},
+                            {value: "today", label: "Today"},
+                            {value: "week", label: "This Week"},
+                            {value: "month", label: "This Month"}
+                        ]
+                    },
+                    {
+                        key: "sortBy", label: "Sort By", icon: <ArrowUpDown className="w-3.5 h-3.5"/>, options: [
+                            {value: "date_desc", label: "Newest First"},
+                            {value: "date_asc", label: "Oldest First"},
+                            {value: "amount_desc", label: "Amount (High-Low)"},
+                            {value: "amount_asc", label: "Amount (Low-High)"}
+                        ]
+                    }
+                ],
+                advancedConfig: [
+                    {
+                        key: "amountRange",
+                        type: "range",
+                        label: "Payment Amount Range (৳)",
+                        minPlaceholder: "Min",
+                        maxPlaceholder: "Max"
+                    }
+                ]
+            });
         }
-    }, [setPosDuePayments, setPosSuppliers]);
+    }, [setFilterConfig]);
+
+    // 2. Stats calculation
+    const calculateStats = useCallback((data) => {
+        const total = data.length;
+        const totalAmount = data.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+        const cashTotal = data.reduce((sum, p) => sum + Number(p.paid_cash || 0), 0);
+        const digitalTotal = data.reduce((sum, p) => sum + Number(p.paid_mobile || 0) + Number(p.paid_bank || 0), 0);
+
+        return [
+            { title: 'Total Payments', count: total.toString(), bgColor: 'bg-blue-600', icon: <Receipt size={24}/> },
+            { title: 'Total Amount', count: `৳${totalAmount.toLocaleString()}`, bgColor: 'bg-green-600', icon: <Banknote size={24}/> },
+            { title: 'Cash Payout', count: `৳${cashTotal.toLocaleString()}`, bgColor: 'bg-orange-600', icon: <Wallet size={24}/> },
+            { title: 'Digital Payout', count: `৳${digitalTotal.toLocaleString()}`, bgColor: 'bg-indigo-600', icon: <CreditCard size={24}/> }
+        ];
+    }, []);
+
+    // 3. Centralized Hook
+    const {
+        filteredData: filteredPayments,
+        rawData: posDuePayments,
+        loading,
+        refresh
+    } = useModuleData({
+        apiFetch: posDuePaymentAPI.getAll,
+        searchQuery,
+        filters,
+        searchFields: ['invoice_no', 'supplier_name', 'purchase_invoice_no'],
+        onStatsLoaded,
+        calculateStatsFn: calculateStats,
+        filterFn: (data, f) => {
+            let result = [...data];
+
+            if (f.method && f.method !== "all") {
+                result = result.filter(item => item.payment_method === f.method);
+            }
+
+            if (f.dateRange && f.dateRange !== "all") {
+                const today = new Date();
+                result = result.filter(item => {
+                    const date = new Date(item.created_at);
+                    if (f.dateRange === "today") return date.toDateString() === today.toDateString();
+                    if (f.dateRange === "week") return date >= new Date(today - 7 * 86400000);
+                    if (f.dateRange === "month") return date >= new Date(today - 30 * 86400000);
+                    return true;
+                });
+            }
+
+            if (f.amountRange) {
+                result = result.filter(item => {
+                    const amount = parseFloat(item.amount);
+                    return (!f.amountRange.min || amount >= f.amountRange.min) && (!f.amountRange.max || amount <= f.amountRange.max);
+                });
+            }
+
+            if (f.sortBy) {
+                result.sort((a, b) => {
+                    if (f.sortBy === "date_desc") return new Date(b.created_at) - new Date(a.created_at);
+                    if (f.sortBy === "date_asc") return new Date(a.created_at) - new Date(b.created_at);
+                    if (f.sortBy === "amount_desc") return parseFloat(b.amount) - parseFloat(a.amount);
+                    if (f.sortBy === "amount_asc") return parseFloat(a.amount) - parseFloat(b.amount);
+                    return 0;
+                });
+            }
+            return result;
+        }
+    });
 
     useEffect(() => {
-        fetchInitialData();
-    }, [fetchInitialData]);
+        if (posDuePayments) setPosDuePayments(posDuePayments);
+    }, [posDuePayments, setPosDuePayments]);
 
-    const fetchPayments = useCallback(async () => {
-        try {
-            const response = await posDuePaymentAPI.getAll();
-            const data = Array.isArray(response.data) ? response.data : (response.data.results || []);
-            setPosDuePayments(data);
-        } catch (error) {
-            console.error("Error fetching payments:", error);
-        }
-    }, [setPosDuePayments]);
+    // Fetch suppliers once for the add modal
+    useEffect(() => {
+        const fetchSuppliers = async () => {
+            try {
+                const res = await posSupplierAPI.getAll();
+                setPosSuppliers(res.data);
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        fetchSuppliers();
+    }, [setPosSuppliers]);
 
     const handleEditClick = (item) => {
         setSelectedItem(item);
         setIsEditOpen(true);
     };
 
-    const filteredPayments = useMemo(() => {
-        let result = [...posDuePayments];
-        
-        if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase();
-            result = result.filter(item => 
-                item.invoice_no?.toLowerCase().includes(query) ||
-                item.supplier_name?.toLowerCase().includes(query)
-            );
-        }
+    const handleAddSuccess = () => {
+        setIsAddOpen(false);
+        refresh();
+    };
 
-        if (filters.method !== "all") {
-            result = result.filter(item => item.payment_method === filters.method);
-        }
-
-        result.sort((a, b) => {
-            switch (filters.sortBy) {
-                case "date_asc": return new Date(a.created_at) - new Date(b.created_at);
-                case "date_desc": return new Date(b.created_at) - new Date(a.created_at);
-                case "amount_asc": return a.amount - b.amount;
-                case "amount_desc": return b.amount - a.amount;
-                default: return 0;
-            }
-        });
-
-        return result;
-    }, [posDuePayments, searchQuery, filters]);
-
-    const stats = useMemo(() => {
-        const total = posDuePayments.length;
-        const totalAmount = posDuePayments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-        const cashTotal = posDuePayments.reduce((sum, p) => sum + Number(p.paid_cash || 0), 0);
-        const digitalTotal = posDuePayments.reduce((sum, p) => sum + Number(p.paid_mobile || 0) + Number(p.paid_bank || 0), 0);
-
-        return [
-            { title: 'Total Payments', count: total.toString(), bgColor: 'bg-blue-600', icon: '📝' },
-            { title: 'Total Paid', count: `৳${totalAmount.toLocaleString()}`, bgColor: 'bg-green-600', icon: '💰' },
-            { title: 'Cash Payout', count: `৳${cashTotal.toLocaleString()}`, bgColor: 'bg-orange-600', icon: '💵' },
-            { title: 'Digital Payout', count: `৳${digitalTotal.toLocaleString()}`, bgColor: 'bg-indigo-600', icon: '💳' }
-        ];
-    }, [posDuePayments]);
+    const handleUpdateSuccess = () => {
+        setIsEditOpen(false);
+        refresh();
+    };
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
-                <LoadingSpinner size="lg" />
-                <p className="mt-4 text-gray-500 font-bold animate-pulse">Loading records...</p>
+            <div className="flex flex-col items-center justify-center py-20 w-full">
+                <LoadingSpinner size="lg"/>
+                <p className="mt-4 text-gray-500 text-sm">Loading payment records...</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-            {/*<SupplierDuePaymentHeader */}
-            {/*    viewType={viewType} */}
-            {/*    setViewType={setViewType} */}
-            {/*    onAddClick={() => setIsAddOpen(true)} */}
-            {/*/>*/}
-
-            <div className="mb-8">
-                <SupplierDuePaymentStats stats={stats} />
-            </div>
-
-            <SupplierDuePaymentSearchFilter 
-                onSearch={setSearchQuery} 
-                onFilter={setFilters} 
-            />
-
-            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-black text-gray-900">Payment Directory</h2>
-                    <p className="text-sm text-gray-400 font-bold">Showing {filteredPayments.length} of {posDuePayments.length} records</p>
+        <div className="space-y-4">
+            <div className="p-1">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 px-1">
+                    <h2 className="text-sm font-bold text-gray-700 uppercase tracking-tight flex items-center gap-2">
+                        <Receipt size={16} className="text-brand-primary"/>
+                        {viewType === "grid" ? "Payment Directory Grid" : "Payment Record Table"}
+                    </h2>
+                    <div className="text-[11px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
+                        SHOWING {filteredPayments.length} OF {posDuePayments?.length || 0} RECORDS
+                    </div>
                 </div>
 
                 {viewType === "grid" ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {filteredPayments.map(item => (
-                            <SupplierDuePaymentCard 
-                                key={item.id} 
-                                item={item} 
-                                onEdit={handleEditClick} 
-                                onDelete={fetchPayments} 
+                            <SupplierDuePaymentCard
+                                key={item.id}
+                                item={item}
+                                onEdit={() => handleEditClick(item)}
+                                onDelete={refresh}
                             />
                         ))}
                     </div>
                 ) : (
-                    <SupplierDuePaymentList 
-                        payments={filteredPayments} 
-                        onEdit={handleEditClick} 
-                        onDelete={fetchPayments} 
+                    <SupplierDuePaymentList
+                        payments={filteredPayments}
+                        onEdit={handleEditClick}
+                        onDelete={refresh}
+                    />
+                )}
+
+                {filteredPayments.length === 0 && (
+                    <EmptyState
+                        icon={<Receipt size={32}/>}
+                        title="No payment records found"
+                        description="There are no supplier due payment records to display at this time."
+                        actionText="Record New Payment"
+                        onAction={() => setIsAddOpen(true)}
                     />
                 )}
             </div>
 
-            <AddSupplierDuePaymentModal 
-                isOpen={isAddOpen} 
-                onClose={() => setIsAddOpen(false)} 
-                onSuccess={fetchPayments} 
-                suppliers={posSuppliers} 
+            <AddSupplierDuePaymentModal
+                isOpen={isAddOpen}
+                onClose={() => setIsAddOpen(false)}
+                onSuccess={handleAddSuccess}
+                suppliers={posSuppliers}
             />
-            
-            <EditSupplierDuePaymentModal
-                isOpen={isEditOpen}
-                onClose={() => setIsEditOpen(false)}
-                onSuccess={fetchPayments}
-                item={selectedItem}
-            />
+
+            {isEditOpen && selectedItem && (
+                <EditSupplierDuePaymentModal
+                    isOpen={isEditOpen}
+                    onClose={() => setIsEditOpen(false)}
+                    onSuccess={handleUpdateSuccess}
+                    item={selectedItem}
+                />
+            )}
         </div>
     );
 };

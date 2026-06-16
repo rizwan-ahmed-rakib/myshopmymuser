@@ -1,164 +1,240 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import CustomerDueCollectionHeader from "./CustomerDueCollectionHeader";
-import CustomerDueCollectionStats from "./CustomerDueCollectionStats";
-import CustomerDueCollectionSearchFilter from "./CustomerDueCollectionSearchFilter";
+import React, {useState, useEffect, useCallback} from 'react';
 import CustomerDueCollectionCard from "./CustomerDueCollectionCard";
 import CustomerDueCollectionList from "./CustomerDueCollectionList";
 import LoadingSpinner from "./LoadingSpinner";
-import { posDueCollectionAPI } from "../../../context_or_provider/pos/Sale/dueCollection/dueCollectionAPI";
-import { usePosDueCollection } from "../../../context_or_provider/pos/Sale/dueCollection/DueCollectionProvider";
+import {posDueCollectionAPI} from "../../../context_or_provider/pos/Sale/dueCollection/dueCollectionAPI";
+import {usePosDueCollection} from "../../../context_or_provider/pos/Sale/dueCollection/DueCollectionProvider";
 import AddCustomerDueCollectionModal from "../../Sales/CustomerList/AddCustomerDueCollectionModal";
 import EditCustomerDueCollectionModal from "./EditCustomerDueCollectionModal";
-import { usePosCustomers } from "../../../context_or_provider/pos/Sale/customer/PosCustomerProvider";
-import { posCustomerAPI } from "../../../context_or_provider/pos/Sale/customer/PosCustomerAPI";
+import {usePosCustomers} from "../../../context_or_provider/pos/Sale/customer/PosCustomerProvider";
+import {posCustomerAPI} from "../../../context_or_provider/pos/Sale/customer/PosCustomerAPI";
+import {Receipt, Banknote, CreditCard, Wallet, Activity, Calendar, ArrowUpDown} from 'lucide-react';
+import useModuleData from "../../hooks/useModuleData";
+import EmptyState from "../../components/EmptyState";
 
-const CustomerDueCollectionGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
-    const { posDueCollections, setPosDueCollections } = usePosDueCollection();
-    const { posCustomers, setPosCustomers } = usePosCustomers();
+const CustomerDueCollectionGrid = ({
+                                       viewType,
+                                       isAddOpen,
+                                       setIsAddOpen,
+                                       onStatsLoaded,
+                                       searchQuery,
+                                       filters,
+                                       setFilterConfig
+                                   }) => {
+    const {setPosDueCollections} = usePosDueCollection();
+    const {posCustomers, setPosCustomers} = usePosCustomers();
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [filters, setFilters] = useState({ method: "all", sortBy: "date_desc" });
 
-    const fetchInitialData = useCallback(async () => {
-        setLoading(true);
-        try {
-            const [collectionsRes, customersRes] = await Promise.all([
-                posDueCollectionAPI.getAll(),
-                posCustomerAPI.getAll()
-            ]);
-            
-            const collectionsData = Array.isArray(collectionsRes.data) ? collectionsRes.data : (collectionsRes.data.results || []);
-            setPosDueCollections(collectionsData);
-            setPosCustomers(customersRes.data);
-        } catch (error) {
-            console.error("Error fetching initial data:", error);
-        } finally {
-            setLoading(false);
+    // 1. Provide filter configuration
+    useEffect(() => {
+        if (setFilterConfig) {
+            setFilterConfig({
+                searchPlaceholder: "Search by Invoice or Customer...",
+                filtersConfig: [
+                    {
+                        key: "method", label: "Payment Method", icon: <Banknote className="w-3.5 h-3.5"/>, options: [
+                            {value: "all", label: "All Methods"},
+                            {value: "cash", label: "Cash"},
+                            {value: "bank", label: "Bank"},
+                            {value: "mobile", label: "Mobile Banking"}
+                        ]
+                    },
+                    {
+                        key: "dateRange", label: "Collection Date", icon: <Calendar className="w-3.5 h-3.5"/>, options: [
+                            {value: "all", label: "All Time"},
+                            {value: "today", label: "Today"},
+                            {value: "week", label: "This Week"},
+                            {value: "month", label: "This Month"}
+                        ]
+                    },
+                    {
+                        key: "sortBy", label: "Sort By", icon: <ArrowUpDown className="w-3.5 h-3.5"/>, options: [
+                            {value: "date_desc", label: "Newest First"},
+                            {value: "date_asc", label: "Oldest First"},
+                            {value: "amount_desc", label: "Amount (High-Low)"},
+                            {value: "amount_asc", label: "Amount (Low-High)"}
+                        ]
+                    }
+                ],
+                advancedConfig: [
+                    {
+                        key: "amountRange",
+                        type: "range",
+                        label: "Collection Amount Range (৳)",
+                        minPlaceholder: "Min",
+                        maxPlaceholder: "Max"
+                    }
+                ]
+            });
         }
-    }, [setPosDueCollections, setPosCustomers]);
+    }, [setFilterConfig]);
+
+    // 2. Stats calculation
+    const calculateStats = useCallback((data) => {
+        const total = data.length;
+        const totalAmount = data.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+        const cashTotal = data.reduce((sum, p) => sum + Number(p.paid_cash || 0), 0);
+        const digitalTotal = data.reduce((sum, p) => sum + Number(p.paid_mobile || 0) + Number(p.paid_bank || 0), 0);
+
+        return [
+            { title: 'Total Collections', count: total.toString(), bgColor: 'bg-blue-600', icon: <Receipt size={24}/> },
+            { title: 'Total Collected', count: `৳${totalAmount.toLocaleString()}`, bgColor: 'bg-green-600', icon: <Banknote size={24}/> },
+            { title: 'Cash Received', count: `৳${cashTotal.toLocaleString()}`, bgColor: 'bg-orange-600', icon: <Wallet size={24}/> },
+            { title: 'Digital Received', count: `৳${digitalTotal.toLocaleString()}`, bgColor: 'bg-indigo-600', icon: <CreditCard size={24}/> }
+        ];
+    }, []);
+
+    // 3. Centralized Hook
+    const {
+        filteredData: filteredCollections,
+        rawData: posDueCollections,
+        loading,
+        refresh
+    } = useModuleData({
+        apiFetch: posDueCollectionAPI.getAll,
+        searchQuery,
+        filters,
+        searchFields: ['invoice_no', 'customer_name', 'sale_invoice_no'],
+        onStatsLoaded,
+        calculateStatsFn: calculateStats,
+        filterFn: (data, f) => {
+            let result = [...data];
+
+            if (f.method && f.method !== "all") {
+                result = result.filter(item => item.payment_method === f.method);
+            }
+
+            if (f.dateRange && f.dateRange !== "all") {
+                const today = new Date();
+                result = result.filter(item => {
+                    const date = new Date(item.created_at);
+                    if (f.dateRange === "today") return date.toDateString() === today.toDateString();
+                    if (f.dateRange === "week") return date >= new Date(today - 7 * 86400000);
+                    if (f.dateRange === "month") return date >= new Date(today - 30 * 86400000);
+                    return true;
+                });
+            }
+
+            if (f.amountRange) {
+                result = result.filter(item => {
+                    const amount = parseFloat(item.amount);
+                    return (!f.amountRange.min || amount >= f.amountRange.min) && (!f.amountRange.max || amount <= f.amountRange.max);
+                });
+            }
+
+            if (f.sortBy) {
+                result.sort((a, b) => {
+                    if (f.sortBy === "date_desc") return new Date(b.created_at) - new Date(a.created_at);
+                    if (f.sortBy === "date_asc") return new Date(a.created_at) - new Date(b.created_at);
+                    if (f.sortBy === "amount_desc") return parseFloat(b.amount) - parseFloat(a.amount);
+                    if (f.sortBy === "amount_asc") return parseFloat(a.amount) - parseFloat(b.amount);
+                    return 0;
+                });
+            }
+            return result;
+        }
+    });
 
     useEffect(() => {
-        fetchInitialData();
-    }, [fetchInitialData]);
+        if (posDueCollections) setPosDueCollections(posDueCollections);
+    }, [posDueCollections, setPosDueCollections]);
 
-    const fetchCollections = useCallback(async () => {
-        try {
-            const response = await posDueCollectionAPI.getAll();
-            const data = Array.isArray(response.data) ? response.data : (response.data.results || []);
-            setPosDueCollections(data);
-        } catch (error) {
-            console.error("Error fetching collections:", error);
-        }
-    }, [setPosDueCollections]);
+    // Fetch customers once for the add modal
+    useEffect(() => {
+        const fetchCustomers = async () => {
+            try {
+                const res = await posCustomerAPI.getAll();
+                setPosCustomers(res.data);
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        fetchCustomers();
+    }, [setPosCustomers]);
 
     const handleEditClick = (item) => {
         setSelectedItem(item);
         setIsEditOpen(true);
     };
 
-    const filteredCollections = useMemo(() => {
-        let result = [...posDueCollections];
-        
-        if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase();
-            result = result.filter(item => 
-                item.invoice_no?.toLowerCase().includes(query) ||
-                item.customer_name?.toLowerCase().includes(query)
-            );
-        }
+    const handleAddSuccess = () => {
+        setIsAddOpen(false);
+        refresh();
+    };
 
-        if (filters.method !== "all") {
-            result = result.filter(item => item.payment_method === filters.method);
-        }
-
-        result.sort((a, b) => {
-            switch (filters.sortBy) {
-                case "date_asc": return new Date(a.created_at) - new Date(b.created_at);
-                case "date_desc": return new Date(b.created_at) - new Date(a.created_at);
-                case "amount_asc": return a.amount - b.amount;
-                case "amount_desc": return b.amount - a.amount;
-                default: return 0;
-            }
-        });
-
-        return result;
-    }, [posDueCollections, searchQuery, filters]);
-
-    const stats = useMemo(() => {
-        const total = posDueCollections.length;
-        const totalAmount = posDueCollections.reduce((sum, p) => sum + Number(p.amount || 0), 0);
-        const cashTotal = posDueCollections.reduce((sum, p) => sum + Number(p.paid_cash || 0), 0);
-        const digitalTotal = posDueCollections.reduce((sum, p) => sum + Number(p.paid_mobile || 0) + Number(p.paid_bank || 0), 0);
-
-        return [
-            { title: 'Total Collections', count: total.toString(), bgColor: 'bg-blue-600', icon: '📥' },
-            { title: 'Total Collected', count: `৳${totalAmount.toLocaleString()}`, bgColor: 'bg-green-600', icon: '💰' },
-            { title: 'Cash Received', count: `৳${cashTotal.toLocaleString()}`, bgColor: 'bg-orange-600', icon: '💵' },
-            { title: 'Digital Received', count: `৳${digitalTotal.toLocaleString()}`, bgColor: 'bg-indigo-600', icon: '💳' }
-        ];
-    }, [posDueCollections]);
+    const handleUpdateSuccess = () => {
+        setIsEditOpen(false);
+        refresh();
+    };
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
-                <LoadingSpinner size="lg" />
-                <p className="mt-4 text-gray-500 font-bold animate-pulse">Loading collection history...</p>
+            <div className="flex flex-col items-center justify-center py-20 w-full">
+                <LoadingSpinner size="lg"/>
+                <p className="mt-4 text-gray-500 text-sm">Loading collection records...</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-            <div className="mb-8">
-                <CustomerDueCollectionStats stats={stats} />
-            </div>
-
-            <CustomerDueCollectionSearchFilter 
-                onSearch={setSearchQuery} 
-                onFilter={setFilters} 
-            />
-
-            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-black text-gray-900">Collection History</h2>
-                    <p className="text-sm text-gray-400 font-bold">Showing {filteredCollections.length} of {posDueCollections.length} records</p>
+        <div className="space-y-4">
+            <div className="p-1">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 px-1">
+                    <h2 className="text-sm font-bold text-gray-700 uppercase tracking-tight flex items-center gap-2">
+                        <Receipt size={16} className="text-brand-primary"/>
+                        {viewType === "grid" ? "Collection Directory Grid" : "Collection Record Table"}
+                    </h2>
+                    <div className="text-[11px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
+                        SHOWING {filteredCollections.length} OF {posDueCollections?.length || 0} RECORDS
+                    </div>
                 </div>
 
                 {viewType === "grid" ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {filteredCollections.map(item => (
-                            <CustomerDueCollectionCard 
-                                key={item.id} 
-                                item={item} 
-                                onEdit={handleEditClick} 
-                                onDelete={fetchCollections} 
+                            <CustomerDueCollectionCard
+                                key={item.id}
+                                item={item}
+                                onEdit={() => handleEditClick(item)}
+                                onDelete={refresh}
                             />
                         ))}
                     </div>
                 ) : (
-                    <CustomerDueCollectionList 
-                        collections={filteredCollections} 
-                        onEdit={handleEditClick} 
-                        onDelete={fetchCollections} 
+                    <CustomerDueCollectionList
+                        collections={filteredCollections}
+                        onEdit={handleEditClick}
+                        onDelete={refresh}
+                    />
+                )}
+
+                {filteredCollections.length === 0 && (
+                    <EmptyState
+                        icon={<Receipt size={32}/>}
+                        title="No collection records found"
+                        description="There are no customer due collection records to display at this time."
+                        actionText="Record New Collection"
+                        onAction={() => setIsAddOpen(true)}
                     />
                 )}
             </div>
 
-            <AddCustomerDueCollectionModal 
-                isOpen={isAddOpen} 
-                onClose={() => setIsAddOpen(false)} 
-                onSuccess={fetchCollections} 
-                customers={posCustomers} 
+            <AddCustomerDueCollectionModal
+                isOpen={isAddOpen}
+                onClose={() => setIsAddOpen(false)}
+                onSuccess={handleAddSuccess}
+                customers={posCustomers}
             />
-            
-            <EditCustomerDueCollectionModal
-                isOpen={isEditOpen}
-                onClose={() => setIsEditOpen(false)}
-                onSuccess={fetchCollections}
-                item={selectedItem}
-            />
+
+            {isEditOpen && selectedItem && (
+                <EditCustomerDueCollectionModal
+                    isOpen={isEditOpen}
+                    onClose={() => setIsEditOpen(false)}
+                    onSuccess={handleUpdateSuccess}
+                    item={selectedItem}
+                />
+            )}
         </div>
     );
 };

@@ -320,7 +320,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import ProductBrandCard from "./ProductBrandCard";
 import ProductBrandList from "./ProductBrandList";
 import AddBrandModal from "./AddBrandModal";
-import SuccessModal from "./SuccessModal";
+import SuccessModal from "../../components/SuccessModal";
 import LoadingSpinner from "./LoadingSpinner";
 import { posBrandAPI } from "../../../context_or_provider/pos/brands/brandAPI";
 import { usePosBrands } from "../../../context_or_provider/pos/brands/BrandProvider";
@@ -455,7 +455,16 @@ const BrandsGrid = ({
             </div>
 
             <AddBrandModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onSuccess={handleProductAdded} />
-            <SuccessModal isOpen={!!successData} employee={successData} onClose={() => setSuccessData(null)} />
+            <SuccessModal 
+                isOpen={!!successData} 
+                onClose={() => setSuccessData(null)} 
+                title="Brand Registered"
+                subtitle="New brand entry created successfully"
+                details={[
+                    { label: "Brand Title", value: successData?.title },
+                    { label: "Brand ID", value: `#BRD-${successData?.id}` }
+                ]}
+            />
         </div>
     );
 };

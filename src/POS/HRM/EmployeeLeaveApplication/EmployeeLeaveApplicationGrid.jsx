@@ -2,8 +2,9 @@ import React, {useState, useEffect, useMemo, useCallback} from 'react';
 import EmployeeLeaveApplicationCard from "./EmployeeLeaveApplicationCard";
 import EmployeeLeaveApplicationList from "./EmployeeLeaveApplicationList";
 import AddEmployeeLeaveApplicationModal from "./AddEmployeeLeaveApplicationModal";
-import SuccessModal from "./SuccessModal";
-import LoadingSpinner from "./LoadingSpinner";
+import SuccessModal from "../../components/SuccessModal";
+import LoadingSpinner from "../../components/LoadingSpinner";
+import EmptyState from "../../components/EmptyState";
 import {leaveApplicationAPI} from "../../../context_or_provider/pos/EmployeeLeaveApplicaations/leave_applicationAPI";
 import {
     useLeaveApplications
@@ -11,6 +12,8 @@ import {
 import { FileText, CheckCircle, Clock, Calendar, Briefcase, Activity, ArrowUpDown } from 'lucide-react';
 import { DESIGNATION_OPTIONS } from "../EmployeeList/constant/filters";
 import useModuleData from "../../hooks/useModuleData";
+import { getBrandedVoucher } from "../../utils/printTemplates";
+import { getLeavePrintLayout } from "./LeavePrintLayout";
 
 const EmployeeLeaveApplicationGrid = ({ 
     viewType, 
@@ -130,6 +133,14 @@ const EmployeeLeaveApplicationGrid = ({
         refresh();
     }, [refresh]);
 
+    const handlePrint = (leave) => {
+        const tableContent = getLeavePrintLayout(leave);
+        const fullHTML = getBrandedVoucher("Leave Application", tableContent, leave.id, "#f59e0b");
+        const printWindow = window.open("", "_blank", "width=850,height=900");
+        printWindow.document.write(fullHTML);
+        printWindow.document.close();
+    };
+
     if (loading) return (
         <div className="flex flex-col items-center justify-center py-20 w-full">
             <LoadingSpinner size="lg" />
@@ -161,16 +172,32 @@ const EmployeeLeaveApplicationGrid = ({
                 )}
 
                 {filteredEmployees.length === 0 && (
-                    <div className="text-center py-16 border border-dashed border-gray-200 rounded-xl bg-gray-50/30 mt-4">
-                        <FileText className="w-8 h-8 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-base font-bold text-gray-800 mb-1">No applications found</h3>
-                        <button onClick={() => setIsAddOpen(true)} className="px-6 py-2 bg-brand-primary text-white rounded-lg text-xs font-bold mt-4 shadow-md active:scale-95">Apply For Leave</button>
-                    </div>
+                    <EmptyState 
+                        icon={<FileText size={32} />}
+                        title="No applications found"
+                        description="There are no leave applications to display at this time."
+                        actionText="Apply For Leave"
+                        onAction={() => setIsAddOpen(true)}
+                    />
                 )}
             </div>
 
             <AddEmployeeLeaveApplicationModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onSuccess={handleEmployeeAdded} />
-            <SuccessModal isOpen={!!successData} employee={successData} type={successType} onClose={() => setSuccessData(null)} />
+            
+            <SuccessModal 
+                isOpen={!!successData} 
+                onClose={() => setSuccessData(null)}
+                title={successType === 'update' ? 'Application Updated' : 'Application Submitted'}
+                subtitle="Request Processed Successfully"
+                details={[
+                    { label: "Employee", value: successData?.user_name },
+                    { label: "Leave Type", value: successData?.leave_type },
+                    { label: "Dates", value: `${new Date(successData?.start_date).toLocaleDateString()} - ${new Date(successData?.end_date).toLocaleDateString()}` }
+                ]}
+                onPrint={() => handlePrint(successData)}
+                printText="Print Voucher"
+                accentColor="amber"
+            />
         </div>
     );
 };

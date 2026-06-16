@@ -1,189 +1,27 @@
-import React, {useState} from "react";
-import axios from "axios";
-import BASE_URL_of_POS from "../../../posConfig";
+import React, { useState } from "react";
+import api from '../../../context_or_provider/pos/posApi';
+import { User, Mail, Phone, MapPin, Briefcase, DollarSign, Target, Lock, Fingerprint, Camera, Shield } from 'lucide-react';
 
-const AddEmployeeModal = ({isOpen, onClose, onSuccess}) => {
+import BaseModal from "../../components/BaseModal";
+import { useForm } from "../../../hooks/profile";
+import { ROLE_OPTIONS } from "./roles";
 
-    const [form, setForm] = useState({
-        name: "",
-        email: "",
-        role: "marketing_officer",
-        phone_number: "",
-        address: "",
-        salary: "",
-        target: "",
-        areacode: "",
-        profile_picture: null,
-        user: {
-            phone_number: "",
-            password: "",
-            confirm_password: "",
-            fingerprint_id: ""
-        }
-    });
-
-    const [previewImage, setPreviewImage] = useState(null);
+/**
+ * AddEmployeeModal - Refactored to use BaseModal, useForm, and Backbone branding.
+ */
+const AddEmployeeModal = ({ isOpen, onClose, onSuccess }) => {
     const [loading, setLoading] = useState(false);
-    const [errors, setErrors] = useState({});
+    const [previewImage, setPreviewImage] = useState(null);
 
-    if (!isOpen) return null;
-
-    const roleOptions = [
-        {value: "admin", label: "Admin"},
-        {value: "head_officer", label: "Head Marketing Officer"},
-        {value: "marketing_officer", label: "Marketing Officer"},
-        {value: "sales_person", label: "Sales Person"},
-        {value: "accountant", label: "Accountant"},
-        {value: "delivery_person", label: "Delivery Person"},
-        {value: "other", label: "Other"}
-    ];
-
-    const handleChange = (e) => {
-        const {name, value, files} = e.target;
-
-        if (name === "profile_picture") {
-            const file = files[0];
-            setForm(prev => ({
-                ...prev,
-                profile_picture: file
-            }));
-
-            // Create image preview
-            if (file) {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setPreviewImage(reader.result);
-                };
-                reader.readAsDataURL(file);
-            } else {
-                setPreviewImage(null);
-            }
-        }
-        // Handle nested user fields (user.phone_number, user.password, etc.)
-        else if (name.startsWith("user.")) {
-            const fieldName = name.split(".")[1]; // "user.phone_number" -> "phone_number"
-            setForm(prev => ({
-                ...prev,
-                user: {
-                    ...prev.user,
-                    [fieldName]: value
-                }
-            }));
-        } else {
-            setForm(prev => ({
-                ...prev,
-                [name]: value
-            }));
-        }
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setErrors({});
-
-        // Basic validation
-        if (!form.user.phone_number) {
-            setErrors({user: {phone_number: "Phone number is required"}});
-            setLoading(false);
-            return;
-        }
-
-        if (form.user.password !== form.user.confirm_password) {
-            setErrors({confirm_password: "Passwords do not match!"});
-            setLoading(false);
-            return;
-        }
-
-        try {
-            // Method 1: Send as FormData with nested objects (Recommended)
-            const formData = new FormData();
-
-            // 1. Create a complete data object
-            const dataToSend = {
-                user: {
-                    phone_number: form.user.phone_number,
-                    password: form.user.password,
-                    confirm_password: form.user.confirm_password,
-                    fingerprint_id: form.user.fingerprint_id || ""
-                },
-                name: form.name || "",
-                email: form.email || "",
-                role: form.role || "marketing_officer",
-                phone_number: form.phone_number || "", // Profile phone (optional)
-                address: form.address || "",
-                salary: form.salary ? Number(form.salary) : 0,
-                target: form.target ? Number(form.target) : 0,
-                areacode: form.areacode || ""
-            };
-
-            // 2. Append JSON data for user and other fields
-            // Method 1: Append each field separately with proper naming
-            formData.append("user.phone_number", dataToSend.user.phone_number);
-            formData.append("user.password", dataToSend.user.password);
-            formData.append("user.confirm_password", dataToSend.user.confirm_password);
-            formData.append("user.fingerprint_id", dataToSend.user.fingerprint_id);
-
-            formData.append("name", dataToSend.name);
-            formData.append("email", dataToSend.email);
-            formData.append("role", dataToSend.role);
-            formData.append("phone_number", dataToSend.phone_number);
-            formData.append("address", dataToSend.address);
-            formData.append("salary", dataToSend.salary.toString());
-            formData.append("target", dataToSend.target.toString());
-            formData.append("areacode", dataToSend.areacode);
-
-            // 3. Append profile picture if exists
-            if (form.profile_picture) {
-                formData.append("profile_picture", form.profile_picture);
-            }
-
-            console.log("Sending data:", dataToSend);
-
-            const res = await axios.post(
-                `${BASE_URL_of_POS}/api/users/create-new-user-with-profile/`,
-                formData,
-                {
-                    headers: {
-                        "Content-Type": "multipart/form-data"
-                    }
-                }
-            );
-
-            console.log("Response received:", res.data);
-
-            // Success
-            if (onSuccess) {
-                onSuccess(res.data);
-            }
-
-            // Reset form and close
-            resetForm();
-            onClose();
-
-        } catch (err) {
-            console.error("API Error:", err);
-
-            if (err.response?.data) {
-                setErrors(err.response.data);
-
-                // Show user-friendly error message
-                const errorMsg = JSON.stringify(err.response.data);
-                if (errorMsg.includes("phone_number")) {
-                    alert("Error: Phone number already exists or invalid!");
-                } else {
-                    alert("Error: " + errorMsg);
-                }
-            } else {
-                alert("Network error. Please check your connection.");
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const resetForm = () => {
-        setForm({
+    const {
+        form,
+        errors,
+        handleChange,
+        resetForm,
+        validateForm,
+        setFormField
+    } = useForm(
+        {
             name: "",
             email: "",
             role: "marketing_officer",
@@ -199,346 +37,262 @@ const AddEmployeeModal = ({isOpen, onClose, onSuccess}) => {
                 confirm_password: "",
                 fingerprint_id: ""
             }
-        });
-        setPreviewImage(null);
-        setErrors({});
+        },
+        // {
+        //     name: (v) => !v ? "Full name is required" : null,
+        //     email: (v) => !v ? "Email is required" : !/^\S+@\S+\.\S+$/.test(v) ? "Invalid email" : null,
+        //     "user.phone_number": (v) => !v ? "Login phone number is required" : null,
+        //     "user.password": (v) => !v ? "Password is required" : v.length < 6 ? "Minimum 6 characters" : null,
+        //     "user.confirm_password": (v) => v !== form.user.password ? "Passwords do not match" : null,
+        // }
+    );
+
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setFormField("profile_picture", file);
+            const reader = new FileReader();
+            reader.onloadend = () => setPreviewImage(reader.result);
+            reader.readAsDataURL(file);
+        }
     };
 
-    const handleImageUpload = () => {
-        document.getElementById("profile-picture-upload").click();
+    const handleSubmit = async (e) => {
+        if (e) e.preventDefault();
+        if (!validateForm()) return;
+
+        setLoading(true);
+        try {
+            const formData = new FormData();
+            
+            // Map nested user fields to the format backend expects (user.field)
+            formData.append("user.phone_number", form.user.phone_number);
+            formData.append("user.password", form.user.password);
+            formData.append("user.confirm_password", form.user.confirm_password);
+            formData.append("user.fingerprint_id", form.user.fingerprint_id || "");
+
+            formData.append("name", form.name);
+            formData.append("email", form.email);
+            formData.append("role", form.role);
+            formData.append("phone_number", form.phone_number || "");
+            formData.append("address", form.address || "");
+            formData.append("salary", form.salary || "0");
+            formData.append("target", form.target || "0");
+            formData.append("areacode", form.areacode || "");
+
+            if (form.profile_picture) {
+                formData.append("profile_picture", form.profile_picture);
+            }
+
+            const res = await api.post(`/api/users/create-new-user-with-profile/`,
+                formData,
+                { headers: { "Content-Type": "multipart/form-data" } }
+            );
+
+            onSuccess?.(res.data);
+            handleClose();
+        } catch (err) {
+            console.error(err);
+            const errorMsg = err.response?.data ? JSON.stringify(err.response.data) : "Failed to add employee";
+            alert(errorMsg);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleClose = () => {
+        resetForm();
+        setPreviewImage(null);
+        onClose();
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-                {/* Header */}
-                <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-                    <h2 className="text-2xl font-bold text-gray-800">Add New Employee</h2>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-500 hover:text-gray-700 text-2xl"
-                    >
-                        &times;
-                    </button>
+        <BaseModal
+            isOpen={isOpen}
+            onClose={handleClose}
+            title="Register New Employee"
+            size="xl"
+            icon={<User />}
+            showFooter={true}
+            onSubmit={handleSubmit}
+            submitText="Create Account"
+            isLoading={loading}
+        >
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Left: Profile & Credentials */}
+                <div className="lg:col-span-4 space-y-6">
+                    {/* Profile Picture Card */}
+                    <div className="bg-gray-50 p-6 rounded-[2rem] border-2 border-gray-100 flex flex-col items-center text-center shadow-inner">
+                        <div className="relative group">
+                            <div className="w-32 h-32 rounded-[2rem] bg-white border-4 border-white shadow-xl overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105 duration-300">
+                                {previewImage ? (
+                                    <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
+                                ) : (
+                                    <User size={48} className="text-gray-200" />
+                                )}
+                            </div>
+                            <label className="absolute -bottom-2 -right-2 bg-blue-600 text-white p-3 rounded-2xl shadow-lg cursor-pointer hover:bg-blue-700 active:scale-90 transition-all border-4 border-white">
+                                <Camera size={18} />
+                                <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                            </label>
+                        </div>
+                        <div className="mt-4">
+                            <h4 className="text-sm font-black text-gray-800 uppercase tracking-tight">Profile Photo</h4>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">PNG or JPG, Max 5MB</p>
+                        </div>
+                    </div>
+
+                    {/* Login Credentials Card */}
+                    <div className="bg-gray-900 p-6 rounded-[2rem] space-y-4 shadow-2xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
+                        <div className="relative z-10 flex items-center gap-3 mb-2">
+                            <div className="p-2 bg-white/10 rounded-xl text-blue-400"><Lock size={16}/></div>
+                            <h3 className="text-xs font-black text-white uppercase tracking-[0.2em]">Authentication</h3>
+                        </div>
+
+                        <div className="space-y-4 relative z-10">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Login Phone *</label>
+                                <div className="relative">
+                                    <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" />
+                                    <input
+                                        name="user.phone_number"
+                                        value={form.user.phone_number}
+                                        onChange={handleChange}
+                                        className="w-full bg-white/5 border border-white/10 p-3 pl-11 rounded-2xl text-white font-bold text-sm focus:bg-white/10 focus:border-blue-500 outline-none transition-all"
+                                        placeholder="017XXXXXXXX"
+                                    />
+                                </div>
+                                {errors["user.phone_number"] && <p className="text-rose-400 text-[10px] font-bold uppercase mt-1 ml-1">{errors["user.phone_number"]}</p>}
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Password *</label>
+                                <div className="relative">
+                                    <Shield size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" />
+                                    <input
+                                        type="password"
+                                        name="user.password"
+                                        value={form.user.password}
+                                        onChange={handleChange}
+                                        className="w-full bg-white/5 border border-white/10 p-3 pl-11 rounded-2xl text-white font-bold text-sm focus:bg-white/10 focus:border-blue-500 outline-none transition-all"
+                                        placeholder="••••••••"
+                                    />
+                                </div>
+                                {errors["user.password"] && <p className="text-rose-400 text-[10px] font-bold uppercase mt-1 ml-1">{errors["user.password"]}</p>}
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Confirm Password *</label>
+                                <input
+                                    type="password"
+                                    name="user.confirm_password"
+                                    value={form.user.confirm_password}
+                                    onChange={handleChange}
+                                    className="w-full bg-white/5 border border-white/10 p-3 rounded-2xl text-white font-bold text-sm focus:bg-white/10 focus:border-blue-500 outline-none transition-all"
+                                    placeholder="••••••••"
+                                />
+                                {errors["user.confirm_password"] && <p className="text-rose-400 text-[10px] font-bold uppercase mt-1 ml-1">{errors["user.confirm_password"]}</p>}
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1 flex items-center gap-1.5"><Fingerprint size={12}/> Fingerprint ID</label>
+                                <input
+                                    name="user.fingerprint_id"
+                                    value={form.user.fingerprint_id}
+                                    onChange={handleChange}
+                                    className="w-full bg-white/5 border border-white/10 p-3 rounded-2xl text-white font-mono text-sm focus:bg-white/10 focus:border-blue-500 outline-none transition-all"
+                                    placeholder="Optional"
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Left Column */}
-                        <div className="space-y-6">
-                            {/* Profile Picture */}
+                {/* Right: Personal & Employment Details */}
+                <div className="lg:col-span-8 space-y-8">
+                    {/* Basic Info */}
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-3"><div className="w-1.5 h-6 bg-blue-600 rounded-full"></div><h3 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Personal Information</h3></div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Full Name *</label>
+                                <div className="relative">
+                                    <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                                    <input name="name" value={form.name} onChange={handleChange} className="w-full bg-gray-50 border-2 border-gray-100 p-4 pl-12 rounded-2xl font-bold text-gray-900 focus:bg-white focus:border-blue-500 outline-none transition-all" placeholder="e.g. John Doe" />
+                                </div>
+                                {errors.name && <p className="text-rose-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.name}</p>}
+                            </div>
 
-                            {/*<div className="bg-gray-50 p-4 rounded-lg">*/}
-                            {/*    <h3 className="text-lg font-semibold text-gray-700 mb-3">Profile Picture</h3>*/}
-                            {/*    <div className="flex flex-col items-center">*/}
-                            {/*        <div className="relative mb-4">*/}
-                            {/*            <div*/}
-                            {/*                className="w-32 h-32 rounded-full overflow-hidden border-4 border-blue-500 bg-gray-200 flex items-center justify-center">*/}
-                            {/*                {previewImage ? (*/}
-                            {/*                    <img*/}
-                            {/*                        src={previewImage}*/}
-                            {/*                        alt="Preview"*/}
-                            {/*                        className="w-full h-full object-cover"*/}
-                            {/*                    />*/}
-                            {/*                ) : (*/}
-                            {/*                    <span className="text-gray-400">No Image</span>*/}
-                            {/*                )}*/}
-                            {/*            </div>*/}
-                            {/*        </div>*/}
-                            {/*        <input*/}
-                            {/*            type="file"*/}
-                            {/*            name="profile_picture"*/}
-                            {/*            accept="image/*"*/}
-                            {/*            onChange={handleChange}*/}
-                            {/*            className="w-full p-2 border rounded"*/}
-                            {/*        />*/}
-                            {/*    </div>*/}
-                            {/*</div>*/}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email Address *</label>
+                                <div className="relative">
+                                    <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                                    <input type="email" name="email" value={form.email} onChange={handleChange} className="w-full bg-gray-50 border-2 border-gray-100 p-4 pl-12 rounded-2xl font-bold text-gray-900 focus:bg-white focus:border-blue-500 outline-none transition-all" placeholder="john@example.com" />
+                                </div>
+                                {errors.email && <p className="text-rose-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.email}</p>}
+                            </div>
 
-                            <div className="bg-gray-50 p-4 rounded-lg">
-                                <h3 className="text-lg font-semibold text-gray-700 mb-3">Profile Picture</h3>
-                                <div className="flex flex-col items-center">
-                                    <div className="relative mb-4">
-                                        <div
-                                            className="w-32 h-32 rounded-full overflow-hidden border-4 border-blue-500 bg-gray-200 flex items-center justify-center">
-                                            {previewImage ? (
-                                                <img
-                                                    src={previewImage}
-                                                    alt="Preview"
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            ) : (
-                                                <span className="text-gray-400 text-sm">No Image</span>
-                                            )}
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={handleImageUpload}
-                                            className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700"
-                                        >
-                                            📷
-                                        </button>
-                                    </div>
-                                    <input
-                                        id="profile-picture-upload"
-                                        type="file"
-                                        name="profile_picture"
-                                        accept="image/*"
-                                        onChange={handleChange}
-                                        className="hidden"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={handleImageUpload}
-                                        className="text-sm text-blue-600 hover:text-blue-800"
-                                    >
-                                        {previewImage ? "Change Photo" : "Upload Photo"}
-                                    </button>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Role / Designation *</label>
+                                <div className="relative">
+                                    <Briefcase size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                                    <select name="role" value={form.role} onChange={handleChange} className="w-full bg-gray-50 border-2 border-gray-100 p-4 pl-12 rounded-2xl font-bold text-gray-900 focus:bg-white focus:border-blue-500 outline-none appearance-none transition-all">
+                                        {ROLE_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                                    </select>
                                 </div>
                             </div>
 
-
-                            {/* Login Credentials - MOST IMPORTANT */}
-                            <div className="bg-gray-50 p-4 rounded-lg">
-                                <h3 className="text-lg font-semibold text-gray-700 mb-3">Login Credentials *</h3>
-                                <div className="space-y-3">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Phone Number *
-                                        </label>
-                                        <input
-                                            className="w-full p-3 border border-gray-300 rounded-lg"
-                                            name="user.phone_number"
-                                            placeholder="017XXXXXXXX"
-                                            value={form.user.phone_number}
-                                            onChange={handleChange}
-                                            required
-                                        />
-                                        {errors.user?.phone_number && (
-                                            <p className="text-red-500 text-sm mt-1">{errors.user.phone_number}</p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Password *
-                                        </label>
-                                        <input
-                                            type="password"
-                                            className="w-full p-3 border border-gray-300 rounded-lg"
-                                            name="user.password"
-                                            placeholder="Enter password"
-                                            value={form.user.password}
-                                            onChange={handleChange}
-                                            required
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Confirm Password *
-                                        </label>
-                                        <input
-                                            type="password"
-                                            className="w-full p-3 border border-gray-300 rounded-lg"
-                                            name="user.confirm_password"
-                                            placeholder="Confirm password"
-                                            value={form.user.confirm_password}
-                                            onChange={handleChange}
-                                            required
-                                        />
-                                        {errors.confirm_password && (
-                                            <p className="text-red-500 text-sm mt-1">{errors.confirm_password}</p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Fingerprint ID
-                                        </label>
-                                        <input
-                                            type="password"
-                                            className="w-full p-3 border border-gray-300 rounded-lg"
-                                            name="user.fingerprint_id"
-                                            placeholder="Fingerprint ID (optional)"
-                                            value={form.user.fingerprint_id}
-                                            onChange={handleChange}
-                                        />
-                                    </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Contact Phone</label>
+                                <div className="relative">
+                                    <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                                    <input name="phone_number" value={form.phone_number} onChange={handleChange} className="w-full bg-gray-50 border-2 border-gray-100 p-4 pl-12 rounded-2xl font-bold text-gray-900 focus:bg-white focus:border-blue-500 outline-none transition-all" placeholder="Secondary Phone" />
                                 </div>
                             </div>
                         </div>
 
-                        {/* Right Column */}
-                        <div className="space-y-6">
-                            {/* Personal Information */}
-                            <div className="bg-gray-50 p-4 rounded-lg">
-                                <h3 className="text-lg font-semibold text-gray-700 mb-3">Personal Information</h3>
-                                <div className="space-y-3">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Full Name *
-                                        </label>
-                                        <input
-                                            className="w-full p-3 border border-gray-300 rounded-lg"
-                                            name="name"
-                                            placeholder="John Doe"
-                                            value={form.name}
-                                            onChange={handleChange}
-                                            required
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Email Address *
-                                        </label>
-                                        <input
-                                            type="email"
-                                            className="w-full p-3 border border-gray-300 rounded-lg"
-                                            name="email"
-                                            placeholder="john@example.com"
-                                            value={form.email}
-                                            onChange={handleChange}
-                                            required
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Role *
-                                        </label>
-                                        <select
-                                            className="w-full p-3 border border-gray-300 rounded-lg"
-                                            name="role"
-                                            value={form.role}
-                                            onChange={handleChange}
-                                            required
-                                        >
-                                            {roleOptions.map((option) => (
-                                                <option key={option.value} value={option.value}>
-                                                    {option.label}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Contact Phone
-                                        </label>
-                                        <input
-                                            className="w-full p-3 border border-gray-300 rounded-lg"
-                                            name="phone_number"
-                                            placeholder="Contact phone (optional)"
-                                            value={form.phone_number}
-                                            onChange={handleChange}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Address
-                                        </label>
-                                        <textarea
-                                            className="w-full p-3 border border-gray-300 rounded-lg"
-                                            name="address"
-                                            placeholder="Full address"
-                                            value={form.address}
-                                            onChange={handleChange}
-                                            rows="2"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Employment Details */}
-                            <div className="bg-gray-50 p-4 rounded-lg">
-                                <h3 className="text-lg font-semibold text-gray-700 mb-3">Employment Details</h3>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Monthly Salary (৳)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            className="w-full p-3 border border-gray-300 rounded-lg"
-                                            name="salary"
-                                            placeholder="0"
-                                            value={form.salary}
-                                            onChange={handleChange}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Sales Target (৳)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            className="w-full p-3 border border-gray-300 rounded-lg"
-                                            name="target"
-                                            placeholder="0"
-                                            value={form.target}
-                                            onChange={handleChange}
-                                        />
-                                    </div>
-
-                                    <div className="col-span-2">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                                            Area Code
-                                        </label>
-                                        <input
-                                            className="w-full p-3 border border-gray-300 rounded-lg"
-                                            name="areacode"
-                                            placeholder="e.g., DHA-01"
-                                            value={form.areacode}
-                                            onChange={handleChange}
-                                        />
-                                    </div>
-                                </div>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Full Address</label>
+                            <div className="relative">
+                                <MapPin size={16} className="absolute left-4 top-4 text-gray-400" />
+                                <textarea name="address" value={form.address} onChange={handleChange} rows="2" className="w-full bg-gray-50 border-2 border-gray-100 p-4 pl-12 rounded-2xl font-medium text-gray-900 focus:bg-white focus:border-blue-500 outline-none transition-all resize-none" placeholder="Residential address..." />
                             </div>
                         </div>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end space-x-3">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
-                            disabled={loading}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50 flex items-center"
-                            disabled={loading}
-                        >
-                            {loading ? (
-                                <>
-                                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                                         xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                                strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor"
-                                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Adding...
-                                </>
-                            ) : (
-                                "Add Employee"
-                            )}
-                        </button>
+                    {/* Employment Details */}
+                    <div className="space-y-6">
+                        <div className="flex items-center gap-3"><div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div><h3 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Employment & Salary</h3></div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest ml-1">Monthly Salary</label>
+                                <div className="relative">
+                                    <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500" />
+                                    <input type="number" name="salary" value={form.salary} onChange={handleChange} className="w-full bg-emerald-50/30 border-2 border-emerald-100 p-4 pl-12 rounded-2xl font-black text-emerald-700 focus:bg-white focus:border-emerald-500 outline-none transition-all" placeholder="0.00" />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-indigo-600 uppercase tracking-widest ml-1">Sales Target</label>
+                                <div className="relative">
+                                    <Target size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500" />
+                                    <input type="number" name="target" value={form.target} onChange={handleChange} className="w-full bg-indigo-50/30 border-2 border-indigo-100 p-4 pl-12 rounded-2xl font-black text-indigo-700 focus:bg-white focus:border-indigo-500 outline-none transition-all" placeholder="0.00" />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Area Code</label>
+                                <input name="areacode" value={form.areacode} onChange={handleChange} className="w-full bg-gray-50 border-2 border-gray-100 p-4 rounded-2xl font-black text-gray-900 focus:bg-white focus:border-gray-900 outline-none transition-all uppercase" placeholder="e.g. DHA-01" />
+                            </div>
+                        </div>
                     </div>
-                </form>
+                </div>
             </div>
-        </div>
+        </BaseModal>
     );
 };
 
 export default AddEmployeeModal;
-
-
-//////////////////////////////////////////////////////////

@@ -158,6 +158,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import WarrantyPeriodCard from "./WarrantyPeriodCard";
 import WarrantyPeriodList from "./WarrantyPeriodList";
 import AddWarrantyPeriodModal from "./AddWarrantyPeriodModal";
+import SuccessModal from "../../components/SuccessModal";
 import LoadingSpinner from "./LoadingSpinner";
 import { usePosWarrantyPeriods } from "../../../context_or_provider/pos/warrantyPeriod/WarrantyPeriodProvider";
 import { posWarrantyPeriodAPI } from "../../../context_or_provider/pos/warrantyPeriod/WarrantyPeriodAPI";
@@ -174,6 +175,7 @@ const WarrantyPeriodsGrid = ({
     setFilterConfig
 }) => {
     const { setPosWarrantyPeriods } = usePosWarrantyPeriods();
+    const [successData, setSuccessData] = useState(null);
 
     // 1. Provide Filter Configuration to Parent Container
     useEffect(() => {
@@ -235,7 +237,13 @@ const WarrantyPeriodsGrid = ({
         if (posWarrantyPeriods) setPosWarrantyPeriods(posWarrantyPeriods);
     }, [posWarrantyPeriods, setPosWarrantyPeriods]);
 
-    const fetchWarrantyPeriods = useCallback(() => {
+    const handleWarrantyAdded = (newWarranty) => {
+        setIsAddOpen(false);
+        setSuccessData(newWarranty);
+        refresh();
+    };
+
+    const handleWarrantyUpdated = useCallback(() => {
         refresh();
     }, [refresh]);
 
@@ -265,13 +273,13 @@ const WarrantyPeriodsGrid = ({
                             <WarrantyPeriodCard
                                 key={item.id}
                                 warrantyPeriod={item}
-                                onEdit={fetchWarrantyPeriods}
-                                onDelete={fetchWarrantyPeriods}
+                                onEdit={handleWarrantyUpdated}
+                                onDelete={handleWarrantyUpdated}
                             />
                         ))}
                     </div>
                 ) : (
-                    <WarrantyPeriodList warrantyPeriods={filteredPeriods} onUpdate={fetchWarrantyPeriods} />
+                    <WarrantyPeriodList warrantyPeriods={filteredPeriods} onUpdate={handleWarrantyUpdated} />
                 )}
 
                 {filteredPeriods.length === 0 && (
@@ -288,7 +296,18 @@ const WarrantyPeriodsGrid = ({
                 )}
             </div>
 
-            <AddWarrantyPeriodModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onSuccess={fetchWarrantyPeriods} />
+            <AddWarrantyPeriodModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onSuccess={handleWarrantyAdded} />
+            <SuccessModal 
+                isOpen={!!successData} 
+                onClose={() => setSuccessData(null)} 
+                title="Warranty Plan Created"
+                subtitle="Policy synchronized successfully"
+                details={[
+                    { label: "Plan Name", value: successData?.name },
+                    { label: "Duration", value: `${successData?.duration} ${successData?.period_type}(s)` },
+                    { label: "Status", value: successData?.is_active ? "Active" : "Inactive" }
+                ]}
+            />
         </div>
     );
 };

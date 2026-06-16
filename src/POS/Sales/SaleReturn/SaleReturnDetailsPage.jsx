@@ -1,308 +1,225 @@
-
-
-
-import React, { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import React, {useState, useEffect, useCallback} from "react";
+import {useParams, useNavigate} from "react-router-dom";
 import {
-  FaBoxOpen,
-  FaDollarSign,
-  FaUndo,
-  FaEdit,
-  FaFilePdf,
-  FaInfoCircle,
-  FaShoppingCart,
-  FaUser,
-  FaMoneyBillWave,
-  FaMobileAlt,
-  FaUniversity,
-  FaExclamationTriangle,
+    FaBoxOpen, FaDollarSign, FaUndo, FaEdit, FaFilePdf, FaInfoCircle,
+    FaShoppingCart, FaUser, FaMoneyBillWave, FaMobileAlt, FaUniversity,
+    FaExclamationTriangle, FaTruck, FaCalendarAlt, FaReceipt, FaWallet
 } from "react-icons/fa";
+import api from '../../../context_or_provider/pos/posApi';
 
-import BASE_URL_of_POS from "../../../posConfig";
 import EditSaleReturnModal from "./EditSaleReturnModal";
 import SuccessModal from "./SuccessModal";
-import { downloadPurchasePDF } from "./usePurchasePDF";
+import {downloadSaleReturnPDF} from "./usePurchasePDF";
+import {getBrandedVoucher} from "../../utils/printTemplates";
+import {getSaleReturnPrintLayout} from "./SaleReturnPrintLayout";
+import GenericModuleDetails from "../../components/GenericModuleDetails";
+import DetailsInfoCard from "../../components/DetailsInfoCard";
 
+/**
+ * SaleReturnDetailsPage - Refactored to use GenericModuleDetails and DetailsInfoCard.
+ * Integrated with the standardized Backbone printing and PDF engine.
+ */
 const SaleReturnDetailsPage = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
+    const {id} = useParams();
+    const navigate = useNavigate();
 
-  const [saleReturn, setSaleReturn] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [editOpen, setEditOpen] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [updatedData, setUpdatedData] = useState(null);
+    const [saleReturn, setSaleReturn] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [editOpen, setEditOpen] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [updatedData, setUpdatedData] = useState(null);
 
-  // ================= FETCH DETAILS =================
-  const fetchDetails = useCallback(async () => {
-    try {
-      const res = await axios.get(
-        `${BASE_URL_of_POS}/api/sale/sale-returns/${id}/`
-      );
-      setSaleReturn(res.data);
-    } catch (err) {
-      console.error("Failed to fetch sale return:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+    const fetchDetails = useCallback(async () => {
+        try {
+            const res = await api.get(`/api/sale/sale-returns/${id}/`);
+            setSaleReturn(res.data);
+        } catch (err) {
+            console.error("Failed to fetch sale return:", err);
+        } finally {
+            setLoading(false);
+        }
+    }, [id]);
 
-  useEffect(() => {
-    fetchDetails();
-  }, [fetchDetails]);
+    useEffect(() => {
+        fetchDetails();
+    }, [fetchDetails]);
 
-  // ================= EDIT SUCCESS =================
-  const handleEditSuccess = (data) => {
-    setSaleReturn(data);
-    setUpdatedData(data);
-    setEditOpen(false);
-    setShowSuccessModal(true);
-  };
+    const handleEditSuccess = (data) => {
+        setSaleReturn(data);
+        setUpdatedData(data);
+        setEditOpen(false);
+        setShowSuccessModal(true);
+    };
 
-  // ================= LOADING =================
-  if (loading) {
+    const handlePrint = () => {
+        if (!saleReturn) return;
+        const tableContent = getSaleReturnPrintLayout(saleReturn);
+        const fullHTML = getBrandedVoucher("Sale Return", tableContent, saleReturn.id, "#dc2626");
+        const printWindow = window.open("", "_blank", "width=850,height=900");
+        printWindow.document.write(fullHTML);
+        printWindow.document.close();
+    };
+
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" />
-      </div>
-    );
-  }
-
-  // ================= NOT FOUND =================
-  if (!saleReturn) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="bg-white p-8 rounded-xl shadow text-center">
-          <FaExclamationTriangle className="mx-auto text-5xl text-red-500 mb-4" />
-          <h2 className="text-2xl font-bold mb-4">Sale Return Not Found</h2>
-          <button
-            onClick={() => navigate("/sale/sale-return")}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg"
-          >
-            Back to List
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ================= INFO CARD =================
-  const InfoCard = ({ icon, title, value, colorClass = "text-gray-900" }) => (
-    <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center">
-      <div className="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center mr-3">
-        {icon}
-      </div>
-      <div>
-        <p className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">{title}</p>
-        <p className={`font-bold text-base ${colorClass}`}>{value}</p>
-      </div>
-    </div>
-  );
-
-  const totalPaid = Number(saleReturn.paid_cash || 0) + Number(saleReturn.paid_mobile || 0) + Number(saleReturn.paid_bank || 0);
-
-  return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-7xl mx-auto">
-
-        {/* BACK */}
-        <button
-          onClick={() => navigate("/sales")}
-          className="flex items-center text-gray-600 hover:text-blue-700 font-semibold mb-6 transition-colors"
+        <GenericModuleDetails
+            title="Sale Return"
+            subtitle={`Original Inv: #${saleReturn?.sale_invoice_no}`}
+            image={saleReturn?.customer_image}
+            imageAlt={saleReturn?.customer_name}
+            imageFallback="https://img.freepik.com/free-photo/front-view-business-woman-suit_23-2148603018.jpg?semt=ais_hybrid&w=740&q=80"
+            recordId={saleReturn?.id}
+            amount={parseFloat(saleReturn?.net_return_amount || 0).toLocaleString()}
+            amountLabel="Net Refund Amount"
+            isLoading={loading}
+            onPrint={handlePrint}
+            onEdit={() => setEditOpen(true)}
+            printText="Print Return"
+            editText="Edit Return"
+            accentColor="rose"
+            infoItems={[
+                {
+                    icon: <FaCalendarAlt />,
+                    label: "Return Date",
+                    value: new Date(saleReturn?.created_at).toLocaleDateString()
+                },
+                { icon: <FaUser />, label: "Customer", value: saleReturn?.customer_name || "Walk-in Customer" }
+            ]}
+            actions={[
+                {
+                    icon: <FaFilePdf size={16} />,
+                    label: "Download PDF",
+                    onClick: () => downloadSaleReturnPDF(saleReturn),
+                    hoverColor: "hover:bg-orange-600 hover:text-white"
+                }
+            ]}
         >
-          <FaUndo className="mr-2" />
-          Back to Sale Returns
-        </button>
-
-        {/* ================= HEADER & SUMMARY ================= */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-6">
-          <div className="bg-gray-800 p-6 flex flex-col md:flex-row justify-between items-center text-white">
-            <div>
-              <h1 className="text-3xl font-bold">Sale Return Details</h1>
-              <p className="opacity-75">Invoice #{saleReturn.sale_invoice_no} | ID: {saleReturn.id}</p>
-            </div>
-            <div className="flex gap-3 mt-4 md:mt-0">
-              <button
-                onClick={() => setEditOpen(true)}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center gap-2 transition shadow-lg"
-              >
-                <FaEdit /> Edit Return
-              </button>
-              <button
-                onClick={() => downloadPurchasePDF(saleReturn)}
-                className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl font-bold flex items-center gap-2 transition backdrop-blur-sm border border-white/20"
-              >
-                <FaFilePdf /> Download PDF
-              </button>
-            </div>
-          </div>
-
-          <div className="p-8">
             <div className="grid lg:grid-cols-3 gap-8">
-              {/* Left Column: Customer & Basic Info */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold text-gray-800 border-b pb-2 flex items-center gap-2">
-                  <FaUser className="text-blue-500" /> Customer Information
-                </h3>
-                <div className="space-y-3">
-                    <InfoCard 
-                        icon={<FaUser className="text-blue-500" />} 
-                        title="Customer" 
-                        value={saleReturn.customer_name || "Walk-in Customer"} 
-                    />
-                    <InfoCard 
-                        icon={<FaInfoCircle className="text-indigo-500" />} 
-                        title="Payment Status" 
-                        value={saleReturn.payment_status?.toUpperCase() || "UNPAID"}
-                        colorClass={
-                            saleReturn.payment_status === 'paid' ? "text-green-600" : 
-                            saleReturn.payment_status === 'partial' ? "text-yellow-600" : "text-red-600"
-                        }
-                    />
-                    <InfoCard 
-                        icon={<FaBoxOpen className="text-yellow-500" />} 
-                        title="Return Date" 
-                        value={new Date(saleReturn.created_at).toLocaleDateString(undefined, { dateStyle: 'long' })} 
-                    />
-                </div>
-              </div>
+                <div className="lg:col-span-2 space-y-8">
+                    {/* Financial Summary */}
+                    <div className="grid sm:grid-cols-3 gap-6">
+                        <DetailsInfoCard variant="simple" title="Gross Return"
+                                         value={`৳${parseFloat(saleReturn?.total_return_amount || 0).toLocaleString()}`}
+                                         icon={<FaShoppingCart />} color="blue"/>
+                        <DetailsInfoCard variant="simple" title="Total Penalties"
+                                         value={`৳${(parseFloat(saleReturn?.total_item_penalty || 0) + parseFloat(saleReturn?.global_penalty || 0)).toLocaleString()}`}
+                                         icon={<FaExclamationTriangle />} color="rose"/>
+                        <DetailsInfoCard variant="simple" title="Net Refund"
+                                         value={`৳${parseFloat(saleReturn?.net_return_amount || 0).toLocaleString()}`}
+                                         icon={<FaReceipt />} color="emerald"/>
+                    </div>
 
-              {/* Middle Column: Financial Breakdown */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold text-gray-800 border-b pb-2 flex items-center gap-2">
-                  <FaDollarSign className="text-green-500" /> Financial Summary
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
-                    <InfoCard icon={<FaShoppingCart className="text-blue-500" />} title="Gross Total" value={`৳${saleReturn.total_return_amount}`} />
-                    <InfoCard icon={<FaExclamationTriangle className="text-red-500" />} title="Item Penalty" value={`৳${saleReturn.total_item_penalty || 0}`} />
-                    <InfoCard icon={<FaExclamationTriangle className="text-red-600" />} title="Global Penalty" value={`৳${saleReturn.global_penalty || 0}`} />
-                    <InfoCard icon={<FaMoneyBillWave className="text-green-600" />} title="Net Return" value={`৳${saleReturn.net_return_amount}`} colorClass="text-green-600" />
-                </div>
-                <div className="pt-2">
-                    <InfoCard 
-                        icon={<FaDollarSign className="text-red-600" />} 
-                        title="Balance Due" 
-                        value={`৳${saleReturn.due_amount}`} 
-                        colorClass="text-red-600 text-xl"
-                    />
-                </div>
-              </div>
+                    <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-100 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full -mr-16 -mt-16"></div>
+                        <h2 className="font-black text-2xl uppercase tracking-tighter flex items-center gap-4 mb-10">
+                            <div className="w-2 h-10 bg-rose-600 rounded-full shadow-lg shadow-rose-500/20"></div>
+                            Refund Breakdown
+                        </h2>
 
-              {/* Right Column: Payment Details */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-bold text-gray-800 border-b pb-2 flex items-center gap-2">
-                  <FaMoneyBillWave className="text-purple-500" /> Payment Details
-                </h3>
-                <div className="space-y-3">
-                    {Number(saleReturn.paid_cash) > 0 && (
-                        <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                            <span className="flex items-center gap-2 text-sm font-medium"><FaMoneyBillWave className="text-green-500" /> Cash</span>
-                            <span className="font-bold">৳{saleReturn.paid_cash}</span>
+                        <div className="grid gap-4">
+                            <DetailsInfoCard 
+                                icon={<FaWallet />} 
+                                title="Paid Back Amount"
+                                value={`৳${parseFloat(saleReturn?.paid_amount || 0).toLocaleString()}`}
+                                subValue={`Cash: ৳${saleReturn?.paid_cash || 0} | Mobile: ৳${saleReturn?.paid_mobile || 0} | Bank: ৳${saleReturn?.paid_bank || 0}`}
+                                color="emerald"
+                            />
+                            <DetailsInfoCard 
+                                icon={<FaInfoCircle />} 
+                                title="Pending Refund"
+                                value={`৳${parseFloat(saleReturn?.due_amount || 0).toLocaleString()}`}
+                                subValue={parseFloat(saleReturn?.due_amount) > 0 ? "Awaiting cash return" : "Fully settled"}
+                                color={parseFloat(saleReturn?.due_amount) > 0 ? "rose" : "emerald"}
+                            />
                         </div>
-                    )}
-                    {Number(saleReturn.paid_mobile) > 0 && (
-                        <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
-                            <div className="flex justify-between items-center mb-1">
-                                <span className="flex items-center gap-2 text-sm font-bold text-blue-700"><FaMobileAlt /> Mobile ({saleReturn.mobile_operator})</span>
-                                <span className="font-bold text-blue-800">৳{saleReturn.paid_mobile}</span>
-                            </div>
-                            <p className="text-[10px] text-blue-600 font-mono">Trx: {saleReturn.transaction_id}</p>
+                    </div>
+
+                    {/* Return Items Table */}
+                    <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-100">
+                        <h2 className="font-black text-2xl uppercase tracking-tighter flex items-center gap-4 mb-8">
+                            <div className="w-2 h-10 bg-gray-900 rounded-full shadow-lg shadow-gray-900/20"></div>
+                            Returned Items
+                        </h2>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="text-[10px] uppercase font-bold text-gray-400 tracking-widest border-b border-gray-100">
+                                        <th className="pb-4">Product</th>
+                                        <th className="pb-4 text-center">Return Qty</th>
+                                        <th className="pb-4 text-right">Unit Price</th>
+                                        <th className="pb-4 text-right">Penalty</th>
+                                        <th className="pb-4 text-right">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {saleReturn?.items.map((item) => (
+                                        <tr key={item.id} className="hover:bg-rose-50/30 transition-colors">
+                                            <td className="py-4">
+                                                <p className="font-bold text-gray-800 text-sm">{item.product_name}</p>
+                                                {item.reason && <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Reason: {item.reason}</span>}
+                                            </td>
+                                            <td className="py-4 text-center font-bold text-gray-600 text-sm">{item.sale_return_quantity}</td>
+                                            <td className="py-4 text-right text-gray-600 text-sm">৳{parseFloat(item.unit_price).toLocaleString()}</td>
+                                            <td className="py-4 text-right text-rose-600 font-bold text-sm">৳{parseFloat(item.penalty_amount || 0).toLocaleString()}</td>
+                                            <td className="py-4 text-right text-gray-900 font-black text-sm">৳{parseFloat(item.total_price).toLocaleString()}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
-                    )}
-                    {Number(saleReturn.paid_bank) > 0 && (
-                        <div className="p-3 bg-purple-50 rounded-xl border border-purple-100">
-                            <div className="flex justify-between items-center mb-1">
-                                <span className="flex items-center gap-2 text-sm font-bold text-purple-700"><FaUniversity /> Bank</span>
-                                <span className="font-bold text-purple-800">৳{saleReturn.paid_bank}</span>
-                            </div>
-                            <p className="text-[10px] text-purple-600 font-mono">Acc: {saleReturn.bank_account_no}</p>
-                        </div>
-                    )}
-                    <div className="flex justify-between items-center p-3 bg-green-600 text-white rounded-xl shadow-md">
-                        <span className="text-sm font-bold uppercase tracking-wider">Total Paid Back</span>
-                        <span className="text-lg font-black font-mono">৳{totalPaid.toFixed(2)}</span>
                     </div>
                 </div>
-              </div>
+
+                <div className="space-y-8">
+                    {/* Reason Section */}
+                    <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-100">
+                        <h2 className="font-black text-xs uppercase tracking-[0.3em] text-gray-400 mb-8 flex items-center gap-3">
+                            <FaInfoCircle className="text-amber-400 text-lg"/> Return Reason
+                        </h2>
+                        <div className="bg-amber-50/50 p-8 rounded-[2rem] border border-amber-50/50 shadow-inner">
+                            <p className="text-sm font-bold text-gray-600 italic leading-relaxed">
+                                {saleReturn?.return_reason || "No specific reason provided."}
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Meta Card */}
+                    <div className="bg-gray-900 p-10 rounded-[3rem] shadow-2xl text-white overflow-hidden relative group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-700"></div>
+                        <h2 className="font-black text-xs uppercase tracking-[0.3em] text-gray-500 mb-8">Return Meta</h2>
+                        <div className="space-y-8">
+                            <div className="flex gap-5">
+                                <div className="w-1.5 h-14 bg-rose-500 rounded-full shadow-lg shadow-rose-500/50"></div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase text-rose-400 tracking-widest mb-1">Payment Status</p>
+                                    <p className="text-base font-black uppercase tracking-widest">{saleReturn?.payment_status?.toUpperCase()}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            {/* REASON & NOTE */}
-            <div className="mt-8 grid md:grid-cols-2 gap-6">
-                <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
-                    <p className="text-xs font-bold text-red-600 uppercase mb-1">Return Reason</p>
-                    <p className="text-gray-800 font-medium">{saleReturn.return_reason || "No reason specified"}</p>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                    <p className="text-xs font-bold text-gray-500 uppercase mb-1">Internal Note</p>
-                    <p className="text-gray-800 font-medium">{saleReturn.note || "No internal notes"}</p>
-                </div>
-            </div>
-          </div>
-        </div>
+            {/* Modals */}
+            {editOpen && (
+                <EditSaleReturnModal
+                    open={editOpen}
+                    onClose={() => setEditOpen(false)}
+                    purchase={saleReturn}
+                    onUpdated={handleEditSuccess}
+                />
+            )}
 
-        {/* ================= ITEMS ================= */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-800">Returned Items Breakdown</h2>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-                <thead className="bg-gray-50 text-[10px] uppercase font-bold text-gray-500 tracking-wider">
-                <tr>
-                    <th className="px-6 py-4">Product Name</th>
-                    <th className="px-6 py-4 text-center">Sold Qty</th>
-                    <th className="px-6 py-4 text-center">Return Qty</th>
-                    <th className="px-6 py-4 text-right">Unit Price</th>
-                    <th className="px-6 py-4 text-right">Penalty</th>
-                    <th className="px-6 py-4 text-right">Total</th>
-                    <th className="px-6 py-4">Reason</th>
-                </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                {saleReturn.items.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-semibold text-gray-900">{item.product_name}</td>
-                    <td className="px-6 py-4 text-center text-gray-600">{item.sold_quantity}</td>
-                    <td className="px-6 py-4 text-center">
-                        <span className="bg-red-50 text-red-600 px-3 py-1 rounded-full font-bold text-sm">
-                            {item.sale_return_quantity}
-                        </span>
-                    </td>
-                    <td className="px-6 py-4 text-right font-medium text-gray-700">৳{item.unit_price}</td>
-                    <td className="px-6 py-4 text-right font-bold text-red-500">৳{item.penalty_amount || 0}</td>
-                    <td className="px-6 py-4 text-right font-black text-gray-900">৳{item.total_price}</td>
-                    <td className="px-6 py-4 text-gray-500 text-sm italic">{item.reason || "Customer Return"}</td>
-                    </tr>
-                ))}
-                </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* MODALS */}
-      {editOpen && (
-        <EditSaleReturnModal
-          open={editOpen}
-          onClose={() => setEditOpen(false)}
-          purchase={saleReturn}
-          onUpdated={handleEditSuccess}
-        />
-      )}
-
-      {showSuccessModal && (
-        <SuccessModal
-          isOpen={showSuccessModal}
-          onClose={() => setShowSuccessModal(false)}
-          purchase={updatedData}
-          title="Sale Return Updated"
-          successMessage="Sale return updated successfully."
-        />
-      )}
-    </div>
-  );
+            {showSuccessModal && (
+                <SuccessModal
+                    isOpen={showSuccessModal}
+                    onClose={() => setShowSuccessModal(false)}
+                    purchase={updatedData}
+                    title="Sale Return Updated"
+                    successMessage="Sale return updated successfully."
+                />
+            )}
+        </GenericModuleDetails>
+    );
 };
 
 export default SaleReturnDetailsPage;

@@ -8,12 +8,14 @@ import InvoiceSettings from './InvoiceSettings';
 import NotificationSettings from './NotificationSettings';
 import BackupSettings from './BackupSettings';
 import SystemInfo from './SystemInfo';
+import UserManagement from './UserManagement';
 
 const SettingsPage = () => {
     const [activeTab, setActiveTab] = useState('general');
 
     const tabs = [
         { id: 'general',      name: 'General',          icon: '⚙️' },
+        { id: 'user',         name: 'User Management',  icon: '👤' },
         { id: 'tax',          name: 'Tax Settings',      icon: '💰' },
         { id: 'payment',      name: 'Payment Methods',   icon: '💳' },
         { id: 'invoice',      name: 'Invoice',           icon: '📄' },
@@ -25,6 +27,7 @@ const SettingsPage = () => {
     const renderContent = () => {
         switch (activeTab) {
             case 'general':      return <GeneralSettings />;
+            case 'user':         return <UserManagement />;
             case 'tax':          return <TaxSettings />;
             case 'payment':      return <PaymentSettings />;
             case 'invoice':      return <InvoiceSettings />;

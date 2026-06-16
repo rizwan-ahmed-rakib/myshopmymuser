@@ -1,85 +1,70 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import { downloadBrandedPDF } from "../../utils/useBrandedPDF";
 
-export const downloadPurchasePDF = (purchase) => {
-  const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
+/**
+ * downloadPurchaseReturnPDF - Generates a professional PDF for Purchase Returns.
+ * Uses the standardized Backbone PDF engine.
+ * 
+ * @param {Object} purchaseReturn - The purchase return record data
+ */
+export const downloadPurchaseReturnPDF = (purchaseReturn) => {
+  if (!purchaseReturn) return;
 
-  // Header Background
-  doc.setFillColor(220, 38, 38); // Red-600 for Returns
-  doc.rect(0, 0, pageWidth, 40, 'F');
-
-  // Company Logo / Name
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
-  doc.setFont("helvetica", "bold");
-  doc.text("MY SHOP POS", 14, 20);
-  
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.text("Premium Inventory & Sales System", 14, 28);
-
-  // Invoice Label
-  doc.setFontSize(18);
-  doc.text("PURCHASE RETURN", pageWidth - 14, 20, { align: "right" });
-  doc.setFontSize(10);
-  doc.text(`Return #: ${purchase.invoice_no || purchase.id}`, pageWidth - 14, 28, { align: "right" });
-
-  // Supplier & Date Info
-  doc.setTextColor(31, 41, 55);
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "bold");
-  doc.text("Supplier Details:", 14, 55);
-  doc.setFont("helvetica", "normal");
-  doc.text(purchase.supplier_name || "N/A", 14, 62);
-  
-  doc.setFont("helvetica", "bold");
-  doc.text("Date:", pageWidth - 14, 55, { align: "right" });
-  doc.setFont("helvetica", "normal");
-  doc.text(new Date(purchase.created_at).toLocaleDateString(), pageWidth - 14, 62, { align: "right" });
-
-  // Items Table
-  autoTable(doc, {
-    startY: 75,
-    head: [["Product Description", "Return Qty", "Unit Price", "Total"]],
-    body: purchase.items.map((i) => [
-      i.product_name || i.sale_item_name || "N/A",
-      i.quantity || i.sale_return_quantity,
-      `BTD ${Number(i.unit_price).toFixed(2)}`,
-      `BTD ${Number(i.total_price).toFixed(2)}`,
+  downloadBrandedPDF({
+    title: "Purchase Return",
+    docNumber: purchaseReturn.id.toString(),
+    metaDetails: {
+      leftTitle: "Supplier Details:",
+      leftItems: [
+        `Name: ${purchaseReturn.supplier_name || "N/A"}`,
+        `Original Inv: #${purchaseReturn.purchase_invoice_no || "N/A"}`
+      ],
+      rightTitle: "Return Info:",
+      rightItems: [
+        `Date: ${new Date(purchaseReturn.created_at).toLocaleDateString()}`,
+        `Status: ${purchaseReturn.payment_status?.toUpperCase() || "N/A"}`
+      ]
+    },
+    tableHeaders: ["Product Description", "Qty", "Price", "Penalty", "Total"],
+    tableBody: purchaseReturn.items.map(item => [
+      item.product_name,
+      item.purchase_return_quantity.toString(),
+      `TK ${parseFloat(item.unit_price).toLocaleString()}`,
+      `TK ${parseFloat(item.penalty_amount || 0).toLocaleString()}`,
+      `TK ${parseFloat(item.total_price).toLocaleString()}`
     ]),
-    headStyles: { fillColor: [220, 38, 38], textColor: [255, 255, 255], fontStyle: "bold" },
-    alternateRowStyles: { fillColor: [249, 250, 251] },
-    styles: { fontSize: 10, cellPadding: 5 },
-    columnStyles: {
-      0: { cellWidth: 'auto' },
-      1: { halign: 'center' },
-      2: { halign: 'right' },
-      3: { halign: 'right' }
-    }
+    summaryDetails: [
+      {
+        label: "GROSS RETURN:",
+        value: `TK ${parseFloat(purchaseReturn.total_return_amount).toLocaleString()}`,
+      },
+      {
+        label: "TOTAL PENALTIES:",
+        value: `- TK ${(parseFloat(purchaseReturn.total_item_penalty || 0) + parseFloat(purchaseReturn.global_penalty || 0)).toLocaleString()}`,
+        color: [220, 38, 38]
+      },
+      {
+        label: "NET REFUND:",
+        value: `TK ${parseFloat(purchaseReturn.net_return_amount).toLocaleString()}`,
+        isBold: true,
+        color: [220, 38, 38],
+        drawTopLine: true
+      },
+      {
+        label: "RECEIVED BACK:",
+        value: `TK ${parseFloat(purchaseReturn.paid_amount).toLocaleString()}`,
+        isBold: true,
+        color: [5, 122, 85]
+      },
+      {
+        label: "PENDING REFUND:",
+        value: `TK ${parseFloat(purchaseReturn.due_amount).toLocaleString()}`,
+        isBold: true,
+        color: [245, 158, 11],
+        drawTopLine: true
+      }
+    ]
   });
-
-  // Totals Section
-  const finalY = doc.lastAutoTable.finalY + 15;
-  const leftCol = pageWidth - 100;
-  const rightCol = pageWidth - 14;
-
-  const drawRow = (label, value, y, isBold = false, color = [31, 41, 55]) => {
-    doc.setFont("helvetica", isBold ? "bold" : "normal");
-    doc.setTextColor(...color);
-    doc.text(label, leftCol, y);
-    doc.text(`BTD ${Number(value).toFixed(2)}`, rightCol, y, { align: "right" });
-  };
-
-  drawRow("Total Return Amount:", purchase.total_amount || purchase.total_return_amount, finalY, true, [220, 38, 38]);
-  drawRow("Paid (Refunded):", purchase.paid_amount, finalY + 7);
-  drawRow("Balance Due:", purchase.due_amount, finalY + 14, true);
-
-  // Footer
-  doc.setFontSize(9);
-  doc.setTextColor(156, 163, 175);
-  doc.text("Purchase Return Document", pageWidth / 2, 280, { align: "center" });
-  doc.text("This is a computer-generated document.", pageWidth / 2, 285, { align: "center" });
-
-  doc.save(`Return-${purchase.invoice_no || purchase.id}.pdf`);
 };
+
+// Also keep the old name if needed for compatibility, but the details page should use the new one.
+export const downloadPurchasePDF = downloadPurchaseReturnPDF;

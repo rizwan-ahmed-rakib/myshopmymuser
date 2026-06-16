@@ -9,25 +9,27 @@ import {
   ArrowUpRight, ArrowDownRight, Clock, CheckCircle, XCircle,
 } from 'lucide-react';
 import BASE_URL_of_POS from "../../posConfig";
+import { posReportsAPI } from "../../context_or_provider/pos/reports/reportsAPI";
 
 // ─── API ──────────────────────────────────────────────────────────────────────
-// const BASE = 'https://pos.myshopmym.com/api';
-const BASE =BASE_URL_of_POS;
 const EP = {
-  sales:     `${BASE}/api/sale/sales/`,
-  purchases: `${BASE}/api/purchase/purchases/`,
-  products:  `${BASE}/api/products/product/`,
-  expenses:  `${BASE}/api/cashbox/expenses/`,
-  incomes:   `${BASE}/api/cashbox/income/`,
-  customers: `${BASE}/api/sale/customers/`,
+  sales:     () => posReportsAPI.getSales(),
+  purchases: () => posReportsAPI.getPurchases(),
+  products:  () => posReportsAPI.getProducts(),
+  expenses:  () => posReportsAPI.getExpenses(),
+  incomes:   () => posReportsAPI.getIncomes(),
+  customers: () => posReportsAPI.getCustomers(),
 };
 
-const apiFetch = async (url) => {
+const apiFetch = async (apiCall) => {
   try {
-    const r = await fetch(url);
-    const j = await r.json();
-    return Array.isArray(j) ? j : j.results || [];
-  } catch { return []; }
+    const response = await apiCall();
+    const data = response.data;
+    return Array.isArray(data) ? data : data.results || [];
+  } catch (error) {
+    console.error("Dashboard fetch error:", error);
+    return [];
+  }
 };
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -135,6 +137,11 @@ const Dashboard = () => {
   const [period, setPeriod]   = useState('month'); // today | week | month | all
 
   useEffect(() => {
+    // Prevent fetching if no token is present in localStorage
+    if (!localStorage.getItem("token")) {
+      setLoading(false);
+      return;
+    }
     (async () => {
       setLoading(true);
       const [sales, purchases, products, expenses, incomes, customers] = await Promise.all([
@@ -287,7 +294,7 @@ const Dashboard = () => {
       `}</style>
 
       {/* ── HEADER ── */}
-      <div style={{ background:'#fff', borderBottom:'1px solid #f0f0f0', padding:'0 32px', position:'sticky', top:0, zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,0.05)' }}>
+      <div style={{ background:'#fff', borderBottom:'1px solid #f0f0f0', padding:'0 32px', position:'sticky', top:0, zIndex:30, boxShadow:'0 1px 8px rgba(0,0,0,0.05)' }}>
         <div style={{ maxWidth:1400, margin:'0 auto', display:'flex', alignItems:'center', justifyContent:'space-between', height:60 }}>
           <div style={{ display:'flex', alignItems:'center', gap:12 }}>
             <div style={{ width:34, height:34, borderRadius:10, background:'#111827', display:'flex', alignItems:'center', justifyContent:'center' }}>

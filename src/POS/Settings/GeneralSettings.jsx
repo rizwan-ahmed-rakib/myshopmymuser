@@ -1,8 +1,8 @@
 // // GeneralSettings.jsx - Company Information & General Settings
 
 // import React, { useState, useEffect } from 'react';
-// import axios from 'axios';
-// import BASE_URL_of_POS from '../../posConfig';
+// import api from '../../context_or_provider/pos/posApi';
+// 
 
 // const GeneralSettings = () => {
 //     const [settings, setSettings] = useState({
@@ -28,7 +28,7 @@
 
 //     const fetchSettings = async () => {
 //         try {
-//             const response = await axios.get(`${BASE_URL_of_POS}/api/settings/general/`);
+//             const response = await api.get(`/api/settings/general/`);
 //             setSettings(response.data);
 //             if (response.data.company_logo) {
 //                 setLogoPreview(response.data.company_logo);
@@ -67,7 +67,7 @@
 //                 }
 //             });
 
-//             await axios.post(`${BASE_URL_of_POS}/api/settings/general/`, formData, {
+//             await api.post(`/api/settings/general/`, formData, {
 //                 headers: { 'Content-Type': 'multipart/form-data' }
 //             });
 
@@ -306,10 +306,10 @@
 // GeneralSettings.jsx - Company Information & General Settings
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import BASE_URL_of_POS from '../../posConfig';
+import { usePosSettings } from '../../context_or_provider/pos/PosSettings/pos_settings_provider';
 
 const GeneralSettings = () => {
+    const { settings: backendSettings, loading: backendLoading, updateSettings } = usePosSettings();
     const [settings, setSettings] = useState({
         company_name: '', company_email: '', company_phone: '',
         company_address: '', company_logo: null,
@@ -321,15 +321,12 @@ const GeneralSettings = () => {
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
 
-    useEffect(() => { fetchSettings(); }, []);
-
-    const fetchSettings = async () => {
-        try {
-            const response = await axios.get(`${BASE_URL_of_POS}/api/settings/general/`);
-            setSettings(response.data);
-            if (response.data.company_logo) setLogoPreview(response.data.company_logo);
-        } catch (error) { console.error('Error fetching settings:', error); }
-    };
+    useEffect(() => {
+        if (backendSettings) {
+            setSettings(backendSettings);
+            if (backendSettings.company_logo) setLogoPreview(backendSettings.company_logo);
+        }
+    }, [backendSettings]);
 
     const handleChange = (e) => {
         const { name, value, files } = e.target;
@@ -350,11 +347,16 @@ const GeneralSettings = () => {
         try {
             const formData = new FormData();
             Object.keys(settings).forEach(key => {
-                if (settings[key] !== null && settings[key] !== '') formData.append(key, settings[key]);
+                // লোগো যদি নতুন ফাইল হয় তবেই পাঠান
+                if (key === 'company_logo') {
+                    if (settings[key] instanceof File) {
+                        formData.append(key, settings[key]);
+                    }
+                } else if (settings[key] !== null && settings[key] !== '') {
+                    formData.append(key, settings[key]);
+                }
             });
-            await axios.post(`${BASE_URL_of_POS}/api/settings/general/`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            await updateSettings(formData);
             setSuccess(true);
             setTimeout(() => setSuccess(false), 3000);
         } catch (error) {

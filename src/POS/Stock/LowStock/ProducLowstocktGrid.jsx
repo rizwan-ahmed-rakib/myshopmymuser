@@ -1,245 +1,205 @@
-import React, {useState, useEffect, useMemo, useCallback} from 'react';
-import ProductHeader from "./ProductHeader";
-import ProductStats from "./ProductStats";
-import ProductSearchFilter from "./ProductSearchFilter";
+import React, {useState, useEffect, useCallback} from 'react';
 import ProductCard from "./ProductCard";
 import ProductList from "./ProductList";
 import AddProductModal from "./AddProductModal";
 import SuccessModal from "./SuccessModal";
 import LoadingSpinner from "./LoadingSpinner";
-import {usePosProducts} from "../../../context_or_provider/pos/products/product_provider";
-import {posProductAPI} from "../../../context_or_provider/pos/products/productAPI";
-import { AlertCircle, Package, TrendingDown, CheckCircle } from "lucide-react";
-import {posUnitAPI} from "../../../context_or_provider/pos/units/unitAPI";
-import {posBrandAPI} from "../../../context_or_provider/pos/brands/brandAPI";
-import {posSubCategoryAPI} from "../../../context_or_provider/pos/subcategories/subCategoryApi";
-import {posCategoryAPI} from "../../../context_or_provider/pos/categories/categoryAPI";
-import {posSizeAPI} from "../../../context_or_provider/pos/sizes/sizeAPI";
-import GenericModuleLayout from "../../components/GenericModuleLayout";
 import UpdateProductModal from "./UpdateProductModal";
+import EmptyState from "../../components/EmptyState";
+import {posProductAPI} from "../../../context_or_provider/pos/products/productAPI";
+import {TrendingDown, Package, Activity, Wallet, Calendar, ArrowUpDown, Filter, AlertCircle} from 'lucide-react';
+import useModuleData from "../../hooks/useModuleData";
+import {usePosProducts} from "../../../context_or_provider/pos/products/product_provider";
 
-const ProducLowstocktGrid = ({ viewType,setViewType, isAddOpen, setIsAddOpen }) => {
-    const {posProduct, setPosProduct} = usePosProducts();
-    // const [viewType, setViewType] = useState("list");
-    // const [isAddOpen, setIsAddOpen] = useState(false);
-    const [isEditOpen, setIsEditOpen] = useState(false);
-    const [editRecord, setEditRecord] = useState(null);
-    const [successType, setSuccessType] = useState("create");
+const ProducLowstocktGrid = ({
+                                 viewType,
+                                 isAddOpen,
+                                 setIsAddOpen,
+                                 onStatsLoaded,
+                                 searchQuery,
+                                 filters,
+                                 setFilterConfig
+                             }) => {
+    const {setPosProduct} = usePosProducts();
     const [successData, setSuccessData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({
-        total: 0,
-        lowStock: 0,
-        outOfStock: 0,
-        criticalItems: 0
-    });
+    const [successType, setSuccessType] = useState("create");
+    const [editingProduct, setEditingProduct] = useState(null);
+    const [isEditOpen, setIsEditOpen] = useState(false);
 
-    // Options for Filters
-    const [options, setOptions] = useState({
-        categories: [],
-        sub_categories: [],
-        brands: [],
-        units: [],
-        sizes: []
-    });
+    // 1. Provide filter configuration
+    useEffect(() => {
+        if (setFilterConfig) {
+            setFilterConfig({
+                searchPlaceholder: "Search low stock items...",
+                filtersConfig: [
+                    {
+                        key: "stockSeverity", label: "Stock Level", icon: <AlertCircle className="w-3.5 h-3.5"/>, options: [
+                            {value: "all", label: "All Low Stock"},
+                            {value: "out_of_stock", label: "Out of Stock (0)"},
+                            {value: "critical", label: "Critical (< 5)"},
+                            {value: "warning", label: "Warning (< 10)"}
+                        ]
+                    },
+                    {
+                        key: "sortBy", label: "Sort By", icon: <ArrowUpDown className="w-3.5 h-3.5"/>, options: [
+                            {value: "stock_asc", label: "Stock (Low-High)"},
+                            {value: "name_asc", label: "Name (A-Z)"},
+                            {value: "price_desc", label: "Price (High-Low)"}
+                        ]
+                    }
+                ],
+                advancedConfig: []
+            });
+        }
+    }, [setFilterConfig]);
 
-    const [searchQuery, setSearchQuery] = useState("");
-    const [filters, setFilters] = useState({
-        category: "all",
-        sub_category: "all",
-        brand: "all",
-        unit: "all",
-        size: "all",
-        status: "low-stock",
-        sortBy: "stock_asc",
+    // 2. Stats calculation
+    const calculateStats = useCallback((data) => {
+        const total = data.length;
+        const outOfStock = data.filter(p => Number(p.stock) === 0).length;
+        const critical = data.filter(p => Number(p.stock) > 0 && Number(p.stock) < 5).length;
+        const totalValue = data.reduce((acc, p) => acc + (Number(p.stock) * Number(p.purchase_price)), 0);
+
+        return [
+            { title: 'Low Stock Items', count: total.toString(), bgColor: 'bg-orange-600', icon: <TrendingDown size={24}/> },
+            { title: 'Out of Stock', count: outOfStock.toString(), bgColor: 'bg-rose-700', icon: <Package size={24}/> },
+            { title: 'Critical Items', count: critical.toString(), bgColor: 'bg-amber-600', icon: <AlertCircle size={24}/> },
+            { title: 'Stock Value', count: `৳${totalValue.toLocaleString()}`, bgColor: 'bg-blue-600', icon: <Wallet size={24}/> }
+        ];
+    }, []);
+
+    // 3. Centralized Hook
+    const {
+        filteredData: filteredProducts,
+        rawData: posProduct,
+        loading,
+        refresh
+    } = useModuleData({
+        apiFetch: posProductAPI.getAll,
+        searchQuery,
+        filters,
+        searchFields: ['name', 'product_code', 'brand_name', 'category_name'],
+        onStatsLoaded,
+        calculateStatsFn: calculateStats,
+        filterFn: (data, f) => {
+            // Initial filter: only show products with stock <= min_stock_level (or a default like 10)
+            let result = data.filter(p => Number(p.stock) <= (p.min_stock_level || 10));
+
+            if (f.stockSeverity && f.stockSeverity !== "all") {
+                if (f.stockSeverity === "out_of_stock") result = result.filter(p => Number(p.stock) === 0);
+                if (f.stockSeverity === "critical") result = result.filter(p => Number(p.stock) > 0 && Number(p.stock) < 5);
+                if (f.stockSeverity === "warning") result = result.filter(p => Number(p.stock) >= 5 && Number(p.stock) < 10);
+            }
+
+            if (f.sortBy) {
+                result.sort((a, b) => {
+                    if (f.sortBy === "stock_asc") return Number(a.stock) - Number(b.stock);
+                    if (f.sortBy === "name_asc") return a.name.localeCompare(b.name);
+                    if (f.sortBy === "price_desc") return Number(b.sale_price) - Number(a.sale_price);
+                    return 0;
+                });
+            }
+            return result;
+        }
     });
 
     useEffect(() => {
-        fetchInitialData();
-    }, []);
+        if (posProduct) setPosProduct(posProduct);
+    }, [posProduct, setPosProduct]);
 
-    const fetchInitialData = async () => {
-        setLoading(true);
-        try {
-            // Fetch Products and Filter Options in parallel
-            const [
-                prodRes, 
-                catRes, 
-                subCatRes, 
-                brandRes, 
-                unitRes, 
-                sizeRes
-            ] = await Promise.all([
-                posProductAPI.getAll(),
-                posCategoryAPI.getAll(),
-                posSubCategoryAPI.getAll(),
-                posBrandAPI.getAll(),
-                posUnitAPI.getAll(),
-                posSizeAPI.getAll()
-            ]);
-
-            setPosProduct(prodRes.data);
-            calculateStats(prodRes.data);
-
-            // Update filter options
-            setOptions({
-                categories: catRes.data.map(i => ({ value: i.id, label: i.title })),
-                sub_categories: subCatRes.data.map(i => ({ value: i.id, label: i.title })),
-                brands: brandRes.data.map(i => ({ value: i.id, label: i.title })),
-                units: unitRes.data.map(i => ({ value: i.id, label: i.title })),
-                sizes: sizeRes.data.map(i => ({ value: i.id, label: i.title })),
-            });
-
-        } catch (error) {
-            console.error("Error fetching initial data:", error);
-        } finally {
-            setLoading(false);
-        }
+    const handleAddSuccess = (newProduct) => {
+        setIsAddOpen(false);
+        setSuccessData(newProduct);
+        setSuccessType("create");
+        refresh();
     };
 
-    const fetchProducts = async () => {
-        try {
-            const response = await posProductAPI.getAll();
-            setPosProduct(response.data);
-            calculateStats(response.data);
-        } catch (error) {
-            console.error("Error fetching products:", error);
-        }
+    const handleEditClick = (product) => {
+        setEditingProduct(product);
+        setIsEditOpen(true);
     };
 
-    const calculateStats = (products) => {
-        if (!products || products.length === 0) return;
-        const total = products.length;
-        const lowStockItems = products.filter(p => Number(p.stock) <= Number(p.alarm_when_stock_is_lessthanOrEqualto) && Number(p.stock) > 0);
-        const outOfStock = products.filter(p => Number(p.stock) === 0).length;
-        const criticalItems = products.filter(p => Number(p.stock) <= (Number(p.alarm_when_stock_is_lessthanOrEqualto) * 0.2)).length;
-
-        setStats({ total, lowStock: lowStockItems.length, outOfStock, criticalItems });
+    const handleUpdateSuccess = (updatedData) => {
+        setIsEditOpen(false);
+        setEditingProduct(null);
+        setSuccessData(updatedData);
+        setSuccessType("update");
+        refresh();
     };
-
-    const handleSearch = useCallback((query) => setSearchQuery(query), []);
-    const handleFilter = useCallback((newFilters) => setFilters(prev => ({...prev, ...newFilters})), []);
-
-    const filteredProducts = useMemo(() => {
-        if (!posProduct || posProduct.length === 0) return [];
-
-        let result = [...posProduct];
-
-        // 1. Status Based Filtering
-        if (filters.status === "low-stock") {
-            result = result.filter(p => Number(p.stock) <= Number(p.alarm_when_stock_is_lessthanOrEqualto));
-        } else if (filters.status === "critical") {
-            result = result.filter(p => Number(p.stock) <= (Number(p.alarm_when_stock_is_lessthanOrEqualto) * 0.2));
-        } else if (filters.status === "out-of-stock") {
-            result = result.filter(p => Number(p.stock) === 0);
-        } else if (filters.status === "in-stock") {
-            result = result.filter(p => Number(p.stock) > Number(p.alarm_when_stock_is_lessthanOrEqualto));
-        }
-
-        // 2. Search
-        if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase();
-            result = result.filter(p => 
-                p.name.toLowerCase().includes(query) || 
-                p.product_code?.toLowerCase().includes(query)
-            );
-        }
-
-        // 3. Dropdown Filters (Category, Brand, etc.)
-        const keys = ['category', 'sub_category', 'brand', 'unit', 'size'];
-        keys.forEach(key => {
-            if (filters[key] !== "all") {
-                result = result.filter(p => String(p[key]) === String(filters[key]));
-            }
-        });
-
-        // 4. Sorting
-        result.sort((a, b) => {
-            switch (filters.sortBy) {
-                case "stock_asc": return a.stock - b.stock;
-                case "stock_desc": return b.stock - a.stock;
-                case "name_asc": return a.name.localeCompare(b.name);
-                case "price_asc": return parseFloat(a.selling_price) - parseFloat(b.selling_price);
-                case "price_desc": return parseFloat(b.selling_price) - parseFloat(a.selling_price);
-                default: return 0;
-            }
-        });
-
-        return result;
-    }, [posProduct, searchQuery, filters]);
-
-    const displayStats = [
-        { title: 'Items to Reorder', count: filteredProducts.length.toString(), bgColor: 'bg-red-600', icon: <AlertCircle className="text-white" size={24} /> },
-        { title: 'Critical Stock', count: stats.criticalItems.toString(), bgColor: 'bg-orange-600', icon: <TrendingDown className="text-white" size={24} /> },
-        { title: 'Out of Stock', count: stats.outOfStock.toString(), bgColor: 'bg-gray-800', icon: <Package className="text-white" size={24} /> },
-        { title: 'Total Items', count: stats.total.toString(), bgColor: 'bg-blue-600', icon: <CheckCircle className="text-white" size={24} /> },
-    ];
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
+            <div className="flex flex-col items-center justify-center py-20 w-full">
                 <LoadingSpinner size="lg"/>
-                <p className="mt-4 text-gray-600 font-medium">Analyzing stock levels...</p>
+                <p className="mt-4 text-gray-500 text-sm">Analyzing stock levels...</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <AlertCircle className="text-red-500" size={28} />
-                        Low Stock Inventory
-                    </h1>
-                    <p className="text-gray-500 text-sm mt-1">Manage products reaching minimum stock levels</p>
+        <div className="space-y-4">
+            <div className="p-1">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 px-1">
+                    <h2 className="text-sm font-bold text-gray-700 uppercase tracking-tight flex items-center gap-2">
+                        <TrendingDown size={16} className="text-brand-primary"/>
+                        {viewType === "grid" ? "Low Stock Inventory Grid" : "Low Stock Inventory Table"}
+                    </h2>
+                    <div className="text-[11px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
+                        SHOWING {filteredProducts.length} AT-RISK ITEMS
+                    </div>
                 </div>
-                {/*<div className="flex gap-2">*/}
-                {/*    <button onClick={() => setViewType(viewType === "grid" ? "list" : "grid")} className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all shadow-sm">*/}
-                {/*        {viewType === "grid" ? "List View" : "Grid View"}*/}
-                {/*    </button>*/}
-                {/*    <button onClick={fetchInitialData} className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">*/}
-                {/*         Refresh Data*/}
-                {/*    </button>*/}
-                {/*</div>*/}
-            </div>
 
-            <div className="mb-8">
-                <ProductStats stats={displayStats}/>
-            </div>
-
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="p-6 border-b border-gray-50 bg-gray-50/30">
-                    <ProductSearchFilter
-                        onSearch={handleSearch}
-                        onFilter={handleFilter}
-                        dynamicOptions={options}
+                {viewType === "grid" ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {filteredProducts.map(product => (
+                            <ProductCard
+                                key={product.id}
+                                product={product}
+                                onEdit={() => handleEditClick(product)}
+                                onDelete={refresh}
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    <ProductList
+                        products={filteredProducts}
+                        onEdit={handleEditClick}
+                        onDelete={refresh}
                     />
-                </div>
+                )}
 
-                <div className="p-4">
-                    {viewType === "grid" ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {filteredProducts.map(product => (
-                                <ProductCard key={product.id} product={product} onEdit={fetchProducts} onDelete={fetchProducts} />
-                            ))}
-                        </div>
-                    ) : (
-                        <ProductList products={filteredProducts} onUpdate={fetchProducts} />
-                    )}
-
-                    {filteredProducts.length === 0 && (
-                        <div className="text-center py-20 bg-green-50/30 rounded-2xl border-2 border-dashed border-green-100">
-                            <CheckCircle className="text-green-500 mx-auto mb-4" size={48} />
-                            <h3 className="text-lg font-bold text-gray-900 mb-1">Stock Level Healthy!</h3>
-                            <p className="text-gray-500 max-w-xs mx-auto text-sm">No items found matching your filter criteria.</p>
-                        </div>
-                    )}
-                </div>
+                {filteredProducts.length === 0 && (
+                    <EmptyState
+                        icon={<Package size={32}/>}
+                        title="Stock levels are optimal"
+                        description="There are no products currently matching the low stock criteria."
+                        actionText="Refresh Analysis"
+                        onAction={refresh}
+                    />
+                )}
             </div>
 
-            <AddProductModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onSuccess={fetchProducts} />
-            <SuccessModal isOpen={!!successData} employee={successData} onClose={() => setSuccessData(null)} />
+            <AddProductModal
+                isOpen={isAddOpen}
+                onClose={() => setIsAddOpen(false)}
+                onSuccess={handleAddSuccess}
+            />
+
+            {isEditOpen && (
+                 <UpdateProductModal
+                    isOpen={isEditOpen}
+                    onClose={() => { setIsEditOpen(false); setEditingProduct(null); }}
+                    productData={editingProduct}
+                    onSuccess={handleUpdateSuccess}
+                />
+            )}
+
+            <SuccessModal
+                isOpen={!!successData}
+                data={successData}
+                type={successType}
+                onClose={() => setSuccessData(null)}
+            />
         </div>
     );
 };

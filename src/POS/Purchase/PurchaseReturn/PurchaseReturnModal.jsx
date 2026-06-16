@@ -1,6 +1,6 @@
 // import React, { useState } from "react";
-// import axios from "axios";
-// import BASE_URL_of_POS from "../../../posConfig";
+// import api from '../../../context_or_provider/pos/posApi';
+// 
 //
 // const PurchaseReturnModal = ({ open, onClose, purchase, onSuccess }) => {
 //   const [returns, setReturns] = useState({});
@@ -13,7 +13,7 @@
 //       quantity: Number(returns[pid]),
 //     }));
 //
-//     await axios.post(
+//     await api.post(
 //       `${BASE_URL_of_POS}/api/purchase/purchases/${purchase.id}/return/`,
 //       { items }
 //     );

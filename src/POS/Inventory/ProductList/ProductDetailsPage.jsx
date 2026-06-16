@@ -1,23 +1,33 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
-import BASE_URL_of_POS from "../../../posConfig";
-import SuccessPopup from "./SuccessPopup";
-import UpdateProductModal from "./UpdateProductModal";
-import { FaBoxOpen, FaDollarSign, FaShoppingCart, FaWarehouse, FaTag, FaInfoCircle, FaShieldAlt, FaCalendarTimes } from 'react-icons/fa';
+import { 
+    Package, Tag, Layers, GitCommit, 
+    Scale, Maximize, ShieldCheck, Calendar, Info, 
+    DollarSign, Target, Activity, Settings, Trash2,
+    ShoppingCart, Warehouse, AlertTriangle, ShieldAlert
+} from 'lucide-react';
+import api from '../../../context_or_provider/pos/posApi';
 
+import UpdateProductModal from "./UpdateProductModal";
+import GenericModuleDetails from "../../components/GenericModuleDetails";
+import DetailsInfoCard from "../../components/DetailsInfoCard";
+import { posProductAPI } from "../../../context_or_provider/pos/products/productAPI";
+import SuccessModal from "../../components/SuccessModal";
+
+/**
+ * ProductDetailsPage - Refactored to use GenericModuleDetails and Backbone branding.
+ */
 const ProductDetailsPage = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-    const [successMessage, setSuccessMessage] = useState("");
+    const [editOpen, setEditOpen] = useState(false);
+    const [successData, setSuccessData] = useState(null);
 
     const fetchProductDetails = useCallback(async () => {
         try {
-            const response = await axios.get(`${BASE_URL_of_POS}/api/products/product/${id}/`);
+            const response = await api.get(`/api/products/product/${id}/`);
             setProduct(response.data);
         } catch (error) {
             console.error("Error fetching product details:", error);
@@ -30,156 +40,194 @@ const ProductDetailsPage = () => {
         fetchProductDetails();
     }, [fetchProductDetails]);
 
-    const handleEditProduct = () => {
-        setShowEditModal(true);
-    };
-
     const handleUpdateSuccess = (updatedData) => {
         setProduct(prev => ({ ...prev, ...updatedData }));
-        setShowEditModal(false);
-        setSuccessMessage("Product has been updated successfully!");
-        setShowSuccessPopup(true);
+        setEditOpen(false);
+        setSuccessData(updatedData);
     };
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                    <p className="mt-4 text-gray-700">Loading product details...</p>
-                </div>
-            </div>
-        );
-    }
+    const handleDelete = async () => {
+        if (!window.confirm(`Are you sure you want to delete "${product?.name}"?`)) return;
+        try {
+            await posProductAPI.delete(id);
+            navigate("/inventory");
+        } catch (error) {
+            console.error("Delete error:", error);
+            alert("Failed to delete product.");
+        }
+    };
 
-    if (!product) {
-        return (
-            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-                <div className="text-center p-8 bg-white rounded-lg shadow-md">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-4">Product Not Found</h2>
-                    <button
-                        onClick={() => navigate("/inventory")}
-                        // onClick={() => navigate("/inventory/units")}
-                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                        Back to Product List
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    const InfoCard = ({ icon, title, value, className = "" }) => (
-        <div className={`bg-white rounded-lg p-4 shadow-sm flex items-center ${className}`}>
-            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mr-4">
-                {icon}
-            </div>
-            <div>
-                <p className="text-sm text-gray-600">{title}</p>
-                <p className="font-semibold text-lg text-gray-900">{value}</p>
-            </div>
-        </div>
-    );
+    const formatCurrency = (val) => `৳${parseFloat(val || 0).toLocaleString()}`;
 
     return (
-        <div className="min-h-screen bg-gray-100 py-8 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-7xl mx-auto">
-                <div className="mb-6">
-                    <button
-                        onClick={() => navigate("/inventory")}
-                        // onClick={() => navigate("/inventory/units")}
-                        className="flex items-center text-gray-600 hover:text-blue-700 mb-4 font-medium"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
-                        </svg>
-                        Back to Product List
-                    </button>
+        <GenericModuleDetails
+            title="Product Details"
+            subtitle={product?.product_code || "No SKU"}
+            image={product?.image}
+            imageAlt={product?.name}
+            recordId={product?.id}
+            isLoading={loading}
+            onEdit={() => setEditOpen(true)}
+            accentColor="blue"
+            heroIcon={<Package />}
+            statusBadge={
+                <div className="flex gap-2">
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
+                        Number(product?.stock) > Number(product?.alarm_when_stock_is_lessthanOrEqualto)
+                            ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' 
+                            : 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+                    }`}>
+                        {Number(product?.stock) > 0 ? `${product?.stock} In Stock` : 'Out of Stock'}
+                    </span>
+                    {product?.has_expiry && (
+                        <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border bg-orange-500/20 text-orange-400 border-orange-500/30 flex items-center gap-1.5">
+                            <Calendar size={10}/> Expiry Tracked
+                        </span>
+                    )}
+                </div>
+            }
+            infoItems={[
+                { icon: <Layers size={14} />, label: "Category", value: product?.category_name || 'Uncategorized' },
+                { icon: <Tag size={14} />, label: "Brand", value: product?.brand_name || 'No Brand' },
+                { icon: <Scale size={14} />, label: "Unit", value: product?.unit_name || 'pcs' }
+            ]}
+            actions={[
+                {
+                    icon: <Trash2 size={16} />,
+                    label: "Delete Product",
+                    onClick: handleDelete,
+                    hoverColor: "hover:bg-rose-600 hover:text-white"
+                }
+            ]}
+        >
+            <div className="grid lg:grid-cols-3 gap-8">
+                {/* Left: Financials & Classification */}
+                <div className="lg:col-span-2 space-y-8">
+                    {/* Financial Pulse */}
+                    <div className="grid sm:grid-cols-2 gap-6">
+                        <DetailsInfoCard 
+                            variant="simple" 
+                            title="Retail Selling Price" 
+                            value={formatCurrency(product?.selling_price)} 
+                            subValue="Standard checkout price"
+                            icon={<Target />} 
+                            color="blue" 
+                        />
+                        <DetailsInfoCard 
+                            variant="simple" 
+                            title="Purchase Cost" 
+                            value={formatCurrency(product?.purchase_price)} 
+                            subValue="Last acquired price"
+                            icon={<DollarSign />} 
+                            color="emerald" 
+                        />
+                    </div>
+
+                    {/* Stock & Movement */}
+                    <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-100 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full -mr-16 -mt-16"></div>
+                        <h2 className="font-black text-2xl uppercase tracking-tighter flex items-center gap-4 mb-10 text-gray-800">
+                            <div className="w-2 h-10 bg-blue-500 rounded-full shadow-lg shadow-blue-500/20"></div>
+                            Inventory Analysis
+                        </h2>
+
+                        <div className="grid gap-4">
+                            <DetailsInfoCard 
+                                icon={<Warehouse />} 
+                                title="Available Stock" 
+                                value={`${product?.stock} ${product?.unit_name || 'units'}`} 
+                                subValue={`Threshold Alert: ${product?.alarm_when_stock_is_lessthanOrEqualto || 0}`}
+                                color="indigo" 
+                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <DetailsInfoCard 
+                                    icon={<ShieldCheck />} 
+                                    title="Warranty Status" 
+                                    value={product?.warranty_status ? (product.warranty_period_name || "Active Plan") : "Not Applicable"} 
+                                    color={product?.warranty_status ? "emerald" : "gray"} 
+                                />
+                                <DetailsInfoCard 
+                                    icon={<AlertTriangle />} 
+                                    title="Expiry Policy" 
+                                    value={product?.has_expiry ? "Batch Controlled" : "No Expiry Tracked"} 
+                                    color={product?.has_expiry ? "orange" : "gray"} 
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-                    <div className="p-8">
-                        <div className="flex flex-col md:flex-row gap-8">
-                            {/* Product Image */}
-                            <div className="md:w-1/3">
-                                <div className="w-full h-80 rounded-lg bg-gray-200 shadow-inner flex items-center justify-center">
-                                    <img
-                                        src={product.image || "https://assets.turbologo.com/blog/en/2021/09/10093610/photo-camera-958x575.png"}
-                                        alt={product.name}
-                                        className="w-full h-full object-cover rounded-lg"
-                                        onError={(e) => { e.target.src = "https://via.placeholder.com/300"; }}
-                                    />
+                {/* Right: Metadata & Identifiers */}
+                <div className="space-y-8">
+                    <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-100">
+                        <h2 className="font-black text-xs uppercase tracking-[0.3em] text-gray-400 mb-8 flex items-center gap-3">
+                            <Info className="text-blue-400 text-lg"/> Logistics Meta
+                        </h2>
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                <div className="flex items-center gap-3">
+                                    <Maximize size={16} className="text-gray-400" />
+                                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Dimension/Size</span>
                                 </div>
+                                <span className="text-xs font-bold text-gray-700">{product?.size_name || 'Standard'}</span>
                             </div>
+                            <div className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                <div className="flex items-center gap-3">
+                                    <GitCommit size={16} className="text-gray-400" />
+                                    <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Sub-Category</span>
+                                </div>
+                                <span className="text-xs font-bold text-gray-700">{product?.sub_category_name || 'N/A'}</span>
+                            </div>
+                        </div>
+                    </div>
 
-                            {/* Product Info */}
-                            <div className="md:w-2/3">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <h1 className="text-4xl font-bold text-gray-900">{product.name}</h1>
-                                        <p className="text-gray-500 mt-2">Product Code: {product.product_code}</p>
-                                    </div>
-                                    <button
-                                        onClick={handleEditProduct}
-                                        className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                                        </svg>
-                                        Edit
-                                    </button>
-                                </div>
-                                
-                                <div className="mt-6 border-t pt-6">
-                                    <h2 className="text-xl font-semibold text-gray-800 mb-4">Product Details</h2>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-                                        <InfoCard icon={<FaShoppingCart className="text-blue-500" />} title="Selling Price" value={`৳${product.selling_price}`} />
-                                        <InfoCard icon={<FaDollarSign className="text-green-500" />} title="Purchase Price" value={`৳${product.purchase_price}`} />
-                                        <InfoCard icon={<FaWarehouse className="text-purple-500" />} title="Stock" value={product.stock} />
-                                        <InfoCard icon={<FaBoxOpen className="text-yellow-500" />} title="Unit" value={product.unit_name || product.unit || 'N/A'} />
-                                        <InfoCard icon={<FaTag className="text-red-500" />} title="Brand" value={product.brand_name || product.brand || 'N/A'} />
-                                        <InfoCard icon={<FaInfoCircle className="text-indigo-500" />} title="Category" value={product.category_name || product.category || 'N/A'} />
-                                        
-                                        {/* New Warranty & Expiry Info Cards */}
-                                        <InfoCard 
-                                            icon={<FaShieldAlt className={product.warranty_status ? "text-green-500" : "text-gray-400"} />} 
-                                            title="Warranty" 
-                                            value={product.warranty_status ? (product.warranty_period_name || "Enabled") : "Disabled"} 
-                                        />
-                                        <InfoCard 
-                                            icon={<FaCalendarTimes className={product.has_expiry ? "text-red-500" : "text-gray-400"} />} 
-                                            title="Has Expiry" 
-                                            value={product.has_expiry ? "Yes" : "No"} 
-                                        />
-                                        <InfoCard 
-                                            icon={<FaInfoCircle className="text-blue-400" />} 
-                                            title="Low Stock Alert" 
-                                            value={product.alarm_when_stock_is_lessthanOrEqualto || 0} 
-                                        />
-                                    </div>
+                    <div className="bg-gray-900 p-10 rounded-[3rem] shadow-2xl text-white overflow-hidden relative group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-700"></div>
+                        <h2 className="font-black text-xs uppercase tracking-[0.2em] text-gray-500 mb-8">System ID</h2>
+                        <div className="space-y-8">
+                            <div className="flex gap-5">
+                                <div className="w-1.5 h-14 bg-blue-500 rounded-full shadow-lg shadow-blue-500/50"></div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase text-blue-400 tracking-widest mb-1">Global SKU</p>
+                                    <p className="text-2xl font-black">{product?.product_code || 'PENDING'}</p>
                                 </div>
                             </div>
+                            <div className="flex gap-5">
+                                <div className="w-1.5 h-14 bg-emerald-500 rounded-full shadow-lg shadow-emerald-500/50"></div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase text-emerald-400 tracking-widest mb-1">Inventory UID</p>
+                                    <p className="text-base font-black">#PRD-{product?.id}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="mt-10 flex items-center gap-3 text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] border-2 border-blue-400/20 bg-blue-400/5 p-5 rounded-2xl justify-center">
+                            <ShoppingCart size={14} /> Synchronized Entry
                         </div>
                     </div>
                 </div>
             </div>
 
-            {showEditModal && (
+            {editOpen && (
                 <UpdateProductModal
-                    isOpen={showEditModal}
-                    onClose={() => setShowEditModal(false)}
+                    isOpen={editOpen}
+                    onClose={() => setEditOpen(false)}
                     onSuccess={handleUpdateSuccess}
                     productData={product}
                 />
             )}
 
-            {showSuccessPopup && (
-                <SuccessPopup
-                    message={successMessage}
-                    onClose={() => setShowSuccessPopup(false)}
-                />
-            )}
-        </div>
+            <SuccessModal 
+                isOpen={!!successData} 
+                onClose={() => setSuccessData(null)} 
+                title="Product Updated"
+                subtitle="Database records synchronized"
+                details={[
+                    { label: "Product Name", value: successData?.name },
+                    { label: "SKU / Code", value: successData?.product_code },
+                    { label: "Update Time", value: new Date().toLocaleTimeString() }
+                ]}
+            />
+        </GenericModuleDetails>
     );
 };
 

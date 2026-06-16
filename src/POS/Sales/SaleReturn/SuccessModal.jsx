@@ -1,142 +1,82 @@
-import React, { useRef } from "react";
+import React from "react";
+import BaseModal from "../../components/BaseModal";
+import { CheckCircle, Receipt, Undo2 } from 'lucide-react';
+import { getBrandedVoucher } from "../../utils/printTemplates";
+import { getSaleReturnPrintLayout } from "./SaleReturnPrintLayout";
 
+/**
+ * SuccessModal - Refactored to use BaseModal and standardized backbone success aesthetics.
+ * Specifically for Sale Return submodule records.
+ */
 const SuccessModal = ({ isOpen, onClose, purchase, title, successMessage }) => {
-  const printRef = useRef();
+    if (!isOpen || !purchase) return null;
 
-  if (!isOpen || !purchase) return null;
+    const netRefund = parseFloat(purchase.net_return_amount || 0);
+    const paidBack = parseFloat(purchase.paid_amount || 0);
+    const pendingRefund = parseFloat(purchase.due_amount || 0);
 
-  /* =========================
-     Print handler
-     ========================= */
-  const handlePrint = () => {
-    const content = printRef.current.innerHTML;
-    const win = window.open("", "", "width=400,height=600");
+    const handlePrint = () => {
+        if (!purchase) return;
+        const tableContent = getSaleReturnPrintLayout(purchase);
+        const fullHTML = getBrandedVoucher("Sale Return", tableContent, purchase.id, "#dc2626");
+        const printWindow = window.open("", "_blank", "width=850,height=900");
+        printWindow.document.write(fullHTML);
+        printWindow.document.close();
+    };
 
-    win.document.write(`
-      <html>
-        <head>
-          <title>Sale Receipt</title>
-          <style>
-            body { font-family: monospace; padding: 10px; }
-            h2,h3 { text-align: center; margin: 5px 0; }
-            table { width: 100%; border-collapse: collapse; }
-            th,td { padding: 4px 0; font-size: 12px; }
-            th { border-bottom: 1px dashed #000; }
-            .total { border-top: 1px dashed #000; margin-top: 8px; padding-top: 6px; }
-          </style>
-        </head>
-        <body>${content}</body>
-      </html>
-    `);
+    return (
+        <BaseModal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={title || "Return Processed Successfully"}
+            size="sm"
+            variant="primary"
+        >
+            <div className="text-center space-y-6 py-2">
+                <div className="w-20 h-20 bg-rose-50 rounded-full mx-auto flex items-center justify-center shadow-inner">
+                    <Undo2 className="text-4xl text-rose-500 animate-pulse" size={40} />
+                </div>
 
-    win.document.close();
-    win.focus();
-    win.print();
-    win.close();
-  };
+                <div className="space-y-1">
+                    <h3 className="text-xl font-black text-gray-800 uppercase tracking-tighter">{title || "Success!"}</h3>
+                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">{`Return Record #${purchase.id} Created`}</p>
+                </div>
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+                <div className="bg-gray-50 rounded-2xl p-5 space-y-4 border border-gray-100 text-left">
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Net Refundable</span>
+                        <span className="font-black text-rose-600">৳{netRefund.toLocaleString()}</span>
+                    </div>
+                    
+                    <div className="pt-3 border-t border-dashed border-gray-200">
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-wider">Paid Back</span>
+                            <span className="font-black text-emerald-600 text-base">৳{paidBack.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-[10px] font-black text-amber-500 uppercase tracking-wider">Pending Balance</span>
+                            <span className="font-black text-amber-600">৳{pendingRefund.toLocaleString()}</span>
+                        </div>
+                    </div>
+                </div>
 
-        {/* Success Icon */}
-        <div className="mx-auto bg-green-100 rounded-full w-20 h-20 flex items-center justify-center">
-          <svg className="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-
-        <h2 className="text-2xl font-bold text-gray-800 mt-4 text-center">
-          {title || "Purchase Completed!"}
-        </h2>
-
-        <p className="text-gray-600 mb-4 text-center">
-          Invoice #{purchase.invoice_no}
-        </p>
-
-        {/* =========================
-           Printable Receipt
-           ========================= */}
-        <div ref={printRef} className="bg-gray-50 rounded-lg p-4 my-4 text-sm">
-
-          <h3 className="font-bold text-center text-base">SAlE RETURN RECEIPT</h3>
-
-          <div className="mt-2 space-y-1 text-xs">
-            <p><strong>Date:</strong> {new Date(purchase.created_at).toLocaleString()}</p>
-            <p><strong>Customer:</strong> {purchase.customer_name ?? "N/A"}</p>
-            <p><strong>Payment:</strong> {purchase.payment_method}</p>
-            <p><strong>Status:</strong> {purchase.payment_status}</p>
-          </div>
-
-          {/* Items */}
-          <table className="w-full mt-3 text-xs">
-            <thead>
-              <tr>
-                <th align="left">Item</th>
-                <th align="center">Qty</th>
-                <th align="right">Price</th>
-              </tr>
-            </thead>
-            <tbody>
-              {purchase.items && purchase.items.length > 0 ? (
-                purchase.items.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.product_name}</td>
-                    <td align="center">{item.sale_return_quantity}</td>
-                    <td align="right">{item.total_price}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="3" className="text-center text-gray-400">
-                    No items
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-
-          {/* Totals */}
-          <div className="mt-3 text-xs total">
-            <p className="flex justify-between">
-              <span>Total</span>
-              <span>{purchase.total_amount}</span>
-            </p>
-            <p className="flex justify-between">
-              <span>Paid</span>
-              <span>{purchase.paid_amount}</span>
-            </p>
-            <p className="flex justify-between font-semibold">
-              <span>Due</span>
-              <span>{purchase.due_amount}</span>
-            </p>
-          </div>
-
-          <p className="text-center mt-3 text-xs">
-            {successMessage || "Stock updated successfully"}
-          </p>
-        </div>
-
-        {/* Buttons */}
-        <div className="space-y-2">
-          <button
-            onClick={handlePrint}
-            className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
-          >
-            Print Slip
-          </button>
-
-          <button
-            onClick={onClose}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg font-semibold"
-          >
-            Close
-          </button>
-        </div>
-
-      </div>
-    </div>
-  );
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                    <button
+                        onClick={handlePrint}
+                        className="py-3.5 bg-gray-900 hover:bg-black text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95"
+                    >
+                        <Receipt size={14} /> Print Voucher
+                    </button>
+                    <button
+                        onClick={onClose}
+                        className="py-3.5 border-2 border-gray-100 text-gray-700 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-gray-50 transition-all active:scale-95"
+                    >
+                        Dismiss
+                    </button>
+                </div>
+            </div>
+        </BaseModal>
+    );
 };
 
 export default SuccessModal;

@@ -4,8 +4,8 @@ import { Edit, Trash2, Eye, Banknote, Calendar, User } from 'lucide-react';
 import BackboneTable from "../../components/BackboneTable";
 import StatusBadge from "../../components/StatusBadge";
 import { salaryPayslipAPI } from "../../../context_or_provider/pos/EmployeeSalaryPayslip/salary_payslipAPI";
-import UpdateEmployeeSalaryPayslipSuccessPopup from "./UpdateEmployeeSalaryPayslipSuccessPopup";
-import LoadingSpinner from "./LoadingSpinner";
+import SuccessPopup from "../../components/SuccessPopup";
+import LoadingSpinner from "../../components/LoadingSpinner";
 import UpdateSalaryAdvanceModal from "./UpdateEmployeeSalaryPayslipModal";
 
 /**
@@ -147,9 +147,10 @@ const EmployeeSalaryPayslipList = ({ advance, onEdit }) => {
             )}
 
             {showSuccess && (
-                <UpdateEmployeeSalaryPayslipSuccessPopup
+                <SuccessPopup
                     message={successMessage}
                     onClose={() => setShowSuccess(false)}
+                    type="success"
                 />
             )}
         </>

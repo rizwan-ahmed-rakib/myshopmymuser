@@ -291,7 +291,6 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import ProductCard from "./ProductCard";
 import ProductList from "./ProductList";
 import AddProductModal from "./AddProductModal";
-import SuccessModal from "./SuccessModal";
 import LoadingSpinner from "./LoadingSpinner";
 import { usePosProducts } from "../../../context_or_provider/pos/products/product_provider";
 import { posProductAPI } from "../../../context_or_provider/pos/products/productAPI";
@@ -302,6 +301,7 @@ import { posCategoryAPI } from "../../../context_or_provider/pos/categories/cate
 import { posSizeAPI } from "../../../context_or_provider/pos/sizes/sizeAPI";
 import { Package, CheckCircle2, AlertTriangle, ShoppingCart, DollarSign, ArrowUpDown, Layers, Award } from 'lucide-react';
 import useModuleData from "../../hooks/useModuleData";
+import SuccessModal from "../../components/SuccessModal";
 
 const ProductGrid = ({
     viewType,
@@ -542,7 +542,17 @@ const ProductGrid = ({
             </div>
 
             <AddProductModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onSuccess={handleProductAdded} />
-            <SuccessModal isOpen={!!successData} employee={successData} onClose={() => setSuccessData(null)} />
+            <SuccessModal 
+                isOpen={!!successData} 
+                onClose={() => setSuccessData(null)} 
+                title={successType === 'update' ? "Product Updated" : "Product Registered"}
+                subtitle="Database synchronized successfully"
+                details={[
+                    { label: "Product Name", value: successData?.name },
+                    { label: "Retail Price", value: `৳${parseFloat(successData?.selling_price || 0).toLocaleString()}` },
+                    { label: "SKU / Code", value: successData?.product_code || "N/A" }
+                ]}
+            />
         </div>
     );
 };

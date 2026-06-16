@@ -1,17 +1,21 @@
 import React, {useState, useMemo, useEffect} from "react";
 import AsyncSelect from "react-select/async";
-import axios from "axios";
-import BASE_URL_of_POS from "../../../posConfig";
+import api from '../../../context_or_provider/pos/posApi';
+
 import {posPurchaseProductAPI} from "../../../context_or_provider/pos/Purchase/purchaseProduct/productPurchaseAPI";
 import {posPurchaseReturnAPI} from "../../../context_or_provider/pos/Purchase/purchaseReturnProduct/purchaseReturnAPI";
+import BaseModal from "../../components/BaseModal";
+import { Undo2, Search, FileText, Package, Banknote, CreditCard, Wallet, Info, AlertTriangle } from 'lucide-react';
 
+/**
+ * AddPurchaseReturnModal - Refactored to use BaseModal and standardized backbone layout.
+ */
 const AddPurchaseReturnModal = ({isOpen, onClose, onSuccess}) => {
     const [purchase, setPurchase] = useState(null);
     const [returnItems, setReturnItems] = useState({});
     const [itemPenalties, setItemPenalties] = useState({});
     const [globalPenalty, setGlobalPenalty] = useState(0);
 
-    // Hybrid Payment States
     const [paidCash, setPaidCash] = useState(0);
     const [paidMobile, setPaidMobile] = useState(0);
     const [paidBank, setPaidBank] = useState(0);
@@ -27,17 +31,20 @@ const AddPurchaseReturnModal = ({isOpen, onClose, onSuccess}) => {
     const [returnReason, setReturnReason] = useState("");
 
     const [activeSerialTab, setActiveSerialTab] = useState(null);
-    const [instances, setInstances] = useState({}); // {productId: [instances]}
-    const [returnedSerials, setReturnedSerials] = useState({}); // {itemId: [serialNumbers]}
+    const [instances, setInstances] = useState({});
+    const [returnedSerials, setReturnedSerials] = useState({});
+
+    useEffect(() => {
+        const counts = [paidCash > 0, paidMobile > 0, paidBank > 0].filter(Boolean).length;
+        if (counts > 1) setPaymentMethod("hybrid");
+        else if (paidMobile > 0) setPaymentMethod("mobile_banking");
+        else if (paidBank > 0) setPaymentMethod("bank");
+        else setPaymentMethod("hand cash");
+    }, [paidCash, paidMobile, paidBank]);
 
     const fetchInstances = async (invoiceNo) => {
         try {
-            const token = localStorage.getItem("token");
-            const response = await axios.get(`${BASE_URL_of_POS}/api/bar-qr/instances/?purchase_invoice_no=${invoiceNo}`, {
-                headers: token ? {Authorization: `Bearer ${token}`} : {}
-            });
-
-            // Group by product ID
+            const response = await api.get(`/api/bar-qr/instances/?purchase_invoice_no=${invoiceNo}`);
             const grouped = response.data.reduce((acc, curr) => {
                 const pid = curr.product;
                 if (!acc[pid]) acc[pid] = [];
@@ -45,41 +52,9 @@ const AddPurchaseReturnModal = ({isOpen, onClose, onSuccess}) => {
                 return acc;
             }, {});
             setInstances(grouped);
-        } catch (err) {
-            console.error("Failed to fetch instances:", err);
-        }
+        } catch (err) { console.error(err); }
     };
 
-    const toggleSerialReturn = (itemId, productId, serial, maxToReturn) => {
-        setReturnedSerials(prev => {
-            const current = prev[itemId] || [];
-            if (current.includes(serial)) {
-                return {...prev, [itemId]: current.filter(s => s !== serial)};
-            } else {
-                if (current.length >= maxToReturn) {
-                    alert(`Limit reached! You can only return up to ${maxToReturn} serial(s) for this item.`);
-                    return prev;
-                }
-                return {...prev, [itemId]: [...current, serial]};
-            }
-        });
-    };
-
-    // Auto update payment method based on inputs
-    useEffect(() => {
-        const counts = [paidCash > 0, paidMobile > 0, paidBank > 0].filter(Boolean).length;
-        if (counts > 1) {
-            setPaymentMethod("hybrid");
-        } else if (paidMobile > 0) {
-            setPaymentMethod("mobile_banking");
-        } else if (paidBank > 0) {
-            setPaymentMethod("bank");
-        } else {
-            setPaymentMethod("hand cash");
-        }
-    }, [paidCash, paidMobile, paidBank]);
-
-    /* ================= CALCULATIONS ================= */
     const totalReturnAmount = useMemo(() => {
         if (!purchase) return 0;
         return purchase.items.reduce((sum, item) => {
@@ -96,40 +71,21 @@ const AddPurchaseReturnModal = ({isOpen, onClose, onSuccess}) => {
     const totalPaid = Number(paidCash) + Number(paidMobile) + Number(paidBank);
     const dueAmount = netReturnAmount - totalPaid;
 
-    if (!isOpen) return null;
-
-    /* ================= LOAD PURCHASE ================= */
     const loadPurchaseOptions = async (input) => {
         const res = await posPurchaseProductAPI.search(input || "");
-        return res.data.map(p => ({
-            value: p.id,
-            label: `Invoice #${p.invoice_no}`,
-        }));
+        return res.data.map(p => ({ value: p.id, label: `Invoice #${p.invoice_no}` }));
     };
 
-    /* ================= PURCHASE SELECT ================= */
     const handlePurchaseSelect = async (option) => {
-        if (!option) {
-            setPurchase(null);
-            return;
-        }
-        // Purchase details
+        if (!option) { setPurchase(null); return; }
         const purchaseRes = await posPurchaseProductAPI.getById(option.value);
         const purchaseData = purchaseRes.data;
-
-        // All purchase returns
         const returnRes = await posPurchaseReturnAPI.getAll();
+        const relatedReturns = returnRes.data.filter(r => r.purchase === option.value);
 
-        // Filter returns of this purchase
-        const relatedReturns = returnRes.data.filter(
-            r => r.purchase === option.value
-        );
-
-        // If a return already exists, store its ID for potential update
         if (relatedReturns.length > 0) {
             const latestReturn = relatedReturns[0];
             setExistingReturnId(latestReturn.id);
-
             setNote(latestReturn.note || "");
             setReturnReason(latestReturn.return_reason || "");
             setPaidCash(parseFloat(latestReturn.paid_cash) || 0);
@@ -138,384 +94,266 @@ const AddPurchaseReturnModal = ({isOpen, onClose, onSuccess}) => {
             setGlobalPenalty(parseFloat(latestReturn.global_penalty) || 0);
         } else {
             setExistingReturnId(null);
-            setNote("");
-            setReturnReason("");
-            setPaidCash(0);
-            setPaidMobile(0);
-            setPaidBank(0);
-            setGlobalPenalty(0);
+            setNote(""); setReturnReason(""); setPaidCash(0); setPaidMobile(0); setPaidBank(0); setGlobalPenalty(0);
         }
 
-        // Calculate already returned quantity per purchase_item
         const newReturnedMap = {};
         relatedReturns.forEach(r => {
-            r.items.forEach(i => {
-                newReturnedMap[i.purchase_item] =
-                    (newReturnedMap[i.purchase_item] || 0) + i.purchase_return_quantity;
-            });
+            r.items.forEach(i => { newReturnedMap[i.purchase_item] = (newReturnedMap[i.purchase_item] || 0) + i.purchase_return_quantity; });
         });
         setReturnedQuantitiesMap(newReturnedMap);
-
         setPurchase(purchaseData);
-        setReturnItems({});
-        setItemPenalties({});
-        setReturnedSerials({});
+        setReturnItems({}); setItemPenalties({}); setReturnedSerials({});
         fetchInstances(purchaseData.invoice_no);
     };
 
-    /* ================= Handle Quantity Change ================= */
     const handleQtyChange = (item, quantity) => {
         const qty = Number(quantity);
-        const alreadyReturned = returnedQuantitiesMap[item.id] || 0;
-        const availableQuantity = item.quantity - alreadyReturned;
-
-        if (qty > availableQuantity) {
-            alert("Return quantity cannot exceed available quantity");
-            return;
-        }
-        setReturnItems({
-            ...returnItems,
-            [item.id]: qty,
-        });
-
+        const availableQuantity = item.quantity - (returnedQuantitiesMap[item.id] || 0);
+        if (qty > availableQuantity) { alert("Exceeds available quantity"); return; }
+        setReturnItems({ ...returnItems, [item.id]: qty });
         if (qty === 0) {
-            const newPenalties = {...itemPenalties};
-            delete newPenalties[item.id];
-            setItemPenalties(newPenalties);
+            const newPenalties = {...itemPenalties}; delete newPenalties[item.id]; setItemPenalties(newPenalties);
         }
     };
 
-    const handlePenaltyChange = (itemId, penalty) => {
-        setItemPenalties({
-            ...itemPenalties,
-            [itemId]: Number(penalty),
-        });
-    };
-
-    /* ================= SUBMIT ================= */
     const handleSubmit = async () => {
-        if (!purchase) {
-            alert("Purchase select করুন");
-            return;
-        }
-
-        const items = purchase.items
-            .filter(i => Number(returnItems[i.id]) > 0)
-            .map(i => ({
-                purchase_item: i.id,
-                purchase_return_quantity: Number(returnItems[i.id]),
-                unit_price: i.unit_price,
-                penalty_amount: Number(itemPenalties[i.id] || 0),
-                reason: returnReason || "Returned",
-                returned_serials: returnedSerials[i.id] || [],
-            }));
-
-        if (!items.length) {
-            alert("কমপক্ষে একটি item return করুন");
-            return;
-        }
+        if (!purchase) { alert("Please select a purchase invoice"); return; }
+        const items = purchase.items.filter(i => Number(returnItems[i.id]) > 0).map(i => ({
+            purchase_item: i.id, purchase_return_quantity: Number(returnItems[i.id]), unit_price: i.unit_price,
+            penalty_amount: Number(itemPenalties[i.id] || 0), reason: returnReason || "Returned", returned_serials: returnedSerials[i.id] || [],
+        }));
+        if (!items.length) { alert("Select at least one item to return"); return; }
 
         const payload = {
-            purchase: purchase.id,
-            supplier: purchase.supplier,
-            total_return_amount: totalReturnAmount,
-            total_item_penalty: totalItemPenalty,
-            global_penalty: Number(globalPenalty),
-            net_return_amount: netReturnAmount,
-            paid_cash: paidCash,
-            paid_mobile: paidMobile,
-            paid_bank: paidBank,
-            mobile_operator: paidMobile > 0 ? mobileOperator : "",
-            transaction_id: paidMobile > 0 ? transactionId : "",
-            bank_account_no: paidBank > 0 ? bankAccountNo : "",
-            payment_method: paymentMethod,
-            note: note,
-            return_reason: returnReason,
-            items,
+            purchase: purchase.id, supplier: purchase.supplier, total_return_amount: totalReturnAmount, total_item_penalty: totalItemPenalty,
+            global_penalty: Number(globalPenalty), net_return_amount: netReturnAmount, paid_cash: paidCash, paid_mobile: paidMobile, paid_bank: paidBank,
+            mobile_operator: paidMobile > 0 ? mobileOperator : "", transaction_id: paidMobile > 0 ? transactionId : "", bank_account_no: paidBank > 0 ? bankAccountNo : "",
+            payment_method: paymentMethod, note: note, return_reason: returnReason, items,
         };
 
         try {
             setLoading(true);
             let response;
-            if (existingReturnId) {
-                response = await posPurchaseReturnAPI.update(existingReturnId, payload);
-            } else {
-                response = await posPurchaseReturnAPI.create(payload);
-            }
+            if (existingReturnId) response = await posPurchaseReturnAPI.update(existingReturnId, payload);
+            else response = await posPurchaseReturnAPI.create(payload);
             onSuccess?.(response.data);
+            resetForm();
         } catch (err) {
             console.error(err);
-            alert(`Purchase return failed: ${err.response?.data?.message || err.message}`);
-        } finally {
-            setLoading(false);
-        }
+            alert(`Failed: ${err.response?.data?.message || err.message}`);
+        } finally { setLoading(false); }
     };
 
-    /* ================= RESET FORM ================= */
     const resetForm = () => {
-        setPurchase(null);
-        setReturnItems({});
-        setItemPenalties({});
-        setGlobalPenalty(0);
-        setPaidCash(0);
-        setPaidMobile(0);
-        setPaidBank(0);
-        setReturnedQuantitiesMap({});
-        setExistingReturnId(null);
-        setNote("");
-        setReturnReason("");
-        onClose();
+        setPurchase(null); setReturnItems({}); setItemPenalties({}); setGlobalPenalty(0); setPaidCash(0); setPaidMobile(0); setPaidBank(0);
+        setReturnedQuantitiesMap({}); setExistingReturnId(null); setNote(""); setReturnReason(""); onClose();
     };
 
-    /* ================= UI ================= */
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-xl w-full max-w-4xl max-h-[95vh] overflow-y-auto">
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold">Purchase Return</h2>
+        <BaseModal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Record Purchase Return"
+            size="xl"
+            icon={<Undo2 className="text-white" />}
+            showFooter={true}
+            onSubmit={handleSubmit}
+            submitText={existingReturnId ? "Update Return Record" : "Confirm Purchase Return"}
+            isLoading={loading}
+        >
+            <div className="space-y-6">
+                {/* Search Header */}
+                <div className="bg-gray-50/50 p-5 rounded-2xl border border-gray-100 space-y-4">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                            <Search size={12} className="text-brand-primary" /> Find Original Invoice
+                        </label>
+                        <AsyncSelect
+                            loadOptions={loadPurchaseOptions} onChange={handlePurchaseSelect} placeholder="Search by invoice number..." isClearable
+                            styles={{ control: (base) => ({ ...base, borderRadius: '12px', padding: '2px' }) }}
+                        />
+                    </div>
+
                     {purchase && (
-                        <span
-                            className={`px-3 py-1 rounded-full text-sm font-semibold ${existingReturnId ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}`}>
-              {existingReturnId ? 'Update Return' : 'New Return'}
-            </span>
+                        <div className="grid grid-cols-2 gap-4 animate-in fade-in duration-300">
+                            <div className="space-y-1.5">
+                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Return Reason</label>
+                                <textarea className="w-full border border-gray-200 p-2.5 rounded-xl text-xs font-bold focus:ring-2 focus:ring-rose-100 focus:border-rose-400 outline-none" rows="1" value={returnReason} onChange={e => setReturnReason(e.target.value)} placeholder="e.g. Defective items" />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Additional Note</label>
+                                <textarea className="w-full border border-gray-200 p-2.5 rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-100 focus:border-blue-400 outline-none" rows="1" value={note} onChange={e => setNote(e.target.value)} placeholder="Any internal remarks..." />
+                            </div>
+                        </div>
                     )}
                 </div>
 
-                <div className="mb-4">
-                    <label className="block text-sm font-medium mb-1">Select Purchase Invoice</label>
-                    <AsyncSelect
-                        loadOptions={loadPurchaseOptions}
-                        onChange={handlePurchaseSelect}
-                        placeholder="Search purchase invoice..."
-                        isClearable
-                    />
-                </div>
-
-                {purchase && (
-                    <>
-                        <div className="mb-4 grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Return Reason</label>
-                                <textarea className="input w-full" rows="1" value={returnReason}
-                                          onChange={e => setReturnReason(e.target.value)}/>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1">Note</label>
-                                <textarea className="input w-full" rows="1" value={note}
-                                          onChange={e => setNote(e.target.value)}/>
-                            </div>
-                        </div>
-
-                        <div className="overflow-x-auto rounded-lg border">
-                            <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-4 py-2 text-left text-xs font-bold uppercase">Product</th>
-                                    <th className="px-4 py-2 text-center text-xs font-bold uppercase">Bought</th>
-                                    <th className="px-4 py-2 text-center text-xs font-bold uppercase">Avail.</th>
-                                    <th className="px-4 py-2 text-center text-xs font-bold uppercase">Return Qty</th>
-                                    <th className="px-4 py-2 text-right text-xs font-bold uppercase">Unit Price</th>
-                                    <th className="px-4 py-2 text-right text-xs font-bold uppercase text-red-600">Penalty</th>
-                                    <th className="px-4 py-2 text-right text-xs font-bold uppercase">Total</th>
-                                    <th className="px-4 py-2 text-center text-xs font-bold uppercase">Actions</th>
-                                </tr>
+                {purchase ? (
+                    <div className="space-y-6">
+                        {/* Items Table */}
+                        <div className="overflow-hidden border border-gray-100 rounded-2xl shadow-sm">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-gray-50 border-b border-gray-100">
+                                    <tr>
+                                        <th className="px-5 py-3 text-[10px] font-black text-gray-500 uppercase tracking-widest">Product</th>
+                                        <th className="px-5 py-3 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Avail.</th>
+                                        <th className="px-5 py-3 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center w-24">Return</th>
+                                        <th className="px-5 py-3 text-[10px] font-black text-rose-500 uppercase tracking-widest text-right">Penalty</th>
+                                        <th className="px-5 py-3 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right w-28">Total</th>
+                                        <th className="px-5 py-3 w-16"></th>
+                                    </tr>
                                 </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
-                                {purchase.items.map(item => {
-                                    const alreadyReturned = returnedQuantitiesMap[item.id] || 0;
-                                    const availableQuantity = item.quantity - alreadyReturned;
-                                    const qty = Number(returnItems[item.id] || 0);
-                                    const penalty = Number(itemPenalties[item.id] || 0);
-                                    const total = (qty * Number(item.unit_price)) - penalty;
+                                <tbody className="divide-y divide-gray-50">
+                                    {purchase.items.map(item => {
+                                        const alreadyReturned = returnedQuantitiesMap[item.id] || 0;
+                                        const avail = item.quantity - alreadyReturned;
+                                        const qty = Number(returnItems[item.id] || 0);
+                                        const penalty = Number(itemPenalties[item.id] || 0);
+                                        const total = (qty * Number(item.unit_price)) - penalty;
 
-                                    return (
-                                        <React.Fragment key={item.id}>
-                                            <tr className="hover:bg-gray-50 transition-colors">
-                                                <td className="px-4 py-2 text-sm font-medium">{item.product_name}</td>
-                                                <td className="px-4 py-2 text-center text-sm">{item.quantity}</td>
-                                                <td className="px-4 py-2 text-center text-sm">{availableQuantity}</td>
-                                                <td className="px-4 py-2">
-                                                    <input type="number" min="0" max={availableQuantity}
-                                                           className="input w-20 text-center mx-auto block"
-                                                           value={returnItems[item.id] || ""}
-                                                           onChange={e => handleQtyChange(item, e.target.value)}/>
-                                                </td>
-                                                <td className="px-4 py-2 text-right text-sm">৳{item.unit_price}</td>
-                                                <td className="px-4 py-2">
-                                                    <input type="number" min="0"
-                                                           className="input w-24 text-right mx-auto block text-red-600"
-                                                           value={itemPenalties[item.id] || ""}
-                                                           onChange={e => handlePenaltyChange(item.id, e.target.value)}
-                                                           disabled={qty === 0}/>
-                                                </td>
-                                                <td className="px-4 py-2 text-right font-bold text-sm">৳{total.toFixed(2)}</td>
-                                                <td className="px-4 py-2 text-center">
-                                                    <button
-                                                        onClick={() => setActiveSerialTab(activeSerialTab === item.id ? null : item.id)}
-                                                        className={`p-1 px-2 rounded text-[10px] font-bold ${activeSerialTab === item.id ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}
-                                                        title="Select Serials to Return"
-                                                    >
-                                                        SERIALS
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                            {activeSerialTab === item.id && (
-                                                <tr className="bg-gray-50 border-b">
-                                                    <td colSpan="8" className="px-4 py-4">
-                                                        <div
-                                                            className="bg-white p-4 rounded-lg border border-gray-200 shadow-inner">
-                                                            {(() => {
-                                                                const currentInstances = instances[item.product] || [];
-                                                                const maxToReturn = qty;
-                                                                const currentlySelected = (returnedSerials[item.id] || []).length;
-
-                                                                return (
-                                                                    <>
-                                                                        <div
-                                                                            className="flex justify-between items-center mb-3">
-                                                                            <h4 className="text-sm font-bold text-gray-700 uppercase">Return
-                                                                                Serials for {item.product_name}</h4>
-                                                                            <div className="flex gap-2">
-                                                                                <div
-                                                                                    className={`text-[10px] font-bold px-2 py-1 rounded ${currentlySelected === maxToReturn ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                                                    Selected: {currentlySelected} / {maxToReturn}
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
-
-                                                                        <div className="mb-4">
-                                                                            <input
-                                                                                type="text"
-                                                                                placeholder={maxToReturn > 0 ? "Scan Serial to Return..." : "Quantity is 0 - return disabled"}
-                                                                                disabled={maxToReturn === 0}
-                                                                                className="w-full border p-2 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100"
-                                                                                onKeyDown={(e) => {
-                                                                                    if (e.key === 'Enter') {
-                                                                                        const serial = e.target.value.trim();
-                                                                                        if (serial && currentInstances.some(inst => inst.unique_serial === serial)) {
-                                                                                            toggleSerialReturn(item.id, item.product, serial, maxToReturn);
-                                                                                            e.target.value = '';
-                                                                                        }
-                                                                                    }
-                                                                                }}
-                                                                            />
-                                                                        </div>
-
-                                                                        <div
-                                                                            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-40 overflow-y-auto p-1">
-                                                                            {currentInstances.map(inst => {
-                                                                                const isReturning = (returnedSerials[item.id] || []).includes(inst.unique_serial);
-                                                                                const isSold = inst.status !== 'in_stock';
-                                                                                return (
-                                                                                    <div
-                                                                                        key={inst.id}
-                                                                                        onClick={() => !isSold && (isReturning || currentlySelected < maxToReturn || alert(`Limit of ${maxToReturn} reached`)) && toggleSerialReturn(item.id, item.product, inst.unique_serial, maxToReturn)}
-                                                                                        className={`p-2 border rounded text-[9px] cursor-pointer transition-all flex flex-col items-center text-center ${
-                                                                                            isReturning ? 'bg-red-50 border-red-300 text-red-600 shadow-sm' :
-                                                                                                isSold ? 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60' :
-                                                                                                    'bg-white border-gray-200 hover:border-blue-400'
-                                                                                        }`}
-                                                                                    >
-                                                                                        <span
-                                                                                            className="font-bold truncate w-full">{inst.unique_serial.split('-').pop()}</span>
-                                                                                        <span
-                                                                                            className={`mt-1 px-1 rounded-full text-[7px] font-black uppercase ${isReturning ? 'bg-red-500 text-white' : isSold ? 'bg-gray-400 text-white' : 'bg-green-500 text-white'}`}>
-                                                {isReturning ? 'RETURNING' : isSold ? 'SOLD' : 'AVAILABLE'}
-                                              </span>
-                                                                                    </div>
-                                                                                );
-                                                                            })}
-                                                                        </div>
-                                                                    </>
-                                                                );
-                                                            })()}
-                                                        </div>
+                                        return (
+                                            <React.Fragment key={item.id}>
+                                                <tr className="hover:bg-rose-50/20 transition-colors">
+                                                    <td className="px-5 py-4">
+                                                        <p className="font-bold text-gray-900 text-sm">{item.product_name}</p>
+                                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-tighter mt-0.5">Bought: {item.quantity} units</p>
+                                                    </td>
+                                                    <td className="px-5 py-4 text-center">
+                                                        <span className="bg-blue-50 text-blue-700 text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-tighter">{avail}</span>
+                                                    </td>
+                                                    <td className="px-5 py-4">
+                                                        <input type="number" min="0" max={avail} className="w-full border border-gray-200 p-2 rounded-lg text-center font-black text-sm focus:border-rose-400 outline-none" value={returnItems[item.id] || ""} onChange={e => handleQtyChange(item, e.target.value)} />
+                                                    </td>
+                                                    <td className="px-5 py-4">
+                                                        <input type="number" min="0" className="w-full border border-rose-100 p-2 rounded-lg text-right font-black text-sm text-rose-600 focus:border-rose-400 outline-none bg-rose-50/30" value={itemPenalties[item.id] || ""} onChange={e => setItemPenalties({ ...itemPenalties, [item.id]: Number(e.target.value) })} disabled={qty === 0} />
+                                                    </td>
+                                                    <td className="px-5 py-4 text-right">
+                                                        <span className="font-black text-blue-700 text-sm">৳{total.toLocaleString()}</span>
+                                                    </td>
+                                                    <td className="px-5 py-4 text-center">
+                                                        <button onClick={() => setActiveSerialTab(activeSerialTab === item.id ? null : item.id)} className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-lg transition-all ${activeSerialTab === item.id ? 'bg-blue-600 text-white shadow-md' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}>Serials</button>
                                                     </td>
                                                 </tr>
-                                            )}
-                                        </React.Fragment>
-                                    );
-                                })}
+                                                {activeSerialTab === item.id && (
+                                                    <tr className="bg-blue-50/20">
+                                                        <td colSpan="6" className="px-8 py-5">
+                                                            <div className="bg-white p-5 rounded-2xl border border-blue-100 shadow-inner space-y-4">
+                                                                <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center justify-between">
+                                                                    <span className="flex items-center gap-2"><Info size={12} className="text-blue-500" /> Return Serial Selection</span>
+                                                                    <span className={`px-2 py-1 rounded-full ${returnedSerials[item.id]?.length === qty ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700'}`}>Selected: {returnedSerials[item.id]?.length || 0} / {qty}</span>
+                                                                </h4>
+                                                                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2">
+                                                                    {(instances[item.product] || []).map(inst => {
+                                                                        const isReturning = (returnedSerials[item.id] || []).includes(inst.unique_serial);
+                                                                        const isSold = inst.status !== 'in_stock';
+                                                                        return (
+                                                                            <div key={inst.id} onClick={() => !isSold && setReturnedSerials(prev => {
+                                                                                const curr = prev[item.id] || [];
+                                                                                if (isReturning) return { ...prev, [item.id]: curr.filter(s => s !== inst.unique_serial) };
+                                                                                if (curr.length >= qty) return prev;
+                                                                                return { ...prev, [item.id]: [...curr, inst.unique_serial] };
+                                                                            })} className={`p-2 border rounded-xl cursor-pointer transition-all flex flex-col items-center gap-1 ${isReturning ? 'bg-rose-50 border-rose-200 text-rose-600' : isSold ? 'opacity-40 grayscale border-gray-100 cursor-not-allowed' : 'bg-white border-gray-100 hover:border-blue-300 shadow-sm'}`}>
+                                                                                <span className="text-[9px] font-bold truncate w-full text-center">{inst.unique_serial.split('-').pop()}</span>
+                                                                                <span className={`text-[7px] font-black px-1.5 rounded-full uppercase tracking-widest ${isReturning ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white'}`}>{isReturning ? 'Returning' : 'Keep'}</span>
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </React.Fragment>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
 
-                        <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <div className="bg-gray-50 p-4 rounded-xl border space-y-4">
-                                <label className="block text-sm font-bold text-gray-700">Receive from Supplier</label>
-                                <div className="grid grid-cols-3 gap-3">
-                                    <div><label
-                                        className="text-[10px] uppercase font-bold text-gray-500">Cash</label><input
-                                        type="number" className="w-full border p-2 rounded-lg font-bold"
-                                        value={paidCash} onChange={(e) => setPaidCash(Number(e.target.value))}/></div>
-                                    <div><label className="text-[10px] uppercase font-bold text-gray-500">Mobile</label><input
-                                        type="number" className="w-full border p-2 rounded-lg font-bold"
-                                        value={paidMobile} onChange={(e) => setPaidMobile(Number(e.target.value))}/>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pt-6 border-t border-gray-100">
+                            {/* Collection Side */}
+                            <div className="space-y-6">
+                                <div className="bg-gray-50/50 p-6 rounded-[2.5rem] border border-gray-100 space-y-6 shadow-sm">
+                                    <label className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                                        <Wallet size={14} className="text-brand-primary" /> Refund Collection
+                                    </label>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Cash</label>
+                                            <input type="number" className="w-full border border-gray-200 p-2.5 rounded-xl font-black text-emerald-600 text-sm focus:border-emerald-300 outline-none shadow-inner bg-white" value={paidCash} onChange={(e) => setPaidCash(Number(e.target.value))} />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Mobile</label>
+                                            <input type="number" className="w-full border border-gray-200 p-2.5 rounded-xl font-black text-purple-600 text-sm focus:border-purple-300 outline-none shadow-inner bg-white" value={paidMobile} onChange={(e) => setPaidMobile(Number(e.target.value))} />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Bank</label>
+                                            <input type="number" className="w-full border border-gray-200 p-2.5 rounded-xl font-black text-blue-600 text-sm focus:border-blue-300 outline-none shadow-inner bg-white" value={paidBank} onChange={(e) => setPaidBank(Number(e.target.value))} />
+                                        </div>
                                     </div>
-                                    <div><label
-                                        className="text-[10px] uppercase font-bold text-gray-500">Bank</label><input
-                                        type="number" className="w-full border p-2 rounded-lg font-bold"
-                                        value={paidBank} onChange={(e) => setPaidBank(Number(e.target.value))}/></div>
-                                </div>
 
-                                {paidMobile > 0 && (
-                                    <div className="grid grid-cols-2 gap-3 p-3 bg-orange-50 rounded-lg border">
-                                        <div><label className="text-[10px] uppercase font-bold">Operator</label><select
-                                            className="w-full border p-2 rounded-lg bg-white" value={mobileOperator}
-                                            onChange={(e) => setMobileOperator(e.target.value)}>
-                                            <option value="">Select</option>
-                                            <option value="bkash">bKash</option>
-                                            <option value="nagad">Nagad</option>
-                                        </select></div>
-                                        <div><label className="text-[10px] uppercase font-bold">Trx ID</label><input
-                                            className="w-full border p-2 rounded-lg" value={transactionId}
-                                            onChange={(e) => setTransactionId(e.target.value)}/></div>
-                                    </div>
-                                )}
-                                {paidBank > 0 && (
-                                    <div className="p-3 bg-blue-50 rounded-lg border"><label
-                                        className="text-[10px] uppercase font-bold">Bank A/C</label><input
-                                        className="w-full border p-2 rounded-lg" value={bankAccountNo}
-                                        onChange={(e) => setBankAccountNo(e.target.value)}/></div>
-                                )}
+                                    {(paidMobile > 0 || paidBank > 0) && (
+                                        <div className="p-4 bg-white rounded-2xl border border-gray-100 space-y-3 animate-in slide-in-from-top-2">
+                                            {paidMobile > 0 && (
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <select className="border border-gray-100 p-2 rounded-lg text-xs font-bold outline-none bg-gray-50" value={mobileOperator} onChange={(e) => setMobileOperator(e.target.value)}>
+                                                        <option value="">Operator</option><option value="bkash">bKash</option><option value="nagad">Nagad</option>
+                                                    </select>
+                                                    <input className="border border-gray-100 p-2 rounded-lg text-xs font-bold outline-none bg-gray-50" placeholder="TxID" value={transactionId} onChange={(e) => setTransactionId(e.target.value)} />
+                                                </div>
+                                            )}
+                                            {paidBank > 0 && (
+                                                <input className="w-full border border-gray-100 p-2 rounded-lg text-xs font-bold outline-none bg-gray-50" placeholder="Bank Reference / A/C" value={bankAccountNo} onChange={(e) => setBankAccountNo(e.target.value)} />
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
-                            <div className="bg-gray-900 text-white p-6 rounded-xl space-y-3">
-                                <div className="flex justify-between text-sm"><span>Gross Return Amount</span><span
-                                    className="font-mono">৳{totalReturnAmount.toFixed(2)}</span></div>
-                                <div className="flex justify-between text-sm text-red-400">
-                                    <span>Total Item Penalty</span><span
-                                    className="font-mono">- ৳{totalItemPenalty.toFixed(2)}</span></div>
-                                <div className="flex justify-between items-center text-sm text-red-400">
-                                    <span>Global Penalty</span>
-                                    <input type="number"
-                                           className="w-24 bg-gray-800 border-gray-700 rounded text-right p-1 font-mono text-white"
-                                           value={globalPenalty}
-                                           onChange={e => setGlobalPenalty(Number(e.target.value))}/>
+                            {/* Totals Side */}
+                            <div className="bg-gray-900 text-white p-8 rounded-[3rem] space-y-6 shadow-2xl relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-700"></div>
+                                <div className="space-y-4 relative z-10">
+                                    <div className="flex justify-between items-center text-gray-500 text-[10px] font-black uppercase tracking-[0.2em] border-b border-gray-800 pb-4">
+                                        <span>Gross Return</span> <span className="font-mono text-base">৳{totalReturnAmount.toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center border-b border-gray-800 pb-4">
+                                        <span className="text-rose-400 text-[10px] font-black uppercase tracking-[0.2em]">Total Penalties</span>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xs font-black text-rose-500">Global:</span>
+                                            <input type="number" className="w-20 bg-gray-800 border-none rounded-lg text-right p-1.5 font-black text-xs text-rose-400 outline-none focus:ring-1 focus:ring-rose-500" value={globalPenalty} onChange={e => setGlobalPenalty(Number(e.target.value))} />
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-2">
+                                        <span className="text-gray-400 font-black uppercase tracking-[0.3em]">Net Refund</span>
+                                        <span className="font-mono font-black text-4xl text-green-400">৳{netReturnAmount.toLocaleString()}</span>
+                                    </div>
                                 </div>
-                                <div className="flex justify-between text-lg pt-2 border-t border-gray-700"><span
-                                    className="font-bold">Net Return</span><span
-                                    className="font-mono font-black text-2xl text-green-400">৳{netReturnAmount.toFixed(2)}</span>
-                                </div>
-                                <div className="flex justify-between text-sm pt-2 border-t border-gray-700"><span>Received from Supplier</span><span
-                                    className="font-mono">৳{totalPaid.toFixed(2)}</span></div>
-                                <div className="flex justify-between text-lg text-red-500 font-bold">
-                                    <span>Balance Due</span><span className="font-mono">৳{dueAmount.toFixed(2)}</span>
+
+                                <div className="bg-white/5 p-6 rounded-[2rem] border border-white/10 space-y-4 relative z-10">
+                                    <div className="flex justify-between items-center text-blue-400 font-black uppercase text-[10px] tracking-widest">
+                                        <span>Received Back</span> <span className="font-mono text-2xl text-white">৳{totalPaid.toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-4 border-t border-white/5">
+                                        <div className="space-y-1">
+                                            <p className="text-[9px] text-rose-400 font-black uppercase tracking-[0.2em]">Pending Refund</p>
+                                            <p className="text-xl font-black text-rose-500 font-mono">৳{dueAmount.toLocaleString()}</p>
+                                        </div>
+                                        {dueAmount > 0 && <AlertTriangle size={24} className="text-rose-500 opacity-50 animate-pulse" />}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </>
+                    </div>
+                ) : (
+                    <div className="py-20 text-center space-y-4">
+                        <div className="w-16 h-16 bg-gray-50 rounded-full mx-auto flex items-center justify-center text-gray-300"><Undo2 size={32} /></div>
+                        <p className="text-sm font-black text-gray-400 uppercase tracking-widest">Please select an invoice to start return</p>
+                    </div>
                 )}
-
-                <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
-                    <button onClick={resetForm} className="btn-gray">Cancel</button>
-                    <button disabled={loading || !purchase || totalReturnAmount === 0} onClick={handleSubmit}
-                            className="px-8 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 disabled:bg-gray-400">
-                        {loading ? "Processing..." : existingReturnId ? "Update Return" : "Confirm Return"}
-                    </button>
-                </div>
             </div>
-        </div>
+        </BaseModal>
     );
 };
 

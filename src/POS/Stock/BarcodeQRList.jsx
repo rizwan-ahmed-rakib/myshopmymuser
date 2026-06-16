@@ -1,6 +1,6 @@
 import React, {useState, useEffect, useCallback} from 'react';
 // import LoadingSpinner from './ProductList/LoadingSpinner';
-import BASE_URL_of_POS from "../../posConfig";
+import api from "../../context_or_provider/pos/posApi";
 import LoadingSpinner from "./LowStock/LoadingSpinner";
 
 const BarcodeQRList = ({type}) => {
@@ -31,9 +31,8 @@ const BarcodeQRList = ({type}) => {
 
     const fetchSuppliers = async () => {
         try {
-            const response = await fetch(`${BASE_URL_of_POS}/api/purchase/suppliers/`);
-            const data = await response.json();
-            setSuppliers(data);
+            const response = await api.get("/api/purchase/suppliers/");
+            setSuppliers(response.data);
         } catch (error) {
             console.error('Error fetching suppliers:', error);
         }
@@ -41,9 +40,8 @@ const BarcodeQRList = ({type}) => {
 
     const fetchBrands = async () => {
         try {
-            const response = await fetch(`${BASE_URL_of_POS}/api/products/brand/`);
-            const data = await response.json();
-            setBrands(data);
+            const response = await api.get("/api/products/brand/");
+            setBrands(response.data);
         } catch (error) {
             console.error('Error fetching brands:', error);
         }
@@ -51,9 +49,8 @@ const BarcodeQRList = ({type}) => {
 
     const fetchProducts = async () => {
         try {
-            const response = await fetch(`${BASE_URL_of_POS}/api/products/product/`);
-            const data = await response.json();
-            setProducts(data);
+            const response = await api.get("/api/products/product/");
+            setProducts(response.data);
         } catch (error) {
             console.error('Error fetching products:', error);
         }
@@ -62,26 +59,24 @@ const BarcodeQRList = ({type}) => {
     const fetchInstances = async () => {
         setLoading(true);
         try {
-            let url = `${BASE_URL_of_POS}/api/bar-qr/instances/?`;
-            const params = new URLSearchParams();
+            const params = {};
 
-            if (filters.search) params.append('search', filters.search);
-            if (filters.supplier) params.append('supplier', filters.supplier);
-            if (filters.brand) params.append('brand', filters.brand);
-            if (filters.product) params.append('product', filters.product);
-            if (filters.invoice) params.append('purchase_invoice_no', filters.invoice);
-            if (filters.startDate) params.append('purchase_date_after', filters.startDate);
-            if (filters.endDate) params.append('purchase_date_before', filters.endDate);
+            if (filters.search) params.search = filters.search;
+            if (filters.supplier) params.supplier = filters.supplier;
+            if (filters.brand) params.brand = filters.brand;
+            if (filters.product) params.product = filters.product;
+            if (filters.invoice) params.purchase_invoice_no = filters.invoice;
+            if (filters.startDate) params.purchase_date_after = filters.startDate;
+            if (filters.endDate) params.purchase_date_before = filters.endDate;
 
             if (filters.printStatus === 'printed') {
-                params.append('is_printed', 'true');
+                params.is_printed = 'true';
             } else if (filters.printStatus === 'not_printed') {
-                params.append('not_printed', 'true');
+                params.not_printed = 'true';
             }
 
-            const response = await fetch(url + params.toString());
-            const data = await response.json();
-            setInstances(data);
+            const response = await api.get("/api/bar-qr/instances/", { params });
+            setInstances(response.data);
         } catch (error) {
             console.error('Error fetching instances:', error);
         } finally {
@@ -150,15 +145,12 @@ const BarcodeQRList = ({type}) => {
         // Backend update logic
         try {
             if (instance.id) {
-                await fetch(`${BASE_URL_of_POS}/api/bar-qr/instances/${instance.id}/increment_print_count/`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'}
-                });
+                await api.post(`/api/bar-qr/instances/${instance.id}/increment_print_count/`);
             }
         } catch (e) {
             console.error("Print count update failed:", e);
         }
-    };
+        };
 
     const handlePrintAll = () => {
         const printWindow = window.open('', '_blank');

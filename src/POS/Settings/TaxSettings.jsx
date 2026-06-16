@@ -1,8 +1,8 @@
 // // TaxSettings.jsx - Tax Configuration
 
 // import React, { useState, useEffect } from 'react';
-// import axios from 'axios';
-// import BASE_URL_of_POS from '../../posConfig';
+// import api from '../../context_or_provider/pos/posApi';
+// 
 
 // const TaxSettings = () => {
 //     const [taxes, setTaxes] = useState([]);
@@ -24,7 +24,7 @@
 
 //     const fetchTaxes = async () => {
 //         try {
-//             const response = await axios.get(`${BASE_URL_of_POS}/api/settings/taxes/`);
+//             const response = await api.get(`/api/settings/taxes/`);
 //             setTaxes(response.data || []);
 //         } catch (error) {
 //             console.error('Error fetching taxes:', error);
@@ -37,9 +37,9 @@
 
 //         try {
 //             if (editingTax) {
-//                 await axios.put(`${BASE_URL_of_POS}/api/settings/taxes/${editingTax.id}/`, formData);
+//                 await api.put(`/api/settings/taxes/${editingTax.id}/`, formData);
 //             } else {
-//                 await axios.post(`${BASE_URL_of_POS}/api/settings/taxes/`, formData);
+//                 await api.post(`/api/settings/taxes/`, formData);
 //             }
             
 //             fetchTaxes();
@@ -69,7 +69,7 @@
 //         if (!window.confirm('Are you sure you want to delete this tax?')) return;
 
 //         try {
-//             await axios.delete(`${BASE_URL_of_POS}/api/settings/taxes/${id}/`);
+//             await api.delete(`/api/settings/taxes/${id}/`);
 //             fetchTaxes();
 //         } catch (error) {
 //             console.error('Error deleting tax:', error);
@@ -295,8 +295,8 @@
 // TaxSettings.jsx - Tax Configuration
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import BASE_URL_of_POS from '../../posConfig';
+import api from '../../context_or_provider/pos/posApi';
+
 
 const TaxSettings = () => {
     const [taxes, setTaxes] = useState([]);
@@ -312,7 +312,7 @@ const TaxSettings = () => {
 
     const fetchTaxes = async () => {
         try {
-            const response = await axios.get(`${BASE_URL_of_POS}/api/settings/taxes/`);
+            const response = await api.get(`/api/settings/taxes/`);
             setTaxes(response.data || []);
         } catch (error) { console.error('Error fetching taxes:', error); }
     };
@@ -322,9 +322,9 @@ const TaxSettings = () => {
         setLoading(true);
         try {
             if (editingTax) {
-                await axios.put(`${BASE_URL_of_POS}/api/settings/taxes/${editingTax.id}/`, formData);
+                await api.put(`/api/settings/taxes/${editingTax.id}/`, formData);
             } else {
-                await axios.post(`${BASE_URL_of_POS}/api/settings/taxes/`, formData);
+                await api.post(`/api/settings/taxes/`, formData);
             }
             fetchTaxes(); resetForm(); setShowAddModal(false);
         } catch (error) {
@@ -342,7 +342,7 @@ const TaxSettings = () => {
     const handleDelete = async (id) => {
         if (!window.confirm('Are you sure you want to delete this tax?')) return;
         try {
-            await axios.delete(`${BASE_URL_of_POS}/api/settings/taxes/${id}/`);
+            await api.delete(`/api/settings/taxes/${id}/`);
             fetchTaxes();
         } catch (error) { alert('Failed to delete tax'); }
     };

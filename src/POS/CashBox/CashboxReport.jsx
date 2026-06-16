@@ -1,12 +1,8 @@
 // components/cashbox/CashboxReport.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
-import BASE_URL_of_POS from "../../posConfig";
+import { posCashboxAPI } from "../../context_or_provider/pos/cashbox/cashboxAPI";
 
-const DEFAULT_ENDPOINT = `${BASE_URL_of_POS}/api/cashbox/cashbox/`;
-
-const CashboxReport = ({ endpoints }) => {
-  const reportEndpoint = endpoints?.cashbox || DEFAULT_ENDPOINT;
+const CashboxReport = () => {
 
   const [reportData, setReportData] = useState({
     summary: {
@@ -33,11 +29,9 @@ const CashboxReport = ({ endpoints }) => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.get(`${reportEndpoint}report/`, {
-        params: {
-          start_date: dateRange.start_date,
-          end_date: dateRange.end_date
-        }
+      const response = await posCashboxAPI.getDetailedReport({
+        start_date: dateRange.start_date,
+        end_date: dateRange.end_date
       });
 
       if (response.data.success) {
@@ -51,7 +45,7 @@ const CashboxReport = ({ endpoints }) => {
     } finally {
       setLoading(false);
     }
-  }, [reportEndpoint, dateRange]);
+  }, [dateRange]);
 
   useEffect(() => {
     fetchReport();

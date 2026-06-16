@@ -1,150 +1,126 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
+import { Layers, Camera, Image as ImageIcon, Settings } from 'lucide-react';
 import { posCategoryAPI } from "../../../context_or_provider/pos/categories/categoryAPI";
+import BaseModal from "../../components/BaseModal";
+import { useForm } from "../../../hooks/profile";
 
+/**
+ * UpdateCategoryModal - Refactored to use BaseModal and match Backbone pattern.
+ */
 const UpdateCategoryModal = ({ isOpen, onClose, onSuccess, categoryData }) => {
-
-    const [form, setForm] = useState({ title: "" });
-    const [imageFile, setImageFile] = useState(null);
-    const [previewImage, setPreviewImage] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [errors, setErrors] = useState({});
+    const [previewImage, setPreviewImage] = useState(null);
+    const [imageFile, setImageFile] = useState(null);
 
-    const resetAndClose = useCallback(() => {
-        setForm({ title: "" });
-        setPreviewImage(null);
-        setImageFile(null);
-        setErrors({});
-        onClose();
-    }, [onClose]);
+    const {
+        form,
+        errors,
+        handleChange,
+        setFormData,
+        validateForm
+    } = useForm(
+        {
+            title: "",
+        },
+        {
+            title: (v) => !v ? "Category title is required" : null,
+        }
+    );
 
     useEffect(() => {
         if (categoryData && isOpen) {
-            setForm({
+            setFormData({
                 title: categoryData.title || "",
             });
-            if (categoryData.image) {
-                setPreviewImage(categoryData.image);
-            }
-        } else if (!isOpen) {
-            // Reset form when modal is closed or data is not present
-            setForm({ title: "" });
-            setPreviewImage(null);
+            setPreviewImage(categoryData.image || null);
             setImageFile(null);
-            setErrors({});
         }
-    }, [categoryData, isOpen]);
+    }, [categoryData, isOpen, setFormData]);
 
-
-    if (!isOpen) return null;
-
-    const handleChange = (e) => {
-        const { name, value, files } = e.target;
-
-        if (name === "image") {
-            const file = files[0];
-            setImageFile(file); // Keep the file object separate
-
-            if (file) {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setPreviewImage(reader.result);
-                };
-                reader.readAsDataURL(file);
-            } else {
-                setPreviewImage(categoryData.image); // Revert to original if cancelled
-            }
-        }
-        else {
-            setForm(prev => ({
-                ...prev,
-                [name]: value
-            }));
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setImageFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => setPreviewImage(reader.result);
+            reader.readAsDataURL(file);
         }
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
+        if (!validateForm()) return;
+
         setLoading(true);
-        setErrors({});
-
-        const data = { ...form };
-        if (imageFile) {
-            data.image = imageFile;
-        } else {
-            // If no new image is selected, we should not send the image field at all
-            // especially if the backend removes the image on an empty value.
-            // Let's assume the API handles `image` field being absent.
-        }
-
         try {
-            const res = await posCategoryAPI.update(categoryData.id, data);
-
-            if (onSuccess) {
-                onSuccess(res.data);
+            const dataToSend = { ...form };
+            if (imageFile) {
+                dataToSend.image = imageFile;
             }
-            resetAndClose();
 
+            const res = await posCategoryAPI.update(categoryData.id, dataToSend);
+            onSuccess?.(res.data);
+            onClose();
         } catch (err) {
-            console.error("API Error:", err);
-            if (err.response?.data) {
-                setErrors(err.response.data);
-                alert("Error updating category: " + JSON.stringify(err.response.data));
-            } else {
-                alert("An unknown error occurred. Please try again.");
-            }
+            console.error(err);
+            alert("Update failed: " + (err.response?.data ? JSON.stringify(err.response.data) : "Network error"));
         } finally {
             setLoading(false);
         }
     };
-    
-    const handleImageUploadClick = () => {
-        document.getElementById("category-image-upload-update").click();
-    };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-                <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center z-10">
-                    <h2 className="text-2xl font-bold text-gray-800">Update Category</h2>
-                    <button onClick={resetAndClose} className="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+        <BaseModal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Update Category"
+            subtitle={`Ref: #CAT-${categoryData?.id}`}
+            size="md"
+            icon={<Settings />}
+            showFooter={true}
+            onSubmit={handleSubmit}
+            submitText="Save Changes"
+            isLoading={loading}
+        >
+            <div className="space-y-8">
+                {/* Image Upload Area */}
+                <div className="bg-gray-50 p-8 rounded-[2rem] border-2 border-dashed border-gray-200 flex flex-col items-center text-center shadow-inner relative group hover:border-blue-400 transition-colors">
+                    <div className="relative">
+                        <div className="w-32 h-32 rounded-[2rem] bg-white border-4 border-white shadow-xl overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105 duration-300">
+                            {previewImage ? (
+                                <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
+                            ) : (
+                                <ImageIcon size={48} className="text-gray-200" />
+                            )}
+                        </div>
+                        <label className="absolute -bottom-2 -right-2 bg-blue-600 text-white p-3 rounded-2xl shadow-lg cursor-pointer hover:bg-blue-700 active:scale-90 transition-all border-4 border-white">
+                            <Camera size={18} />
+                            <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                        </label>
+                    </div>
+                    <div className="mt-4">
+                        <h4 className="text-sm font-black text-gray-800 uppercase tracking-tight">{form.title || "Category Icon"}</h4>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Click camera to update photo</p>
+                    </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6">
-                     <div className="space-y-6">
-                        <div className="bg-gray-50 p-4 rounded-lg text-center">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Category Image</label>
-                            <div className="mx-auto w-40 h-40 rounded-lg overflow-hidden bg-gray-200 flex items-center justify-center border">
-                                {previewImage ? (
-                                    <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
-                                ) : (
-                                    <span className="text-gray-400">No Image</span>
-                                )}
-                            </div>
-                            <input id="category-image-upload-update" type="file" name="image" accept="image/*" onChange={handleChange} className="hidden" />
-                            <button type="button" onClick={handleImageUploadClick} className="mt-2 text-sm text-blue-600 hover:underline">
-                                Change Image
-                            </button>
-                            {errors.image && <p className="text-red-500 text-xs mt-1">{errors.image}</p>}
-                        </div>
-                        
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Category Title *</label>
-                            <input className="w-full p-2 border border-gray-300 rounded-lg" name="title" placeholder="e.g., Electronics" value={form.title} onChange={handleChange} required />
-                            {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
-                        </div>
+                {/* Title Input */}
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Category Title *</label>
+                    <div className="relative">
+                        <Layers size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input 
+                            name="title" 
+                            value={form.title} 
+                            onChange={handleChange} 
+                            className="w-full bg-gray-50 border-2 border-gray-100 p-4 pl-12 rounded-2xl font-bold text-gray-900 focus:bg-white focus:border-blue-500 outline-none transition-all" 
+                            placeholder="e.g. Electronics, Home Appliances, etc." 
+                        />
                     </div>
-
-                    <div className="mt-8 pt-6 border-t flex justify-end space-x-3">
-                        <button type="button" onClick={resetAndClose} className="px-6 py-2 border rounded-lg hover:bg-gray-50" disabled={loading}>
-                            Cancel
-                        </button>
-                        <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50" disabled={loading}>
-                            {loading ? "Updating..." : "Update Category"}
-                        </button>
-                    </div>
-                </form>
+                    {errors.title && <p className="text-rose-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.title}</p>}
+                </div>
             </div>
-        </div>
+        </BaseModal>
     );
 };
 

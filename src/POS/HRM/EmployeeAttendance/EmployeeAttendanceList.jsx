@@ -5,8 +5,8 @@ import BackboneTable from "../../components/BackboneTable";
 import StatusBadge from "../../components/StatusBadge";
 import UpdateEmployeeAttendanceModal from "./UpdateEmployeeAttendanceModal";
 import UpdateEmployeeAttendanceSuccessPopup from "./UpdateEmployeeAttendanceSuccessPopup";
-import LoadingSpinner from "./LoadingSpinner";
 import { employeeAttendanceAPI } from "../../../context_or_provider/pos/EmployeeAttendance/employeeAttendanceAPI";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 /**
  * EmployeeAttendanceList - Refactored to use BackboneTable and StatusBadge.

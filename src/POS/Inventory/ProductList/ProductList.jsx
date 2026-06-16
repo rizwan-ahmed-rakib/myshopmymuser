@@ -203,8 +203,9 @@ import BackboneTable from "../../components/BackboneTable";
 import StatusBadge from "../../components/StatusBadge";
 import LoadingSpinner from "./LoadingSpinner";
 import UpdateProductModal from "./UpdateProductModal";
-import SuccessPopup from "./SuccessPopup";
+// import SuccessPopup from "./SuccessPopup";
 import { posProductAPI } from "../../../context_or_provider/pos/products/productAPI";
+import SuccessPopup from "../../components/SuccessPopup";
 
 /**
  * ProductList - Refactored to use BackboneTable and StatusBadge.

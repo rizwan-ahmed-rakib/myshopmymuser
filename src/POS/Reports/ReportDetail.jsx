@@ -2,34 +2,34 @@ import {useLocation, useNavigate} from 'react-router-dom';
 import {ArrowLeft, Download, Printer, X, TrendingUp, TrendingDown, Package, Users, Truck, Box, AlertTriangle, DollarSign, RefreshCw, ShoppingCart, Wallet,} from 'lucide-react';
 import {BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area,} from  'recharts';
 import {useCallback, useEffect, useMemo, useState} from "react";
+import api from "../../context_or_provider/pos/posApi";
 import BASE_URL_of_POS from "../../posConfig";
+import { posReportsAPI } from "../../context_or_provider/pos/reports/reportsAPI";
 
 // ─── API ──────────────────────────────────────────────────────────────────────
-const BASE = `${BASE_URL_of_POS}/api`;
 const EP = {
-    sales: `${BASE}/sale/sales/`,
-    customers: `${BASE}/sale/customers/`,
-    salesReturn: `${BASE}/sale/sale-returns/`,
-    purchases: `${BASE}/purchase/purchases/`,
-    suppliers: `${BASE}/purchase/suppliers/`,
-    purchaseReturn: `${BASE}/purchase/purchase-returns/`,
-    products: `${BASE}/products/product/`,
-    categories: `${BASE}/products/category/`,
-    subcategories: `${BASE}/products/subcategory/`,
-    brands: `${BASE}/products/brand/`,
-    damageStock: `${BASE}/products/damage-stock/`,
-    expenses: `${BASE}/cashbox/expenses/`,
-    incomes: `${BASE}/cashbox/income/`,
-    cashbox: `${BASE}/cashbox/cashbox/`,
+    sales: () => posReportsAPI.getSales(),
+    customers: () => posReportsAPI.getCustomers(),
+    salesReturn: () => posReportsAPI.getSalesReturn(),
+    purchases: () => posReportsAPI.getPurchases(),
+    suppliers: () => posReportsAPI.getSuppliers(),
+    purchaseReturn: () => posReportsAPI.getPurchaseReturn(),
+    products: () => posReportsAPI.getProducts(),
+    categories: () => posReportsAPI.getCategories(),
+    subcategories: () => posReportsAPI.getSubcategories(),
+    brands: () => posReportsAPI.getBrands(),
+    damageStock: () => posReportsAPI.getDamageStock(),
+    expenses: () => posReportsAPI.getExpenses(),
+    incomes: () => posReportsAPI.getIncomes(),
+    cashbox: () => posReportsAPI.getCashbox(),
 };
 
-const fetchAll = async (url) => {
+const fetchAll = async (apiCall) => {
     try {
-        const r = await fetch(url);
-        if (!r.ok) return [];
-        const j = await r.json();
-        return Array.isArray(j) ? j : j.results || [];
-    } catch {
+        const response = await apiCall();
+        return Array.isArray(response.data) ? response.data : response.data.results || [];
+    } catch (error) {
+        console.error("Error fetching data:", error);
         return [];
     }
 };
@@ -1005,7 +1005,8 @@ const ReportDetail = () => {
                 borderBottom: '1px solid #e2e8f0',
                 position: 'sticky',
                 top: 0,
-                zIndex: 100,
+                // zIndex: 100,
+                zIndex: 30,
                 boxShadow: '0 1px 6px rgba(0,0,0,0.06)'
             }}>
                 {/* Row 1: category tabs + actions */}
@@ -1331,4 +1332,5 @@ const ReportDetail = () => {
 };
 
 export default ReportDetail;
+
 

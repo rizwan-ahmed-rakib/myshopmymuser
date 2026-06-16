@@ -1,7 +1,6 @@
+import api from "../posApi";
 // // utils/api.js
-// import axios from "axios";
-// import BASE_URL_of_POS from "../../../posConfig";
-//
+// // //
 // // Create axios instance with base URL
 // const api = axios.create({
 //     baseURL: BASE_URL_of_POS,
@@ -61,10 +60,7 @@
 
 // employeeAttendanceAPI.js
 
-import axios from "axios";
-import BASE_URL_of_POS from "../../../posConfig";
-
-const API_URL = `${BASE_URL_of_POS}/api/attendance/attendance/`;
+const API_URL = "/api/attendance/attendance/";
 
 export const employeeAttendanceAPI = {
     // ✅ GET all attendance records with pagination support
@@ -77,19 +73,19 @@ export const employeeAttendanceAPI = {
         if (filters.is_present !== undefined) url += `&is_present=${filters.is_present}`;
         if (filters.marketing_officer) url += `&marketing_officer=${filters.marketing_officer}`;
 
-        const response = await axios.get(url);
+        const response = await api.get(url);
         return response;
     },
 
     // ✅ GET single attendance record
     getById: async (id) => {
-        const response = await axios.get(`${API_URL}${id}/`);
+        const response = await api.get(`${API_URL}${id}/`);
         return response;
     },
 
     // ✅ CREATE new attendance record
     create: async (formData) => {
-        const response = await axios.post(API_URL, formData, {
+        const response = await api.post(API_URL, formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
         return response;
@@ -97,7 +93,7 @@ export const employeeAttendanceAPI = {
 
     // ✅ UPDATE attendance record
     update: async (id, formData) => {
-        const response = await axios.put(`${API_URL}${id}/`, formData, {
+        const response = await api.put(`${API_URL}${id}/`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
         return response;
@@ -105,7 +101,7 @@ export const employeeAttendanceAPI = {
 
     // ✅ DELETE attendance record
     delete: async (id) => {
-        const response = await axios.delete(`${API_URL}${id}/`);
+        const response = await api.delete(`${API_URL}${id}/`);
         return response;
     },
 };

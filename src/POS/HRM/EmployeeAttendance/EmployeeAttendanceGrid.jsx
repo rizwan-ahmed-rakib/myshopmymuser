@@ -2,11 +2,11 @@ import React, {useState, useEffect, useMemo, useCallback} from 'react';
 import EmployeeAttendanceCard from "./EmployeeAttendanceCard";
 import EmployeeAttendanceList from "./EmployeeAttendanceList";
 import AddEmployeeAttendanceModal from "./AddEmployeeAttendanceModal";
-import SuccessModal from "./SuccessModal";
-import LoadingSpinner from "./LoadingSpinner";
+import SuccessModal from "../../components/SuccessModal";
 import {employeeAttendanceAPI} from "../../../context_or_provider/pos/EmployeeAttendance/employeeAttendanceAPI";
 import { Activity, Calendar, UserCheck, UserX, Clock, ClipboardList, Search, ArrowUpDown } from 'lucide-react';
 import useModuleData from "../../hooks/useModuleData";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const EmployeeAttendanceGrid = ({ 
     viewType, 
@@ -170,7 +170,17 @@ const EmployeeAttendanceGrid = ({
             </div>
 
             <AddEmployeeAttendanceModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onSuccess={() => { setIsAddOpen(false); refresh(); }} />
-            <SuccessModal isOpen={!!successData} employee={successData} type={successType} onClose={() => setSuccessData(null)} />
+            <SuccessModal 
+                isOpen={!!successData} 
+                onClose={() => setSuccessData(null)} 
+                title={successType === 'update' ? 'Attendance Updated' : 'Attendance Recorded'}
+                subtitle="Record synchronized successfully"
+                details={[
+                    { label: "Employee", value: successData?.name },
+                    { label: "Status", value: successData?.is_present ? "PRESENT" : "ABSENT" },
+                    { label: "Date", value: successData?.date ? new Date(successData.date).toLocaleDateString() : 'N/A' }
+                ]}
+            />
         </div>
     );
 };

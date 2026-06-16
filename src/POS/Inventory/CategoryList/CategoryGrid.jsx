@@ -251,7 +251,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import CategoryCard from "./CategoryCard";
 import CategoryList from "./CategoryList";
 import AddCategoryModal from "./AddCategoryModal";
-import SuccessModal from "./SuccessModal";
+import SuccessModal from "../../components/SuccessModal";
 import LoadingSpinner from "./LoadingSpinner";
 import { usePosCategory } from "../../../context_or_provider/pos/categories/CategoryProvider";
 import { posCategoryAPI } from "../../../context_or_provider/pos/categories/categoryAPI";
@@ -389,7 +389,16 @@ const CategoryGrid = ({
             </div>
 
             <AddCategoryModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onSuccess={handleCategoryAdded} />
-            <SuccessModal isOpen={!!successData} employee={successData} onClose={() => setSuccessData(null)} />
+            <SuccessModal 
+                isOpen={!!successData} 
+                onClose={() => setSuccessData(null)} 
+                title={successType === 'update' ? 'Category Updated' : 'Category Created'}
+                subtitle="Database synchronized successfully"
+                details={[
+                    { label: "Category Title", value: successData?.title },
+                    { label: "Category ID", value: `#CAT-${successData?.id}` }
+                ]}
+            />
         </div>
     );
 };

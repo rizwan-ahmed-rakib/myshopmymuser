@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
-import BASE_URL_of_POS from "../../../posConfig";
+import api from '../../../context_or_provider/pos/posApi';
+
 import SuccessPopup from "./SuccessPopup";
 import UpdateProductModal from "./UpdateProductModal";
 import { FaBoxOpen, FaDollarSign, FaShoppingCart, FaWarehouse, FaTag, FaInfoCircle } from 'react-icons/fa';
@@ -17,7 +17,7 @@ const ProductDetailsPage = () => {
 
     const fetchProductDetails = useCallback(async () => {
         try {
-            const response = await axios.get(`${BASE_URL_of_POS}/api/products/product/${id}/`);
+            const response = await api.get(`/api/products/product/${id}/`);
             setProduct(response.data);
         } catch (error) {
             console.error("Error fetching product details:", error);

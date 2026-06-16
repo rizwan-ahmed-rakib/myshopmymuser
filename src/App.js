@@ -132,7 +132,7 @@
 //
 // export default App;
 /////////////////////////////////////////////////////////////////////
-
+///////////////
 
 import React from "react";
 import Home from "./myshop/myshopPages/Home";
@@ -214,8 +214,10 @@ import DamageStockDetailsPage from "./POS/Stock/DamageProductList/DamageStockDet
 import EmployeeAttendanceDetailsPage from "./POS/HRM/EmployeeAttendance/EmployeeAttendanceDetailsPage";
 import EmployeeLeaveApplicationDetailsPage
     from "./POS/HRM/EmployeeLeaveApplication/EmployeeLeaveApplicationDetailsPage";
-// import DamageProductGrid from "./POS/Stock/DamageProductList/DamageProductGrid";
-// import DamageStockDetailsPage from "./POS/Stock/DamageProductList/DamageStockDetailsPage";
+import PosLoginPage from "./POS/components/PosLoginPage";
+import PosUserProfile from "./POS/components/PosUserProfile";
+import UserRoleManagement from "./POS/UserRoleManagement";
+import PosProtectedRoute from "./context_or_provider/pos/PosProtectedRoute";
 
 // import {CartProvider} from "./context_or_provider/CartContext";
 
@@ -230,9 +232,24 @@ const App = () => {
                 <RootProvider>
                     <Routes>
                         <Route path="/login" element={<Login/>}/>
+                        <Route path="/poslogin" element={<PosLoginPage/>}/>
+
 
                         {/* Example routes */}
-                        <Route path="/" element={<Home/>}/>
+
+                        {/*<Route path="/" element={<Home/>}/>*/}
+
+
+                        {/*<Route*/}
+                        {/*    path="/"*/}
+                        {/*    element={*/}
+                        {/*        <PosProtectedRoute>*/}
+                        {/*            <Dashboard/>*/}
+                        {/*        </PosProtectedRoute>*/}
+                        {/*    }*/}
+                        {/*/>*/}
+
+
                         {/*<Route*/}
                         {/*    path="/"*/}
                         {/*    element={*/}
@@ -316,60 +333,63 @@ const App = () => {
                             </ProtectedRoute>
                         }/>
 
+                        {/* POS Private Routes Wrapped in ProtectedRoute and Layout */}
+                        <Route path="/*" element={
+                            <PosProtectedRoute>
+                                <Layout>
+                                    <Routes>
+                                        <Route path="/" element={<Dashboard/>}/>
+                                        <Route path="/dashboard" element={<Dashboard/>}/>
+                                        <Route path="/user-role" element={<UserRoleManagement/>}/>
+                                        <Route path="/pos-user-profile" element={<PosUserProfile/>}/>
+                                        <Route path="/reports" element={<ReportsList/>}/>
+                                        <Route path="/reports/detail" element={<ReportDetail/>}/>
+                                        <Route path="/crm" element={<CRM/>}/>
+                                        <Route path="/marketing" element={<Marketing/>}/>
+                                        <Route path="/branches" element={<Branches/>}/>
+                                        <Route path="/users" element={<Users/>}/>
+                                        <Route path="/settings" element={<SettingsPage/>}/>
+
+                                        <Route path="/cashbox" element={<Cashbox/>}/>
+                                        <Route path="/sales" element={<Sales/>}>
+                                            <Route path="details/:id" element={<SaleDetailsPage/>}/>
+                                            <Route path="sale-return/details/:id" element={<SaleReturnDetailsPage/>}/>
+                                            <Route path="due-collection/details/:id" element={<CustomerDueCollectionDetails/>}/>
+                                            <Route path="customer/profile/:id" element={<CustomerProfilePage/>}/>
+                                        </Route>
+                                        <Route path="/stock" element={<Stock/>}>
+                                            <Route path="details/:id" element={<DamageStockDetailsPage/>}/>
+                                        </Route>
+
+                                        <Route path="/purchase" element={<Purchase/>}>
+                                            <Route path="purchase/details/:id" element={<PurchaseDetailsPage/>}/>
+                                            <Route path="purchase-return/details/:id" element={<PurchaseReturnDetailsPage/>}/>
+                                            <Route path="due-payment/details/:id" element={<SupplierDuePaymentDetails/>}/>
+                                            <Route path="supplier/profile/:id" element={<SupplierProfilePage/>}/>
+                                        </Route>
+                                        <Route path="/inventory" element={<Inventory/>}>
+                                            <Route path="product/details/:id" element={<ProductDetailsPage/>}/>
+                                            <Route path="damage-product/details/:id" element={<DamageProductDetailsPage/>}/>
+                                            <Route path="category/details/:id" element={<CategoryDetailsPage/>}/>
+                                            <Route path="subcategory/details/:id" element={<SubCategoryDetailsPage/>}/>
+                                            <Route path="brand/details/:id" element={<BrandDetailsPage/>}/>
+                                            <Route path="unit/details/:id" element={<UnitDetailsPage/>}/>
+                                            <Route path="size/details/:id" element={<SizeDetailsPage/>}/>
+                                        </Route>
+                                        <Route path="/hrm" element={<HRM/>}>
+                                            <Route path="employee/profile/:id" element={<EmployeeProfilePage/>}/>
+                                            <Route path="loan/details/:id" element={<EmployeeLoanDetails/>}/>
+                                            <Route path="advance/details/:id" element={<EmployeeSalaryAdvanceDetailsPage/>}/>
+                                            <Route path="payslip/details/:id" element={<EmployeeSalaryPayslipDetailsPage/>}/>
+                                            <Route path="attendance/details/:id" element={<EmployeeAttendanceDetailsPage/>}/>
+                                            <Route path="leave-application/details/:id" element={<EmployeeLeaveApplicationDetailsPage/>}/>
+                                        </Route>
+                                    </Routes>
+                                </Layout>
+                            </PosProtectedRoute>
+                        } />
+
                     </Routes>
-
-                    <Layout>
-                        <Routes>
-                            <Route path="/dashboard" element={<Dashboard/>}/>
-                            <Route path="/reports" element={<ReportsList/>}/>
-                            <Route path="/reports/detail" element={<ReportDetail/>}/>
-                            <Route path="/crm" element={<CRM/>}/>
-                            <Route path="/marketing" element={<Marketing/>}/>
-                            <Route path="/branches" element={<Branches/>}/>
-                            <Route path="/users" element={<Users/>}/>
-                            <Route path="/settings" element={<SettingsPage/>}/>
-
-
-                            <Route path="/cashbox" element={<Cashbox/>}/>
-                            <Route path="/sales" element={<Sales/>}>
-                                <Route path="details/:id" element={<SaleDetailsPage/>}/>
-                                <Route path="sale-return/details/:id" element={<SaleReturnDetailsPage/>}/>
-                                <Route path="due-collection/details/:id" element={<CustomerDueCollectionDetails/>}/>
-                                <Route path="customer/profile/:id" element={<CustomerProfilePage/>}/>
-                            </Route>
-                            {/*<Route path="/reports" element={<Reports/>}/>*/}
-                            <Route path="/stock" element={<Stock/>}>
-                                <Route path="details/:id" element={<DamageStockDetailsPage/>}/>
-                            </Route>
-
-                            <Route path="/purchase" element={<Purchase/>}>
-                                <Route path="purchase/details/:id" element={<PurchaseDetailsPage/>}/>
-                                <Route path="purchase-return/details/:id" element={<PurchaseReturnDetailsPage/>}/>
-                                <Route path="due-payment/details/:id" element={<SupplierDuePaymentDetails/>}/>
-                                <Route path="supplier/profile/:id" element={<SupplierProfilePage/>}/>
-                            </Route>
-                            <Route path="/inventory" element={<Inventory/>}>
-                                <Route path="product/details/:id" element={<ProductDetailsPage/>}/>
-                                <Route path="damage-product/details/:id" element={<DamageProductDetailsPage/>}/>
-                                <Route path="category/details/:id" element={<CategoryDetailsPage/>}/>
-                                <Route path="subcategory/details/:id" element={<SubCategoryDetailsPage/>}/>
-                                <Route path="brand/details/:id" element={<BrandDetailsPage/>}/>
-                                <Route path="unit/details/:id" element={<UnitDetailsPage/>}/>
-                                <Route path="size/details/:id" element={<SizeDetailsPage/>}/>
-                            </Route>
-                            <Route path="/hrm" element={<HRM/>}>
-                                <Route path="employee/profile/:id" element={<EmployeeProfilePage/>}/>
-                                <Route path="loan/details/:id" element={<EmployeeLoanDetails/>}/>
-                                <Route path="advance/details/:id" element={<EmployeeSalaryAdvanceDetailsPage/>}/>
-                                <Route path="payslip/details/:id" element={<EmployeeSalaryPayslipDetailsPage/>}/>
-                                <Route path="attendance/details/:id" element={<EmployeeAttendanceDetailsPage/>}/>
-                                <Route path="leave-application/details/:id" element={<EmployeeLeaveApplicationDetailsPage/>}/>
-                            </Route>
-
-
-                        </Routes>
-
-                    </Layout>
                 </RootProvider>
             </Router>
         </AuthProvider>

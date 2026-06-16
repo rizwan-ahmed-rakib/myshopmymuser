@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
-import axios from "axios";
-import BASE_URL_of_POS from "../../../posConfig";
+import api from '../../../context_or_provider/pos/posApi';
+
 import { posPurchaseReturnAPI } from "../../../context_or_provider/pos/Purchase/purchaseReturnProduct/purchaseReturnAPI";
 
 const PurchaseReturnModal = ({ isOpen, onClose, onSuccess, purchase }) => {
@@ -29,10 +29,7 @@ const PurchaseReturnModal = ({ isOpen, onClose, onSuccess, purchase }) => {
 
   const fetchInstances = async (invoiceNo) => {
     try {
-        const token = localStorage.getItem("token");
-        const response = await axios.get(`${BASE_URL_of_POS}/api/bar-qr/instances/?purchase_invoice_no=${invoiceNo}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : {}
-        });
+        const response = await api.get(`/api/bar-qr/instances/?purchase_invoice_no=${invoiceNo}`);
         
         // Group by product ID
         const grouped = response.data.reduce((acc, curr) => {

@@ -1,12 +1,4 @@
-import axios from "axios";
-import BASE_URL_of_POS from "../../../../posConfig";
-
-const api = axios.create({
-    baseURL: BASE_URL_of_POS,
-    headers: {
-        "Content-Type": "application/json",
-    },
-});
+import api from "../../posApi";
 
 export const posDuePaymentAPI = {
     getAll: () => api.get("/api/purchase/due-payments/"),

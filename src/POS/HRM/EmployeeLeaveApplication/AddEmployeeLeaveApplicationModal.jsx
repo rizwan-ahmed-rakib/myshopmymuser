@@ -1,200 +1,17 @@
-// // AddEmployeeSalaryAdvanceModal.jsx
-
-// import React, { useState } from "react";
-// import axios from "axios";
-// import BASE_URL_of_POS from "../../../posConfig";
-// import { useUserWithProfile } from "../../../context_or_provider/pos/profile/userWithProfile";
-
-// const AddEmployeeLeaveApplicationModal = ({ isOpen, onClose, onSuccess }) => {
-
-//     const { allProfile } = useUserWithProfile();
-
-//     const [form, setForm] = useState({
-//         user: "",
-//         amount: "",
-//         reason: "",
-//         request_date:"",
-//         is_approved:false,
-//     });
-
-//     const [loading, setLoading] = useState(false);
-//     const [errors, setErrors] = useState({});
-
-//     if (!isOpen) return null;
-
-//     const handleChange = (e) => {
-//         const { name, value } = e.target;
-
-//         setForm((prev) => ({
-//             ...prev,
-//             [name]: value,
-//         }));
-//     };
-
-//     const handleSubmit = async (e) => {
-//         e.preventDefault();
-//         setLoading(true);
-//         setErrors({});
-
-//         // Validation
-//         if (!form.user) {
-//             setErrors({ user: "Employee is required" });
-//             setLoading(false);
-//             return;
-//         }
-
-//         if (!form.amount) {
-//             setErrors({ amount: "Amount is required" });
-//             setLoading(false);
-//             return;
-//         }
-
-//         try {
-//             const payload = {
-//                 user: form.user, // 👈 selected user ID
-//                 amount: Number(form.amount),
-//                 reason: form.reason,
-//             };
-
-//             const res = await axios.post(
-//                 `${BASE_URL_of_POS}/api/users/leave-applications/`,
-//                 payload
-//             );
-
-//             onSuccess?.(res.data);
-//             onClose();
-
-//             // reset
-//             setForm({
-//                 user: "",
-//                 amount: "",
-//                 reason: "",
-//             });
-
-//         } catch (err) {
-//             console.error(err);
-//             alert("Failed to add salary advance");
-//         } finally {
-//             setLoading(false);
-//         }
-//     };
-
-//     return (
-//         <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
-//             <div className="bg-white w-full max-w-md rounded-xl shadow-xl">
-
-//                 {/* Header */}
-//                 <div className="border-b p-4 flex justify-between items-center">
-//                     <h2 className="text-xl font-bold">Add Salary Advance</h2>
-//                     <button onClick={onClose} className="text-xl">×</button>
-//                 </div>
-
-//                 {/* Body */}
-//                 <form onSubmit={handleSubmit} className="p-5 space-y-4">
-
-//                     {/* ✅ USER DROPDOWN */}
-//                     <div>
-//                         <label className="text-sm font-medium text-gray-700">
-//                             Select Employee *
-//                         </label>
-
-//                         <select
-//                             name="user"
-//                             value={form.user}
-//                             onChange={handleChange}
-//                             className="w-full p-2 border rounded"
-//                         >
-//                             <option value="">-- Select Employee --</option>
-
-//                             {allProfile?.map((emp) => (
-//                                 <option key={emp.id} value={emp.id}>
-//                                     {emp.name} ({emp.role})
-//                                 </option>
-//                             ))}
-//                         </select>
-
-//                         {errors.user && (
-//                             <p className="text-red-500 text-sm">{errors.user}</p>
-//                         )}
-//                     </div>
-
-//                     {/* Amount */}
-//                     <div>
-//                         <label className="text-sm font-medium text-gray-700">
-//                             Amount (৳)
-//                         </label>
-//                         <input
-//                             type="number"
-//                             name="amount"
-//                             value={form.amount}
-//                             onChange={handleChange}
-//                             className="w-full p-2 border rounded"
-//                         />
-//                         {errors.amount && (
-//                             <p className="text-red-500 text-sm">{errors.amount}</p>
-//                         )}
-//                     </div>
-
-//                     {/* Reason */}
-//                     <div>
-//                         <label className="text-sm font-medium text-gray-700">
-//                             Reason
-//                         </label>
-//                         <textarea
-//                             name="reason"
-//                             value={form.reason}
-//                             onChange={handleChange}
-//                             className="w-full p-2 border rounded"
-//                         />
-//                     </div>
-
-//                     {/* Buttons */}
-//                     <div className="flex justify-end gap-3 pt-4">
-//                         <button
-//                             type="button"
-//                             onClick={onClose}
-//                             className="px-4 py-2 border rounded"
-//                         >
-//                             Cancel
-//                         </button>
-
-//                         <button
-//                             type="submit"
-//                             disabled={loading}
-//                             className="px-6 py-2 bg-blue-600 text-white rounded"
-//                         >
-//                             {loading ? "Adding..." : "Add"}
-//                         </button>
-//                     </div>
-//                 </form>
-//             </div>
-//         </div>
-//     );
-// };
-
-// export default AddEmployeeLeaveApplicationModal;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import React, { useState } from "react";
-import axios from "axios";
-import BASE_URL_of_POS from "../../../posConfig";
+import PropTypes from "prop-types";
 import { useUserWithProfile } from "../../../context_or_provider/pos/profile/userWithProfile";
+import { leaveApplicationAPI } from "../../../context_or_provider/pos/EmployeeLeaveApplicaations/leave_applicationAPI";
+import BaseModal from "../../components/BaseModal";
+import { User, Briefcase, Calendar, FileText } from "lucide-react";
 
+/**
+ * AddEmployeeLeaveApplicationModal - Refactored to use BaseModal and Backbone patterns.
+ */
 const AddEmployeeLeaveApplicationModal = ({ isOpen, onClose, onSuccess }) => {
-
     const { allProfile } = useUserWithProfile();
+    const [loading, setLoading] = useState(false);
+    const [errors, setErrors] = useState({});
 
     const [form, setForm] = useState({
         user: "",
@@ -204,62 +21,36 @@ const AddEmployeeLeaveApplicationModal = ({ isOpen, onClose, onSuccess }) => {
         reason: "",
     });
 
-    const [loading, setLoading] = useState(false);
-    const [errors, setErrors] = useState({});
-
-    if (!isOpen) return null;
-
     const handleChange = (e) => {
         const { name, value } = e.target;
+        setForm((prev) => ({ ...prev, [name]: value }));
+        // Clear error when user types
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: null }));
+        }
+    };
 
-        setForm((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
+    const validate = () => {
+        const newErrors = {};
+        if (!form.user) newErrors.user = "Employee is required";
+        if (!form.leave_type) newErrors.leave_type = "Leave type is required";
+        if (!form.start_date) newErrors.start_date = "Start date is required";
+        if (!form.end_date) newErrors.end_date = "End date is required";
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
+        if (!validate()) return;
+
         setLoading(true);
-        setErrors({});
-
-        // ✅ Validation
-        if (!form.user) {
-            setErrors({ user: "Employee is required" });
-            setLoading(false);
-            return;
-        }
-
-        if (!form.leave_type) {
-            setErrors({ leave_type: "Leave type is required" });
-            setLoading(false);
-            return;
-        }
-
-        if (!form.start_date || !form.end_date) {
-            setErrors({ date: "Start & End date required" });
-            setLoading(false);
-            return;
-        }
-
         try {
-            const payload = {
-                user: form.user,
-                leave_type: form.leave_type,
-                start_date: form.start_date,
-                end_date: form.end_date,
-                reason: form.reason,
-            };
-
-            const res = await axios.post(
-                `${BASE_URL_of_POS}/api/users/leave-applications/`,
-                payload
-            );
-
+            const res = await leaveApplicationAPI.create(form);
             onSuccess?.(res.data);
             onClose();
-
-            // reset
+            // Reset form
             setForm({
                 user: "",
                 leave_type: "",
@@ -267,7 +58,6 @@ const AddEmployeeLeaveApplicationModal = ({ isOpen, onClose, onSuccess }) => {
                 end_date: "",
                 reason: "",
             });
-
         } catch (err) {
             console.error(err);
             alert("Failed to add leave application");
@@ -277,112 +67,112 @@ const AddEmployeeLeaveApplicationModal = ({ isOpen, onClose, onSuccess }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
-            <div className="bg-white w-full max-w-md rounded-xl shadow-xl">
-
-                {/* Header */}
-                <div className="border-b p-4 flex justify-between items-center">
-                    <h2 className="text-xl font-bold">Add Leave Application</h2>
-                    <button onClick={onClose} className="text-xl">×</button>
+        <BaseModal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="New Leave Application"
+            subtitle="Submit a nother leave request for an employee"
+            isLoading={loading}
+            onSubmit={handleSubmit}
+            submitText="Submit Application"
+            showFooter={true}
+            size="md"
+        >
+            <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Employee Selection */}
+                <div className="space-y-1.5">
+                    <label className="text-xs font-black uppercase text-gray-500 tracking-wider flex items-center gap-2">
+                        <User size={12} className="text-brand-primary" /> Select Employee *
+                    </label>
+                    <select
+                        name="user"
+                        value={form.user}
+                        onChange={handleChange}
+                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
+                    >
+                        <option value="">-- Choose Employee --</option>
+                        {allProfile?.map((emp) => (
+                            <option key={emp.id} value={emp.id}>
+                                {emp.name} ({emp.role})
+                            </option>
+                        ))}
+                    </select>
+                    {errors.user && <p className="text-rose-500 text-[10px] font-bold uppercase mt-1">{errors.user}</p>}
                 </div>
 
-                {/* Body */}
-                <form onSubmit={handleSubmit} className="p-5 space-y-4">
+                {/* Leave Type */}
+                <div className="space-y-1.5">
+                    <label className="text-xs font-black uppercase text-gray-500 tracking-wider flex items-center gap-2">
+                        <Briefcase size={12} className="text-brand-primary" /> Leave Type *
+                    </label>
+                    <select
+                        name="leave_type"
+                        value={form.leave_type}
+                        onChange={handleChange}
+                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
+                    >
+                        <option value="">-- Select Type --</option>
+                        <option value="sick">Sick Leave</option>
+                        <option value="casual">Casual Leave</option>
+                        <option value="annual">Annual Leave</option>
+                        <option value="other">Other</option>
+                    </select>
+                    {errors.leave_type && <p className="text-rose-500 text-[10px] font-bold uppercase mt-1">{errors.leave_type}</p>}
+                </div>
 
-                    {/* Employee */}
-                    <div>
-                        <label className="text-sm font-medium">Select Employee *</label>
-                        <select
-                            name="user"
-                            value={form.user}
-                            onChange={handleChange}
-                            className="w-full p-2 border rounded"
-                        >
-                            <option value="">-- Select Employee --</option>
-                            {allProfile?.map((emp) => (
-                                <option key={emp.id} value={emp.id}>
-                                    {emp.name} ({emp.role})
-                                </option>
-                            ))}
-                        </select>
-                        {errors.user && <p className="text-red-500 text-sm">{errors.user}</p>}
-                    </div>
-
-                    {/* Leave Type */}
-                    <div>
-                        <label className="text-sm font-medium">Leave Type *</label>
-                        <select
-                            name="leave_type"
-                            value={form.leave_type}
-                            onChange={handleChange}
-                            className="w-full p-2 border rounded"
-                        >
-                            <option value="">-- Select Type --</option>
-                            <option value="sick">Sick</option>
-                            <option value="casual">Casual</option>
-                            <option value="annual">Annual</option>
-                        </select>
-                        {errors.leave_type && <p className="text-red-500 text-sm">{errors.leave_type}</p>}
-                    </div>
-
-                    {/* Start Date */}
-                    <div>
-                        <label className="text-sm font-medium">Start Date *</label>
+                {/* Dates */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-black uppercase text-gray-500 tracking-wider flex items-center gap-2">
+                            <Calendar size={12} className="text-brand-primary" /> Start Date
+                        </label>
                         <input
                             type="date"
                             name="start_date"
                             value={form.start_date}
                             onChange={handleChange}
-                            className="w-full p-2 border rounded"
+                            className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
                         />
+                        {errors.start_date && <p className="text-rose-500 text-[10px] font-bold uppercase mt-1">{errors.start_date}</p>}
                     </div>
-
-                    {/* End Date */}
-                    <div>
-                        <label className="text-sm font-medium">End Date *</label>
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-black uppercase text-gray-500 tracking-wider flex items-center gap-2">
+                            <Calendar size={12} className="text-brand-primary" /> End Date
+                        </label>
                         <input
                             type="date"
                             name="end_date"
                             value={form.end_date}
                             onChange={handleChange}
-                            className="w-full p-2 border rounded"
+                            className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
                         />
-                        {errors.date && <p className="text-red-500 text-sm">{errors.date}</p>}
+                        {errors.end_date && <p className="text-rose-500 text-[10px] font-bold uppercase mt-1">{errors.end_date}</p>}
                     </div>
+                </div>
 
-                    {/* Reason */}
-                    <div>
-                        <label className="text-sm font-medium">Reason</label>
-                        <textarea
-                            name="reason"
-                            value={form.reason}
-                            onChange={handleChange}
-                            className="w-full p-2 border rounded"
-                        />
-                    </div>
-
-                    {/* Buttons */}
-                    <div className="flex justify-end gap-3 pt-4">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 border rounded"
-                        >
-                            Cancel
-                        </button>
-
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="px-6 py-2 bg-blue-600 text-white rounded"
-                        >
-                            {loading ? "Adding..." : "Add"}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+                {/* Reason */}
+                <div className="space-y-1.5">
+                    <label className="text-xs font-black uppercase text-gray-500 tracking-wider flex items-center gap-2">
+                        <FileText size={12} className="text-brand-primary" /> Reason / Note
+                    </label>
+                    <textarea
+                        name="reason"
+                        value={form.reason}
+                        onChange={handleChange}
+                        rows="3"
+                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all resize-none"
+                        placeholder="Explain the reason for leave..."
+                    />
+                </div>
+            </form>
+        </BaseModal>
     );
+};
+
+AddEmployeeLeaveApplicationModal.propTypes = {
+    isOpen: PropTypes.bool.isRequired,
+    onClose: PropTypes.func.isRequired,
+    onSuccess: PropTypes.func,
 };
 
 export default AddEmployeeLeaveApplicationModal;

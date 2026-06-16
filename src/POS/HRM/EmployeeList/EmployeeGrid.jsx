@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useUserWithProfile } from "../../../context_or_provider/pos/profile/userWithProfile";
 import AddEmployeeModal from "./AddEmployeeModal";
-import SuccessModal from "./SuccessModal";
+import SuccessModal from "../../components/SuccessModal";
 import { employeeAPI } from "../../../context_or_provider/pos/profile/profileupdate";
 import LoadingSpinner from "./LoadingSpinner";
 import { Users, ShieldCheck, UserMinus, UserPlus, Briefcase, Activity, Calendar, ArrowUpDown } from 'lucide-react';
@@ -23,7 +23,7 @@ const EmployeeGrid = ({
     filters,
     setFilterConfig
 }) => {
-    const { setUserWith_profile } = useUserWithProfile();
+    const { setAllProfile } = useUserWithProfile();
     const [successData, setSuccessData] = useState(null);
 
     // 1. Provide filter configuration to parent on mount
@@ -139,10 +139,10 @@ const EmployeeGrid = ({
         }
     });
 
-    // Update global state if legacy components depend on it
+    // Update global profile list for sync across other components
     useEffect(() => {
-        if (rawData) setUserWith_profile(rawData);
-    }, [rawData, setUserWith_profile]);
+        if (rawData) setAllProfile(rawData);
+    }, [rawData, setAllProfile]);
 
     const handleEmployeeAdded = (newEmp) => {
         setIsAddOpen(false);
@@ -197,7 +197,17 @@ const EmployeeGrid = ({
             </div>
 
             <AddEmployeeModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onSuccess={handleEmployeeAdded} />
-            <SuccessModal isOpen={!!successData} employee={successData} onClose={() => setSuccessData(null)} />
+            <SuccessModal 
+                isOpen={!!successData} 
+                onClose={() => setSuccessData(null)} 
+                title="Employee Registered"
+                subtitle="New profile created successfully"
+                details={[
+                    { label: "Full Name", value: successData?.name },
+                    { label: "Designation", value: successData?.role },
+                    { label: "Employee ID", value: `#EMP-${successData?.id}` }
+                ]}
+            />
         </div>
     );
 };

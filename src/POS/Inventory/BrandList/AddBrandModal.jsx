@@ -1,131 +1,119 @@
 import React, { useState } from "react";
-import {posBrandAPI} from "../../../context_or_provider/pos/brands/brandAPI";
+import { Tag, Camera, Image as ImageIcon } from 'lucide-react';
+import { posBrandAPI } from "../../../context_or_provider/pos/brands/brandAPI";
+import BaseModal from "../../components/BaseModal";
+import { useForm } from "../../../hooks/profile";
 
+/**
+ * AddBrandModal - Refactored to use BaseModal, useForm, and Backbone branding.
+ */
 const AddBrandModal = ({ isOpen, onClose, onSuccess }) => {
-
-    const initialFormState = {
-        title: "",
-        image: null,
-    };
-
-    const [form, setForm] = useState(initialFormState);
-    const [previewImage, setPreviewImage] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [errors, setErrors] = useState({});
+    const [previewImage, setPreviewImage] = useState(null);
 
-    if (!isOpen) return null;
+    const {
+        form,
+        errors,
+        handleChange,
+        resetForm,
+        validateForm,
+        setFormField
+    } = useForm(
+        {
+            title: "",
+            image: null,
+        },
+        {
+            title: (v) => !v ? "Brand title is required" : null,
+        }
+    );
 
-    const handleChange = (e) => {
-        const { name, value, files } = e.target;
-
-        if (name === "image") {
-            const file = files[0];
-            setForm(prev => ({
-                ...prev,
-                image: file
-            }));
-
-            if (file) {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setPreviewImage(reader.result);
-                };
-                reader.readAsDataURL(file);
-            } else {
-                setPreviewImage(null);
-            }
-        } else {
-            setForm(prev => ({
-                ...prev,
-                [name]: value
-            }));
+    const handleImageChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setFormField("image", file);
+            const reader = new FileReader();
+            reader.onloadend = () => setPreviewImage(reader.result);
+            reader.readAsDataURL(file);
         }
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        setErrors({});
+        if (e) e.preventDefault();
+        if (!validateForm()) return;
 
+        setLoading(true);
         try {
             const res = await posBrandAPI.create(form);
-
-            if (onSuccess) {
-                onSuccess(res.data);
-            }
-
-            resetForm();
-            onClose();
-
+            onSuccess?.(res.data);
+            handleClose();
         } catch (err) {
-            console.error("API Error:", err);
-            if (err.response?.data) {
-                setErrors(err.response.data);
-                alert("Error creating Brand: " + JSON.stringify(err.response.data));
-            } else {
-                alert("An unknown error occurred. Please try again.");
-            }
+            console.error(err);
+            const errorMsg = err.response?.data ? JSON.stringify(err.response.data) : "Failed to add brand";
+            alert(errorMsg);
         } finally {
             setLoading(false);
         }
     };
 
-    const resetForm = () => {
-        setForm(initialFormState);
+    const handleClose = () => {
+        resetForm();
         setPreviewImage(null);
-        setErrors({});
-    };
-
-    const handleImageUploadClick = () => {
-        document.getElementById("Brand-image-upload").click();
+        onClose();
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-                <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center z-10">
-                    <h2 className="text-2xl font-bold text-gray-800">Add New Brand</h2>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+        <BaseModal
+            isOpen={isOpen}
+            onClose={handleClose}
+            title="Create New Brand"
+            subtitle="Add a new brand to your inventory"
+            size="md"
+            icon={<Tag />}
+            showFooter={true}
+            onSubmit={handleSubmit}
+            submitText="Create Brand"
+            isLoading={loading}
+        >
+            <div className="space-y-8">
+                {/* Image Upload Area */}
+                <div className="bg-gray-50 p-8 rounded-[2rem] border-2 border-dashed border-gray-200 flex flex-col items-center text-center shadow-inner relative group hover:border-blue-400 transition-colors">
+                    <div className="relative">
+                        <div className="w-32 h-32 rounded-[2rem] bg-white border-4 border-white shadow-xl overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105 duration-300">
+                            {previewImage ? (
+                                <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
+                            ) : (
+                                <ImageIcon size={48} className="text-gray-200" />
+                            )}
+                        </div>
+                        <label className="absolute -bottom-2 -right-2 bg-blue-600 text-white p-3 rounded-2xl shadow-lg cursor-pointer hover:bg-blue-700 active:scale-90 transition-all border-4 border-white">
+                            <Camera size={18} />
+                            <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                        </label>
+                    </div>
+                    <div className="mt-4">
+                        <h4 className="text-sm font-black text-gray-800 uppercase tracking-tight">Brand Logo</h4>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">PNG or JPG, Max 2MB</p>
+                    </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6">
-                    <div className="space-y-6">
-                        {/* Image Upload */}
-                        <div className="bg-gray-50 p-4 rounded-lg text-center">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Brand Image</label>
-                            <div className="mx-auto w-40 h-40 rounded-lg overflow-hidden bg-gray-200 flex items-center justify-center border">
-                                {previewImage ? (
-                                    <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
-                                ) : (
-                                    <span className="text-gray-400">No Image</span>
-                                )}
-                            </div>
-                            <input id="Brand-image-upload" type="file" name="image" accept="image/*" onChange={handleChange} className="hidden" />
-                            <button type="button" onClick={handleImageUploadClick} className="mt-2 text-sm text-blue-600 hover:underline">
-                                Upload Image
-                            </button>
-                            {errors.image && <p className="text-red-500 text-xs mt-1">{errors.image}</p>}
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Brand Title *</label>
-                            <input className="w-full p-2 border border-gray-300 rounded-lg" name="title" placeholder="e.g., Electronics" value={form.title} onChange={handleChange} required />
-                            {errors.title && <p className="text-red-500 text-xs mt-1">{errors.title}</p>}
-                        </div>
+                {/* Title Input */}
+                <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Brand Title *</label>
+                    <div className="relative">
+                        <Tag size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input 
+                            name="title" 
+                            value={form.title} 
+                            onChange={handleChange} 
+                            className="w-full bg-gray-50 border-2 border-gray-100 p-4 pl-12 rounded-2xl font-bold text-gray-900 focus:bg-white focus:border-blue-500 outline-none transition-all" 
+                            placeholder="e.g. Samsung, Nike, etc." 
+                        />
                     </div>
-
-                    {/* Action Buttons */}
-                    <div className="mt-8 pt-6 border-t flex justify-end space-x-3">
-                        <button type="button" onClick={onClose} className="px-6 py-2 border rounded-lg hover:bg-gray-50" disabled={loading}>
-                            Cancel
-                        </button>
-                        <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50" disabled={loading}>
-                            {loading ? "Adding..." : "Add Brand"}
-                        </button>
-                    </div>
-                </form>
+                    {errors.title && <p className="text-rose-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.title}</p>}
+                </div>
             </div>
-        </div>
+        </BaseModal>
     );
 };
 

@@ -91,14 +91,6 @@ import IncomeList from './IncomeList';
 import ExpenseList from './ExpenseList';
 import CashboxTransactions from './CashboxTransactions';
 import CashboxReport from './CashboxReport';
-import BASE_URL_of_POS  from "../../posConfig";
-
-const ENDPOINTS = {
-  cashbox: `${BASE_URL_of_POS}/api/cashbox/cashbox/`,
-  income: `${BASE_URL_of_POS}/api/cashbox/income/`,
-  expense: `${BASE_URL_of_POS}/api/cashbox/expenses/`,
-  report: `${BASE_URL_of_POS}/api/cashbox/`,
-};
 
 const Cashbox = () => {
   const [activeSection, setActiveSection] = useState('transactions');
@@ -114,17 +106,17 @@ const Cashbox = () => {
   const renderContent = () => {
     switch (activeSection) {
       case 'transactions':
-        return <CashboxTransactions endpoints={ENDPOINTS} />;
+        return <CashboxTransactions />;
       case 'income':
-        return <IncomeList endpoints={ENDPOINTS} />;
+        return <IncomeList />;
       case 'expense':
-        return <ExpenseList endpoints={ENDPOINTS} />;
+        return <ExpenseList />;
       case 'add':
         return <CashboxEntry />;
       case 'report':
-        return <CashboxReport endpoints={ENDPOINTS} />;
+        return <CashboxReport />;
       default:
-        return <CashboxTransactions endpoints={ENDPOINTS} />;
+        return <CashboxTransactions />;
     }
   };
 

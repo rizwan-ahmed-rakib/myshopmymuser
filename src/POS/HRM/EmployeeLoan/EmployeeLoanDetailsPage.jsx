@@ -1,262 +1,270 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { 
-  FaUndo, FaUser, FaDollarSign, FaMoneyBillWave, 
-  FaMobileAlt, FaUniversity, FaEdit, 
-  FaInfoCircle, FaCalendarAlt, FaHashtag, FaStickyNote,
-  FaArrowLeft, FaPrint, FaRegCalendarAlt, FaCheckCircle,
-  FaUserTie, FaCoins, FaHistory, FaCalendarCheck
+import React, {useState, useEffect, useCallback} from "react";
+import {useParams, useNavigate} from "react-router-dom";
+import {
+    FaMoneyBillWave, FaMobileAlt, FaUniversity,
+    FaStickyNote, FaRegCalendarAlt, FaCheckCircle,
+    FaUserTie, FaCalendarCheck, FaCoins, FaFilePdf
 } from "react-icons/fa";
-import { employeeLoanAPI } from "../../../context_or_provider/pos/EmployeeLoan/employee_loanAPI";
+import {employeeLoanAPI} from "../../../context_or_provider/pos/EmployeeLoan/employee_loanAPI";
 import UpdateEmployeeLoanModal from "./UpdateEmployeeLoanModal";
 
+// সেন্ট্রাল আর্কিটেকচার ইমপোর্ট
+import GenericModuleDetails from "../../components/GenericModuleDetails";
+import DetailsInfoCard from "../../components/DetailsInfoCard";
+import {getBrandedVoucher} from "../../utils/printTemplates";
+import {getLoanPrintLayout} from "./LoanPrintLayout";
+import {downloadEmployeeLoanPDF} from "./useEmployeeLoanPDF";
+import {downloadPayslipPDF} from "../EmployeeSalaryPayslip/usePayslipPDF";
+import {AiFillDelete} from "react-icons/ai";
+
 const EmployeeLoanDetailsPage = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [loan, setLoan] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [editOpen, setEditOpen] = useState(false);
+    const {id} = useParams();
+    const navigate = useNavigate();
+    const [loan, setLoan] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [editOpen, setEditOpen] = useState(false);
 
-  const fetchLoan = useCallback(async () => {
-    try {
-      const res = await employeeLoanAPI.getById(id);
-      setLoan(res.data);
-    } catch (err) {
-      console.error("Error fetching loan details:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+    const fetchLoan = useCallback(async () => {
+        try {
+            const res = await employeeLoanAPI.getById(id);
+            setLoan(res.data);
+        } catch (err) {
+            console.error("Error fetching loan details:", err);
+        } finally {
+            setLoading(false);
+        }
+    }, [id]);
 
-  useEffect(() => {
-    fetchLoan();
-  }, [fetchLoan]);
+    useEffect(() => {
+        fetchLoan();
+    }, [fetchLoan]);
 
-  const handleEditSuccess = (updatedData) => {
-    setLoan(updatedData);
-    setEditOpen(false);
-  };
+    const handleEditSuccess = (updatedData) => {
+        setLoan(updatedData);
+        setEditOpen(false);
+    };
 
-  const handlePrint = () => {
-    const printWindow = window.open("", "_blank", "width=800,height=900");
-    const content = `
-      <html>
-        <head>
-          <title>Loan Disbursement Voucher #${loan.id}</title>
-          <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-            body { font-family: 'Inter', sans-serif; padding: 40px; color: #111827; line-height: 1.5; }
-            .header { display: flex; justify-content: space-between; align-items: start; border-bottom: 4px solid #111827; padding-bottom: 20px; margin-bottom: 30px; }
-            .company-info h1 { margin: 0; font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.025em; }
-            .voucher-title { text-align: right; }
-            .voucher-title h2 { margin: 0; font-size: 32px; font-weight: 900; text-transform: uppercase; color: #2563eb; }
-            .info-section h3 { font-size: 10px; font-weight: 900; text-transform: uppercase; color: #6b7280; letter-spacing: 0.1em; margin-bottom: 8px; }
-            .info-section p { margin: 0; font-weight: 700; font-size: 16px; }
-            .table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-            .table th { background: #f9fafb; text-align: left; padding: 12px; font-size: 10px; font-weight: 900; text-transform: uppercase; color: #4b5563; border-bottom: 2px solid #e5e7eb; }
-            .table td { padding: 15px 12px; border-bottom: 1px solid #f3f4f6; font-weight: 600; font-size: 14px; }
-            .total-box { background: #111827; color: white; padding: 20px 40px; border-radius: 12px; text-align: right; }
-            .total-label { font-size: 10px; font-weight: 900; text-transform: uppercase; color: #9ca3af; margin-bottom: 5px; }
-            .total-amount { font-size: 32px; font-weight: 900; }
-            .footer { margin-top: 60px; display: flex; justify-content: space-between; }
-            .signature-line { border-top: 2px solid #e5e7eb; width: 200px; text-align: center; padding-top: 10px; font-size: 10px; font-weight: 900; text-transform: uppercase; color: #6b7280; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="company-info"><h1>MY SHOP POS</h1><p style="font-size: 12px; color: #6b7280; font-weight: 600;">Employee Loan Disbursement</p></div>
-            <div class="voucher-title"><h2>Voucher</h2><p style="font-size: 14px; font-weight: 700;">#${loan.id}</p></div>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 40px;">
-            <div class="info-section"><h3>Employee Details</h3><p>${loan.user_name}</p><p style="font-size: 12px; color: #6b7280;">${loan.user_designation || ''}</p></div>
-            <div class="info-section" style="text-align: right;"><h3>Loan Date</h3><p>${new Date(loan.loan_date).toLocaleDateString()}</p></div>
-          </div>
-          <table class="table">
-            <thead><tr><th>Description</th><th>Method</th><th style="text-align: right;">Amount</th></tr></thead>
-            <tbody>
-              ${Number(loan.paid_cash) > 0 ? `<tr><td>Cash Disbursement</td><td>CASH</td><td style="text-align: right;">৳${parseFloat(loan.paid_cash).toLocaleString()}</td></tr>` : ''}
-              ${Number(loan.paid_mobile) > 0 ? `<tr><td>Mobile Transfer (${loan.mobile_operator})</td><td>MOBILE</td><td style="text-align: right;">৳${parseFloat(loan.paid_mobile).toLocaleString()}</td></tr>` : ''}
-              ${Number(loan.paid_bank) > 0 ? `<tr><td>Bank Transfer (${loan.bank_name})</td><td>BANK</td><td style="text-align: right;">৳${parseFloat(loan.paid_bank).toLocaleString()}</td></tr>` : ''}
-            </tbody>
-          </table>
-          <div class="total-box"><div class="total-label">Total Loan Disbursed</div><div class="total-amount">৳${parseFloat(loan.amount).toLocaleString()}</div></div>
-          <div style="margin-top: 40px; padding: 20px; background: #f9fafb; border-radius: 12px; font-size: 12px;">
-            <h3 style="font-size: 10px; font-weight: 900; text-transform: uppercase; color: #6b7280; margin-bottom: 8px;">Repayment Terms</h3>
-            <p style="margin: 0; font-weight: 600;">Monthly Installment: ৳${parseFloat(loan.monthly_repayment_amount).toLocaleString()}</p>
-            <p style="margin: 0; font-weight: 600;">Repayment Starts: ${new Date(loan.repayment_start_date).toLocaleDateString()}</p>
-          </div>
-          <div class="footer"><div class="signature-line">Recipient Signature</div><div class="signature-line">Authorized By</div></div>
-          <script>window.onload = function() { window.print(); window.close(); }</script>
-        </body>
-      </html>
-    `;
-    printWindow.document.write(content);
-    printWindow.document.close();
-  };
+    // ব্রাউজার প্রিন্ট লজিক
+    const handlePrint = () => {
+        if (!loan) return;
+        const printLayoutContent = getLoanPrintLayout(loan);
+        const fullHTML = getBrandedVoucher("Loan Disbursement Voucher", printLayoutContent, loan.id, "#2563eb");
+        const printWindow = window.open("", "_blank");
+        printWindow.document.write(fullHTML);
+        printWindow.document.close();
+    };
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
-    </div>
-  );
-  
-  if (!loan) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-8">
-      <div className="bg-white p-10 rounded-3xl shadow-xl text-center max-w-md">
-        <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">!</div>
-        <h2 className="text-2xl font-black text-gray-900 mb-2 uppercase">Loan Record Not Found</h2>
-        <button onClick={() => navigate(-1)} className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:bg-gray-800 transition mt-6">
-          <FaArrowLeft /> Go Back
-        </button>
-      </div>
-    </div>
-  );
+    const handleDelete = async () => {
+        if (!window.confirm(`Are you sure you want to delete this loan for ${loan?.user_name}?`)) return;
+        try {
+            await employeeLoanAPI.delete(id);
+            alert("loan deleted successfully!");
+            navigate(-1); // Go back to the list
+        } catch (error) {
+            console.error("Failed to delete:", error);
+            alert("Failed to delete the loan.");
+        }
+    };
 
-  const InfoCard = ({ icon, title, value, color = "text-gray-900", subValue }) => (
-    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-5 hover:shadow-md transition-shadow">
-        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl ${color.replace('text-', 'bg-').replace('600', '50')} ${color}`}>
-          {icon}
-        </div>
-        <div>
-            <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1">{title}</p>
-            <p className={`text-lg font-black ${color} leading-none`}>{value}</p>
-            {subValue && <p className="text-[10px] text-gray-500 font-bold mt-1 uppercase tracking-tighter">{subValue}</p>}
-        </div>
-    </div>
-  );
+    return (
+        <GenericModuleDetails
+            title="Loan Disbursement"
+            subtitle="Employee Loan Management"
+            image={loan?.user_image
+                // ? `${BASE_URL_of_POS}${payslip?.user_image}`
+                ? `${loan?.user_image}`
+                : null}
+            imageAlt={loan?.user_name}
+            imageFallback="https://ui-avatars.com/api/?name=John"
+            recordId={loan?.id}
+            amount={parseFloat(loan?.amount || 0).toLocaleString()}
+            amountLabel="Principal Amount Issued"
+            isLoading={loading}
+            printText="Print Voucher"
+            onPrint={handlePrint}
+            onEdit={() => setEditOpen(true)}
+            headerColor="bg-slate-900"
+            accentColor="blue"
+            statusBadge={
+                <span
+                    className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] ${loan?.is_fully_paid ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}`}>
+          {loan?.is_fully_paid ? "Fully Repaid" : "Active Loan"}
+        </span>
+            }
+            // actionButtons={[
+            //   {
+            //     title: "Download PDF",
+            //     icon: <FaFilePdf size={16} />,
+            //     onClick: () => downloadEmployeeLoanPDF(loan),
+            //     hoverClass: "hover:bg-red-50 hover:text-red-600 border-red-100"
+            //   }
+            // ]}
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-10">
-        <div className="max-w-6xl mx-auto">
-          {/* Top Bar */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-              <button onClick={() => navigate(-1)} className="group flex items-center gap-2 text-gray-500 hover:text-gray-900 font-black text-xs uppercase tracking-widest transition-all">
-                <div className="p-2 bg-white rounded-lg shadow-sm border border-gray-100 group-hover:shadow-md transition-all"><FaArrowLeft/></div>
-                Back to Grid
-              </button>
-              
-              <div className="flex gap-3 w-full md:w-auto">
-                <button onClick={handlePrint} className="flex-1 md:flex-none bg-white border border-gray-200 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-gray-50 transition shadow-sm print:hidden">
-                  <FaPrint/> Print Voucher
-                </button>
-                <button onClick={() => setEditOpen(true)} className="flex-1 md:flex-none bg-blue-600 px-6 py-3 rounded-xl font-black text-white text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-blue-700 transition shadow-lg shadow-blue-600/20 print:hidden">
-                  <FaEdit/> Edit Loan
-                </button>
-              </div>
-          </div>
-          
-          {/* Header Card */}
-          <div className="bg-gray-900 text-white rounded-[2.5rem] p-8 md:p-12 mb-8 flex flex-col md:flex-row justify-between items-start md:items-center shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/10 rounded-full -mr-20 -mt-20 blur-3xl"></div>
-              <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="bg-blue-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-[0.2em]">Employee Loan</span>
-                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] ${loan.is_fully_paid ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                      {loan.is_fully_paid ? "Fully Repaid" : "Active Loan"}
-                    </span>
-                  </div>
-                  <h1 className="text-4xl md:text-5xl font-black mb-2 flex items-center gap-3"><span className="text-gray-500">ID:</span>#{loan.id}</h1>
-                  <div className="flex flex-wrap items-center gap-6 mt-4 opacity-60 font-bold text-xs">
-                    <div className="flex items-center gap-2"><FaRegCalendarAlt className="text-blue-400"/> Loan Date: {new Date(loan.loan_date).toLocaleDateString()}</div>
-                    <div className="flex items-center gap-2"><FaCalendarCheck className="text-blue-400"/> Repayment Start: {new Date(loan.repayment_start_date).toLocaleDateString()}</div>
-                  </div>
-              </div>
-              <div className="mt-8 md:mt-0 text-right relative z-10">
-                  <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.3em] mb-2">Principal Amount</p>
-                  <p className="text-5xl md:text-6xl font-black text-white leading-none">
-                    <span className="text-blue-500 text-3xl mr-1">৳</span>{parseFloat(loan.amount).toLocaleString()}
-                  </p>
-              </div>
-          </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-8">
-                <div className="grid sm:grid-cols-2 gap-6">
-                  <InfoCard icon={<FaUserTie/>} title="Employee" value={loan.user_name} subValue={loan.user_designation || "No Designation"} />
-                  <InfoCard icon={<FaCoins/>} title="Monthly Deduction" value={`৳${parseFloat(loan.monthly_repayment_amount).toLocaleString()}`} color="text-amber-600" subValue="Automated Repayment" />
-                </div>
+            actions={[
+                {
+                    icon: <FaFilePdf size={16}/>,
+                    label: "Download PDF",
+                    // onClick: handlePDFDownloadAction,
+                    onClick: () => downloadEmployeeLoanPDF(loan), // আমাদের তৈরি করা নিখুঁত ইঞ্জিনটি কল হবে
+                    // onClick: handleDownloadPDF, // এখানে বাটন ক্লিক ট্রিগার হচ্ছে
+                    hoverColor: "hover:bg-orange-600 hover:text-white"
 
-                {/* Disbursement Breakdown */}
-                <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100">
-                    <div className="flex items-center justify-between mb-8">
-                      <h2 className="font-black text-xl uppercase tracking-tighter flex items-center gap-3">
-                        <div className="w-2 h-8 bg-purple-500 rounded-full"></div>
-                        Disbursement Breakdown
-                      </h2>
-                      <span className="px-3 py-1 rounded-full bg-gray-100 text-[10px] font-black uppercase tracking-widest text-gray-600">{loan.payment_method?.replace('_', ' ')}</span>
+                },
+                {
+                    icon: <AiFillDelete size={16}/>,
+                    label: "delete",
+                    // onClick: handlePDFDownload,
+                    onClick: handleDelete,
+                    hoverColor: "hover:bg-red-600 hover:text-white"
+
+                }
+            ]}
+
+        >
+            <div className="grid lg:grid-cols-3 gap-8 mt-8">
+                {/* বাম দিকের কন্টেন্ট গ্রিড */}
+                <div className="lg:col-span-2 space-y-8">
+                    <div className="grid sm:grid-cols-2 gap-6">
+                        <DetailsInfoCard
+                            icon={<FaUserTie/>}
+                            title="Employee Name"
+                            value={loan?.user_name || "N/A"}
+                            subValue={loan?.user_designation || "Staff Member"}
+                            color="blue"
+                        />
+                        <DetailsInfoCard
+                            icon={<FaCoins/>}
+                            title="Monthly Deduction"
+                            value={`৳${parseFloat(loan?.monthly_repayment_amount || 0).toLocaleString()}`}
+                            subValue="Automated Salary Adjustment"
+                            color="amber"
+                        />
                     </div>
-                    
-                    <div className="grid gap-4">
-                        {Number(loan.paid_cash) > 0 && (
-                          <div className="flex items-center justify-between p-5 bg-green-50/30 rounded-2xl border border-green-50">
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 bg-green-100 text-green-600 rounded-xl flex items-center justify-center"><FaMoneyBillWave/></div>
-                              <div><p className="font-black text-sm text-gray-900">Cash Payout</p><p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Hand-to-hand currency</p></div>
-                            </div>
-                            <span className="font-black text-lg text-green-700 font-mono">৳{parseFloat(loan.paid_cash).toLocaleString()}</span>
-                          </div>
-                        )}
-                        {Number(loan.paid_mobile) > 0 && (
-                          <div className="flex items-center justify-between p-5 bg-purple-50/30 rounded-2xl border border-purple-50">
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center"><FaMobileAlt/></div>
-                              <div><p className="font-black text-sm text-gray-900">Mobile Transfer</p><p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Operator: {loan.mobile_operator || 'N/A'}</p></div>
-                            </div>
-                            <div className="text-right">
-                              <span className="font-black text-lg text-purple-700 font-mono block">৳{parseFloat(loan.paid_mobile).toLocaleString()}</span>
-                              {loan.transaction_id && <span className="text-[9px] font-black bg-purple-100 text-purple-700 px-2 py-0.5 rounded uppercase tracking-tighter">TxID: {loan.transaction_id}</span>}
-                            </div>
-                          </div>
-                        )}
-                        {Number(loan.paid_bank) > 0 && (
-                          <div className="flex items-center justify-between p-5 bg-blue-50/30 rounded-2xl border border-blue-50">
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center"><FaUniversity/></div>
-                              <div><p className="font-black text-sm text-gray-900">Bank Settlement</p><p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">A/C: {loan.bank_name || 'Direct Deposit'}</p></div>
-                            </div>
-                            <span className="font-black text-lg text-blue-700 font-mono">৳{parseFloat(loan.paid_bank).toLocaleString()}</span>
-                          </div>
-                        )}
-                    </div>
-                </div>
-              </div>
 
-              <div className="space-y-8">
-                <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100">
-                    <h2 className="font-black text-sm uppercase tracking-[0.2em] text-gray-400 mb-6 flex items-center gap-2"><FaStickyNote className="text-amber-400"/> Loan Purpose</h2>
-                    <div className="bg-amber-50/50 p-6 rounded-2xl border border-amber-50">
-                      <p className="text-sm font-medium text-gray-700 italic leading-relaxed">{loan.reason || "No specific purpose provided for this loan."}</p>
-                    </div>
-                </div>
-
-                <div className="bg-gray-900 p-8 rounded-[2rem] shadow-xl text-white overflow-hidden relative">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
-                    <h2 className="font-black text-xs uppercase tracking-[0.2em] text-gray-500 mb-6">Record Audit</h2>
-                    <div className="space-y-6">
-                        <div className="flex gap-4">
-                            <div className="w-1 h-12 bg-blue-500 rounded-full"></div>
-                            <div><p className="text-[10px] font-black uppercase text-blue-400">Created At</p><p className="text-sm font-bold">{new Date(loan.loan_date).toLocaleString()}</p></div>
+                    {/* Disbursement Breakdown সেকশন */}
+                    <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200/80">
+                        <div className="flex items-center justify-between mb-8">
+                            <h2 className="font-black text-xl uppercase tracking-tighter flex items-center gap-3">
+                                <div className="w-2 h-8 bg-blue-600 rounded-full"></div>
+                                Disbursement Breakdown
+                            </h2>
+                            <span
+                                className="px-3 py-1 rounded-full bg-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                {loan?.payment_method?.replace('_', ' ')}
+              </span>
                         </div>
-                        <div className="flex gap-4">
-                            <div className="w-1 h-12 bg-green-500 rounded-full"></div>
-                            <div><p className="text-[10px] font-black uppercase text-green-400">Last Verified</p><p className="text-sm font-bold">{loan.updated_at ? new Date(loan.updated_at).toLocaleString() : new Date().toLocaleString()}</p></div>
+
+                        <div className="grid gap-4">
+                            {Number(loan?.paid_cash) > 0 && (
+                                <div
+                                    className="flex items-center justify-between p-5 bg-emerald-50/30 rounded-2xl border border-emerald-100">
+                                    <div className="flex items-center gap-4">
+                                        <div
+                                            className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center">
+                                            <FaMoneyBillWave/></div>
+                                        <div>
+                                            <p className="font-black text-sm text-slate-900">Cash Payout</p>
+                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Hand-to-hand
+                                                currency</p>
+                                        </div>
+                                    </div>
+                                    <span
+                                        className="font-black text-lg text-emerald-700 font-mono">৳{parseFloat(loan.paid_cash).toLocaleString()}</span>
+                                </div>
+                            )}
+
+                            {Number(loan?.paid_mobile) > 0 && (
+                                <div
+                                    className="flex items-center justify-between p-5 bg-purple-50/30 rounded-2xl border border-purple-100">
+                                    <div className="flex items-center gap-4">
+                                        <div
+                                            className="w-10 h-10 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center">
+                                            <FaMobileAlt/></div>
+                                        <div>
+                                            <p className="font-black text-sm text-slate-900">Mobile Transfer</p>
+                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Operator: {loan.mobile_operator || 'N/A'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <span
+                                            className="font-black text-lg text-purple-700 font-mono block">৳{parseFloat(loan.paid_mobile).toLocaleString()}</span>
+                                        {loan.transaction_id && <span
+                                            className="text-[9px] font-black bg-purple-100 text-purple-700 px-2 py-0.5 rounded uppercase tracking-tighter">TxID: {loan.transaction_id}</span>}
+                                    </div>
+                                </div>
+                            )}
+
+                            {Number(loan?.paid_bank) > 0 && (
+                                <div
+                                    className="flex items-center justify-between p-5 bg-blue-50/30 rounded-2xl border border-blue-100">
+                                    <div className="flex items-center gap-4">
+                                        <div
+                                            className="w-10 h-10 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
+                                            <FaUniversity/></div>
+                                        <div>
+                                            <p className="font-black text-sm text-slate-900">Bank Settlement</p>
+                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">A/C: {loan.bank_name || 'Direct Deposit'}</p>
+                                        </div>
+                                    </div>
+                                    <span
+                                        className="font-black text-lg text-blue-700 font-mono">৳{parseFloat(loan.paid_bank).toLocaleString()}</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
-              </div>
-          </div>
-        </div>
 
-        {editOpen && (
-          <UpdateEmployeeLoanModal 
-            isOpen={editOpen} 
-            onClose={() => setEditOpen(false)} 
-            onSuccess={handleEditSuccess} 
-            advanceData={loan} 
-          />
-        )}
-    </div>
-  );
+                {/* ডানদিকের সাইডবার কন্টেন্ট */}
+                <div className="space-y-8">
+                    <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200/80">
+                        <h2 className="font-black text-sm uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-2">
+                            <FaStickyNote className="text-amber-500"/> Loan Purpose
+                        </h2>
+                        <div className="bg-amber-50/40 p-6 rounded-2xl border border-amber-100">
+                            <p className="text-sm font-medium text-slate-700 italic leading-relaxed">
+                                {loan?.reason || "No specific purpose provided for this loan."}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="bg-slate-900 p-8 rounded-[2rem] shadow-xl text-white overflow-hidden relative">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
+                        <h2 className="font-black text-xs uppercase tracking-[0.2em] text-slate-500 mb-6">Record
+                            Audit</h2>
+                        <div className="space-y-6">
+                            <div className="flex gap-4">
+                                <div className="w-1 h-12 bg-blue-500 rounded-full"></div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase text-blue-400">Created At</p>
+                                    <p className="text-sm font-bold">{loan ? new Date(loan.loan_date).toLocaleString() : "N/A"}</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-4">
+                                <div className="w-1 h-12 bg-green-500 rounded-full"></div>
+                                <div>
+                                    <p className="text-[10px] font-black uppercase text-green-400">Timeline Dates</p>
+                                    <p className="text-sm font-bold flex flex-col gap-0.5">
+                                        <span>Issue: {loan ? new Date(loan.loan_date).toLocaleDateString() : "N/A"}</span>
+                                        <span>Start: {loan ? new Date(loan.repayment_start_date).toLocaleDateString() : "N/A"}</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {editOpen && (
+                <UpdateEmployeeLoanModal
+                    isOpen={editOpen}
+                    onClose={() => setEditOpen(false)}
+                    onSuccess={handleEditSuccess}
+                    advanceData={loan}
+                />
+            )}
+        </GenericModuleDetails>
+    );
 };
 
 export default EmployeeLoanDetailsPage;

@@ -1,130 +1,164 @@
-import React, {useState, useEffect, useMemo, useCallback} from 'react';
-import ProductHeader from "./ProductHeader";
-import ProductStats from "./ProductStats";
-import PurchaseSearchFilter from "./PurchaseSearchFilter";
+import React, {useState, useEffect, useCallback} from 'react';
 import PurchaseCard from "./PurchaseCard";
 import PurchaseList from "./PurchaseList";
 import AddPurchaseModal from "./AddPurchaseModal";
 import SuccessModal from "./SuccessModal";
 import LoadingSpinner from "./LoadingSpinner";
 import EditPurchaseModal from "./EditPurchaseModal";
+import EmptyState from "../../components/EmptyState";
 import {posPurchaseProductAPI} from "../../../context_or_provider/pos/Purchase/purchaseProduct/productPurchaseAPI";
 import {
     usePosPurchaseProducts
 } from "../../../context_or_provider/pos/Purchase/purchaseProduct/PurchaseProduct_provider";
+import {Receipt, Banknote, CheckCircle, Clock, Wallet, Activity, Calendar, ArrowUpDown, User} from 'lucide-react';
+import useModuleData from "../../hooks/useModuleData";
 
-const PurchaseGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
-    const {posPurchaseProduct, setPosPurchaseProduct} = usePosPurchaseProducts();
-    // const [viewType, setViewType] = useState("grid");
-
-    // State for modals
-    // const [isAddOpen, setIsAddOpen] = useState(false);
-    const [editingPurchase, setEditingPurchase] = useState(null);
-
-    // State for success modals
+const PurchaseGrid = ({
+                          viewType,
+                          isAddOpen,
+                          setIsAddOpen,
+                          onStatsLoaded,
+                          searchQuery,
+                          filters,
+                          setFilterConfig
+                      }) => {
+    const {setPosPurchaseProduct} = usePosPurchaseProducts();
     const [addSuccessData, setAddSuccessData] = useState(null);
     const [updateSuccessData, setUpdateSuccessData] = useState(null);
+    const [editingPurchase, setEditingPurchase] = useState(null);
 
-    const [loading, setLoading] = useState(true);
+    // 1. Provide filter configuration
+    useEffect(() => {
+        if (setFilterConfig) {
+            setFilterConfig({
+                searchPlaceholder: "Search by Invoice No...",
+                filtersConfig: [
+                    {
+                        key: "status", label: "Payment Status", icon: <Activity className="w-3.5 h-3.5"/>, options: [
+                            {value: "all", label: "All Status"}, 
+                            {value: "paid", label: "Paid"}, 
+                            {value: "partial", label: "Partial"},
+                            {value: "due", label: "Due"}
+                        ]
+                    },
+                    {
+                        key: "method", label: "Method", icon: <Banknote className="w-3.5 h-3.5"/>, options: [
+                            {value: "all", label: "All Methods"},
+                            {value: "cash", label: "Cash"},
+                            {value: "bank", label: "Bank"},
+                            {value: "mobile_banking", label: "Mobile Banking"}
+                        ]
+                    },
+                    {
+                        key: "dateRange", label: "Date Range", icon: <Calendar className="w-3.5 h-3.5"/>, options: [
+                            {value: "all", label: "All Time"}, 
+                            {value: "today", label: "Today"}, 
+                            {value: "week", label: "This Week"}, 
+                            {value: "month", label: "This Month"}
+                        ]
+                    },
+                    {
+                        key: "sortBy", label: "Sort By", icon: <ArrowUpDown className="w-3.5 h-3.5"/>, options: [
+                            {value: "date_desc", label: "Newest First"}, 
+                            {value: "date_asc", label: "Oldest First"}, 
+                            {value: "amount_desc", label: "Total (High-Low)"}, 
+                            {value: "amount_asc", label: "Total (Low-High)"},
+                            {value: "due_desc", label: "Due (High-Low)"}
+                        ]
+                    }
+                ],
+                advancedConfig: [
+                    {
+                        key: "amountRange",
+                        type: "range",
+                        label: "Total Amount Range (৳)",
+                        minPlaceholder: "Min",
+                        maxPlaceholder: "Max"
+                    }
+                ]
+            });
+        }
+    }, [setFilterConfig]);
 
-    const [searchQuery, setSearchQuery] = useState("");
-    const [filters, setFilters] = useState({
-        supplier: "all",
-        status: "all",
-        method: "all",
-        sortBy: "date_desc",
-        startDate: "",
-        endDate: ""
+    // 2. Stats calculation
+    const calculateStats = useCallback((data) => {
+        const totalInvoices = data.length;
+        const totalPurchase = data.reduce((acc, curr) => acc + parseFloat(curr.net_total || 0), 0);
+        const totalPaid = data.reduce((acc, curr) => acc + parseFloat(curr.paid_amount || 0), 0);
+        const totalDue = data.reduce((acc, curr) => acc + parseFloat(curr.due_amount || 0), 0);
+
+        return [
+            { title: 'Total Invoices', count: totalInvoices.toString(), bgColor: 'bg-blue-600', icon: <Receipt size={24}/> },
+            { title: 'Total Purchase', count: `৳${totalPurchase.toLocaleString(undefined, {minimumFractionDigits: 2})}`, bgColor: 'bg-indigo-600', icon: <Banknote size={24}/> },
+            { title: 'Total Paid', count: `৳${totalPaid.toLocaleString(undefined, {minimumFractionDigits: 2})}`, bgColor: 'bg-green-600', icon: <CheckCircle size={24}/> },
+            { title: 'Total Due', count: `৳${totalDue.toLocaleString(undefined, {minimumFractionDigits: 2})}`, bgColor: 'bg-red-600', icon: <Clock size={24}/> }
+        ];
+    }, []);
+
+    // 3. Centralized Hook
+    const {
+        filteredData: filteredProducts,
+        rawData: posPurchaseProduct,
+        loading,
+        refresh
+    } = useModuleData({
+        apiFetch: posPurchaseProductAPI.getAll,
+        searchQuery,
+        filters,
+        searchFields: ['invoice_no', 'supplier_name'],
+        onStatsLoaded,
+        calculateStatsFn: calculateStats,
+        filterFn: (data, f) => {
+            let result = [...data];
+            
+            if (f.status && f.status !== "all") {
+                result = result.filter(item => item.payment_status === f.status);
+            }
+            
+            if (f.method && f.method !== "all") {
+                result = result.filter(item => item.payment_method === f.method);
+            }
+
+            if (f.dateRange && f.dateRange !== "all") {
+                const today = new Date();
+                result = result.filter(item => {
+                    const date = new Date(item.created_at);
+                    if (f.dateRange === "today") return date.toDateString() === today.toDateString();
+                    if (f.dateRange === "week") return date >= new Date(today - 7 * 86400000);
+                    if (f.dateRange === "month") return date >= new Date(today - 30 * 86400000);
+                    return true;
+                });
+            }
+
+            if (f.amountRange) {
+                result = result.filter(item => {
+                    const amount = parseFloat(item.net_total);
+                    return (!f.amountRange.min || amount >= f.amountRange.min) && (!f.amountRange.max || amount <= f.amountRange.max);
+                });
+            }
+
+            if (f.sortBy) {
+                result.sort((a, b) => {
+                    if (f.sortBy === "date_desc") return new Date(b.created_at) - new Date(a.created_at);
+                    if (f.sortBy === "date_asc") return new Date(a.created_at) - new Date(b.created_at);
+                    if (f.sortBy === "amount_desc") return parseFloat(b.net_total) - parseFloat(a.net_total);
+                    if (f.sortBy === "amount_asc") return parseFloat(a.net_total) - parseFloat(b.net_total);
+                    if (f.sortBy === "due_desc") return parseFloat(b.due_amount) - parseFloat(a.due_amount);
+                    return 0;
+                });
+            }
+            return result;
+        }
     });
 
-    const fetchProducts = useCallback(async () => {
-        setLoading(true);
-        try {
-            const response = await posPurchaseProductAPI.getAll();
-            setPosPurchaseProduct(response.data);
-        } catch (error) {
-            console.error("Error fetching products:", error);
-        } finally {
-            setLoading(false);
-        }
-    }, [setPosPurchaseProduct]);
-
     useEffect(() => {
-        fetchProducts();
-    }, [fetchProducts]);
-
-    const handleSearch = useCallback((query) => {
-        setSearchQuery(query);
-    }, []);
-
-    const handleFilter = useCallback((newFilters) => {
-        setFilters(prev => ({...prev, ...newFilters}));
-    }, []);
-
-    const filteredProducts = useMemo(() => {
-        if (!posPurchaseProduct || posPurchaseProduct.length === 0) return [];
-        let result = [...posPurchaseProduct];
-
-        // Search logic
-        if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase();
-            result = result.filter(purchase => 
-                purchase.invoice_no?.toLowerCase().includes(query)
-            );
-        }
-
-        // Supplier Filter
-        if (filters.supplier && filters.supplier !== "all") {
-            result = result.filter(purchase => purchase.supplier?.toString() === filters.supplier);
-        }
-
-        // Status Filter
-        if (filters.status && filters.status !== "all") {
-            result = result.filter(purchase => purchase.payment_status === filters.status);
-        }
-
-        // Method Filter
-        if (filters.method && filters.method !== "all") {
-            result = result.filter(purchase => purchase.payment_method === filters.method);
-        }
-
-        // Date Range Filter
-        if (filters.startDate) {
-            result = result.filter(purchase => new Date(purchase.created_at) >= new Date(filters.startDate));
-        }
-        if (filters.endDate) {
-            const end = new Date(filters.endDate);
-            end.setHours(23, 59, 59, 999);
-            result = result.filter(purchase => new Date(purchase.created_at) <= end);
-        }
-
-        // Sorting logic
-        result.sort((a, b) => {
-            switch (filters.sortBy) {
-                case "date_desc": return new Date(b.created_at) - new Date(a.created_at);
-                case "date_asc": return new Date(a.created_at) - new Date(b.created_at);
-                case "invoice_asc": return (a.invoice_no || '').localeCompare(b.invoice_no || '', undefined, {numeric: true});
-                case "invoice_desc": return (b.invoice_no || '').localeCompare(a.invoice_no || '', undefined, {numeric: true});
-                case "due_desc": return parseFloat(b.due_amount) - parseFloat(a.due_amount);
-                default: return new Date(b.created_at) - new Date(a.created_at);
-            }
-        });
-        return result;
-    }, [posPurchaseProduct, searchQuery, filters]);
-
-    // Calculate totals for stats cards
-    const totals = useMemo(() => {
-        return filteredProducts.reduce((acc, curr) => ({
-            net_total: acc.net_total + parseFloat(curr.net_total || 0),
-            paid_amount: acc.paid_amount + parseFloat(curr.paid_amount || 0),
-            due_amount: acc.due_amount + parseFloat(curr.due_amount || 0),
-        }), { net_total: 0, paid_amount: 0, due_amount: 0 });
-    }, [filteredProducts]);
+        if (posPurchaseProduct) setPosPurchaseProduct(posPurchaseProduct);
+    }, [posPurchaseProduct, setPosPurchaseProduct]);
 
     const handleAddSuccess = (newPurchase) => {
         setIsAddOpen(false);
         setAddSuccessData(newPurchase);
-        fetchProducts();
+        refresh();
     };
 
     const handleEditClick = (purchase) => {
@@ -134,52 +168,32 @@ const PurchaseGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
     const handleUpdateSuccess = (updatedData) => {
         setEditingPurchase(null);
         setUpdateSuccessData(updatedData);
-        fetchProducts();
+        refresh();
     };
 
     const handleDeleteSuccess = () => {
-        fetchProducts();
+        refresh();
     }
-
-    const displayStats = [
-        { title: 'Total Invoices', count: filteredProducts.length.toString(), bgColor: 'bg-blue-600', icon: '🧾' },
-        { title: 'Total Purchase', count: `৳${totals.net_total.toLocaleString(undefined, {minimumFractionDigits: 2})}`, bgColor: 'bg-indigo-600', icon: '💰' },
-        { title: 'Total Paid', count: `৳${totals.paid_amount.toLocaleString(undefined, {minimumFractionDigits: 2})}`, bgColor: 'bg-green-600', icon: '✅' },
-        { title: 'Total Due', count: `৳${totals.due_amount.toLocaleString(undefined, {minimumFractionDigits: 2})}`, bgColor: 'bg-red-600', icon: '⏳' }
-    ];
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+            <div className="flex flex-col items-center justify-center py-20 w-full">
                 <LoadingSpinner size="lg"/>
-                <p className="mt-4 text-gray-600">Loading purchases...</p>
+                <p className="mt-4 text-gray-500 text-sm">Loading purchases...</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            {/*<ProductHeader*/}
-            {/*    viewType={viewType}*/}
-            {/*    setViewType={setViewType}*/}
-            {/*    onAddClick={() => setIsAddOpen(true)}*/}
-            {/*/>*/}
-            <div className="mb-6">
-                <ProductStats stats={displayStats}/>
-            </div>
-            <div className="mb-6">
-                <PurchaseSearchFilter
-                    onSearch={handleSearch}
-                    onFilter={handleFilter}
-                />
-            </div>
-            <div className="bg-white rounded-xl shadow-sm p-4">
-                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-2 sm:mb-0">
-                        Purchase History
+        <div className="space-y-4">
+            <div className="p-1">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 px-1">
+                    <h2 className="text-sm font-bold text-gray-700 uppercase tracking-tight flex items-center gap-2">
+                        <Receipt size={16} className="text-brand-primary"/>
+                        {viewType === "grid" ? "Purchase History Grid" : "Purchase History Table"}
                     </h2>
-                    <div className="text-sm text-gray-500 font-bold">
-                        Showing {filteredProducts.length} of {posPurchaseProduct?.length || 0} invoices
+                    <div className="text-[11px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
+                        SHOWING {filteredProducts.length} OF {posPurchaseProduct?.length || 0} INVOICES
                     </div>
                 </div>
 
@@ -199,6 +213,16 @@ const PurchaseGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
                         products={filteredProducts}
                         onEdit={handleEditClick}
                         onDelete={handleDeleteSuccess}
+                    />
+                )}
+
+                {filteredProducts.length === 0 && (
+                    <EmptyState
+                        icon={<Receipt size={32}/>}
+                        title="No purchase records found"
+                        description="There are no purchase records to display at this time."
+                        actionText="Add New Purchase"
+                        onAction={() => setIsAddOpen(true)}
                     />
                 )}
             </div>

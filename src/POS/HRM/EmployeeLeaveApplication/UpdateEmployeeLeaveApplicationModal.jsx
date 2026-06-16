@@ -1,228 +1,19 @@
-
-
-
-
-// // UpdateEmployeeSalaryAdvanceModal.jsx
-
-// import React, { useState, useEffect } from "react";
-// import PropTypes from "prop-types";
-// import { useForm } from "../../../hooks/profile";
-// import LoadingSpinner from "./LoadingSpinner";
-// import {leaveApplicationAPI} from "../../../context_or_provider/pos/EmployeeLeaveApplicaations/leave_applicationAPI";
-
-// const UpdateEmployeeLeaveApplicationModal = ({
-//     isOpen,
-//     onClose,
-//     onSuccess,
-//     advanceData
-// }) => {
-//     const [loading, setLoading] = useState(false);
-
-//     const {
-//         form,
-//         errors,
-//         handleChange,
-//         setFormData,
-//         validateForm
-//     } = useForm(
-//         {
-//             amount: "",
-//             reason: "",
-//             is_approved: false,
-//         },
-//         {
-//             amount: (v) => !v ? "Amount is required" : null,
-//         }
-//     );
-
-//     // Load data
-//     useEffect(() => {
-//         if (advanceData && isOpen) {
-//             setFormData({
-//                 amount: advanceData.amount?.toString() || "",
-//                 reason: advanceData.reason || "",
-//                 is_approved: advanceData.is_approved || false,
-//             });
-//         }
-//     }, [advanceData, isOpen, setFormData]);
-
-//     const handleSubmit = async (e) => {
-//         e.preventDefault();
-
-//         if (!validateForm()) return;
-
-//         setLoading(true);
-
-//         try {
-//             const payload = {
-//                 amount: Number(form.amount),
-//                 reason: form.reason,
-//                 is_approved: form.is_approved,
-//             };
-
-//             const res = await leaveApplicationAPI.update(advanceData.id, payload);
-
-//             onSuccess?.(res.data);
-//             onClose();
-
-//         } catch (err) {
-//             console.error(err);
-//             alert("Update failed");
-//         } finally {
-//             setLoading(false);
-//         }
-//     };
-
-//     if (!isOpen) return null;
-
-//     return (
-//         <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
-//             <div className="bg-white w-full max-w-lg rounded-xl shadow-xl">
-
-//                 {/* Header */}
-//                 <div className="border-b p-4 flex justify-between items-center">
-//                     <div>
-//                         <h2 className="text-xl font-bold">
-//                             Update Salary Advance
-//                         </h2>
-//                         <p className="text-sm text-gray-500">
-//                             #{advanceData?.id}
-//                         </p>
-//                     </div>
-
-//                     <button onClick={onClose} className="text-xl">×</button>
-//                 </div>
-
-//                 {/* Body */}
-//                 <form onSubmit={handleSubmit} className="p-5 space-y-4">
-
-//                     {/* User Name (readonly) */}
-//                     <div>
-//                         <label className="text-sm font-medium text-gray-700">
-//                             Employee
-//                         </label>
-//                         <input
-//                             value={advanceData?.user_name || ""}
-//                             disabled
-//                             className="w-full p-2 border rounded bg-gray-100"
-//                         />
-//                     </div>
-
-//                     {/* Amount */}
-//                     <div>
-//                         <label className="text-sm font-medium text-gray-700">
-//                             Amount (৳)
-//                         </label>
-//                         <input
-//                             type="number"
-//                             name="amount"
-//                             value={form.amount}
-//                             onChange={handleChange}
-//                             className="w-full p-2 border rounded"
-//                         />
-//                         {errors.amount && (
-//                             <p className="text-red-500 text-sm">{errors.amount}</p>
-//                         )}
-//                     </div>
-
-//                     {/* Reason */}
-//                     <div>
-//                         <label className="text-sm font-medium text-gray-700">
-//                             Reason
-//                         </label>
-//                         <textarea
-//                             name="reason"
-//                             value={form.reason}
-//                             onChange={handleChange}
-//                             className="w-full p-2 border rounded"
-//                         />
-//                     </div>
-
-//                     {/* Approval Toggle */}
-//                     <div className="flex items-center gap-3">
-//                         <input
-//                             type="checkbox"
-//                             name="is_approved"
-//                             checked={form.is_approved}
-//                             onChange={(e) =>
-//                                 handleChange({
-//                                     target: {
-//                                         name: "is_approved",
-//                                         value: e.target.checked
-//                                     }
-//                                 })
-//                             }
-//                         />
-//                         <label>Approved</label>
-//                     </div>
-
-//                     {/* Buttons */}
-//                     <div className="flex justify-end gap-3 pt-4">
-//                         <button
-//                             type="button"
-//                             onClick={onClose}
-//                             className="px-4 py-2 border rounded"
-//                         >
-//                             Cancel
-//                         </button>
-
-//                         <button
-//                             type="submit"
-//                             disabled={loading}
-//                             className="px-6 py-2 bg-blue-600 text-white rounded flex items-center"
-//                         >
-//                             {loading ? (
-//                                 <>
-//                                     <LoadingSpinner size="sm" className="mr-2" />
-//                                     Updating...
-//                                 </>
-//                             ) : (
-//                                 "Update"
-//                             )}
-//                         </button>
-//                     </div>
-//                 </form>
-//             </div>
-//         </div>
-//     );
-// };
-
-// UpdateEmployeeLeaveApplicationModal.propTypes = {
-//     isOpen: PropTypes.bool.isRequired,
-//     onClose: PropTypes.func.isRequired,
-//     onSuccess: PropTypes.func,
-//     advanceData: PropTypes.object.isRequired,
-// };
-
-// export default UpdateEmployeeLeaveApplicationModal;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { useForm } from "../../../hooks/profile";
-import LoadingSpinner from "./LoadingSpinner";
 import { leaveApplicationAPI } from "../../../context_or_provider/pos/EmployeeLeaveApplicaations/leave_applicationAPI";
+import BaseModal from "../../components/BaseModal";
+import { Briefcase, Calendar, FileText, CheckCircle } from "lucide-react";
 
+/**
+ * UpdateEmployeeLeaveApplicationModal - Refactored to use BaseModal and Backbone patterns.
+ */
 const UpdateEmployeeLeaveApplicationModal = ({
     isOpen,
     onClose,
     onSuccess,
     advanceData
 }) => {
-
     const [loading, setLoading] = useState(false);
 
     const {
@@ -237,7 +28,7 @@ const UpdateEmployeeLeaveApplicationModal = ({
             start_date: "",
             end_date: "",
             reason: "",
-            is_approved: false, // ✅ UI toggle
+            is_approved: false,
         },
         {
             leave_type: (v) => !v ? "Leave type required" : null,
@@ -246,7 +37,7 @@ const UpdateEmployeeLeaveApplicationModal = ({
         }
     );
 
-    // ✅ Load data
+    // Load data when modal opens
     useEffect(() => {
         if (advanceData && isOpen) {
             setFormData({
@@ -254,32 +45,28 @@ const UpdateEmployeeLeaveApplicationModal = ({
                 start_date: advanceData.start_date || "",
                 end_date: advanceData.end_date || "",
                 reason: advanceData.reason || "",
-                is_approved: advanceData.status === "approved", // ✅ mapping
+                is_approved: advanceData.status === "approved" || advanceData.is_approved,
             });
         }
     }, [advanceData, isOpen, setFormData]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         if (!validateForm()) return;
 
         setLoading(true);
-
         try {
             const payload = {
                 leave_type: form.leave_type,
                 start_date: form.start_date,
                 end_date: form.end_date,
                 reason: form.reason,
-                status: form.is_approved ? "approved" : "pending", // ✅ mapping back
+                status: form.is_approved ? "approved" : "pending",
             };
 
             const res = await leaveApplicationAPI.update(advanceData.id, payload);
-
             onSuccess?.(res.data);
             onClose();
-
         } catch (err) {
             console.error(err);
             alert("Update failed");
@@ -288,141 +75,115 @@ const UpdateEmployeeLeaveApplicationModal = ({
         }
     };
 
-    if (!isOpen) return null;
-
     return (
-        <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50 p-4">
-            <div className="bg-white w-full max-w-lg rounded-xl shadow-xl">
-
-                {/* Header */}
-                <div className="border-b p-4 flex justify-between items-center">
-                    <div>
-                        <h2 className="text-xl font-bold">
-                            Update Leave Application
-                        </h2>
-                        <p className="text-sm text-gray-500">
-                            #{advanceData?.id}
-                        </p>
+        <BaseModal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Update Leave Application"
+            subtitle={`Ref: #LVE-${advanceData?.id}`}
+            isLoading={loading}
+            onSubmit={handleSubmit}
+            submitText="Update Application"
+            showFooter={true}
+            size="md"
+        >
+            <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Employee Info (Read-only) */}
+                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex items-center gap-4 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                        {advanceData?.user_name?.charAt(0).toUpperCase()}
                     </div>
-
-                    <button onClick={onClose} className="text-xl">×</button>
+                    <div>
+                        <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest leading-none mb-1">Employee</p>
+                        <p className="font-bold text-gray-800 leading-none">{advanceData?.user_name}</p>
+                    </div>
                 </div>
 
-                {/* Body */}
-                <form onSubmit={handleSubmit} className="p-5 space-y-4">
+                {/* Leave Type */}
+                <div className="space-y-1.5">
+                    <label className="text-xs font-black uppercase text-gray-500 tracking-wider flex items-center gap-2">
+                        <Briefcase size={12} className="text-brand-primary" /> Leave Type *
+                    </label>
+                    <select
+                        name="leave_type"
+                        value={form.leave_type}
+                        onChange={handleChange}
+                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
+                    >
+                        <option value="">-- Select Type --</option>
+                        <option value="sick">Sick Leave</option>
+                        <option value="casual">Casual Leave</option>
+                        <option value="annual">Annual Leave</option>
+                        <option value="other">Other</option>
+                    </select>
+                    {errors.leave_type && <p className="text-rose-500 text-[10px] font-bold uppercase mt-1">{errors.leave_type}</p>}
+                </div>
 
-                    {/* Employee */}
-                    <div>
-                        <label className="text-sm font-medium">Employee</label>
-                        <input
-                            value={advanceData?.user_name || ""}
-                            disabled
-                            className="w-full p-2 border rounded bg-gray-100"
-                        />
-                    </div>
-
-                    {/* Leave Type */}
-                    <div>
-                        <label className="text-sm font-medium">Leave Type *</label>
-                        <select
-                            name="leave_type"
-                            value={form.leave_type}
-                            onChange={handleChange}
-                            className="w-full p-2 border rounded"
-                        >
-                            <option value="">-- Select Type --</option>
-                            <option value="sick">Sick</option>
-                            <option value="casual">Casual</option>
-                            <option value="annual">Annual</option>
-                        </select>
-                        {errors.leave_type && (
-                            <p className="text-red-500 text-sm">{errors.leave_type}</p>
-                        )}
-                    </div>
-
-                    {/* Dates */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="text-sm font-medium">Start</label>
-                            <input
-                                type="date"
-                                name="start_date"
-                                value={form.start_date}
-                                onChange={handleChange}
-                                className="w-full p-2 border rounded"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="text-sm font-medium">End</label>
-                            <input
-                                type="date"
-                                name="end_date"
-                                value={form.end_date}
-                                onChange={handleChange}
-                                className="w-full p-2 border rounded"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Reason */}
-                    <div>
-                        <label className="text-sm font-medium">Reason</label>
-                        <textarea
-                            name="reason"
-                            value={form.reason}
-                            onChange={handleChange}
-                            className="w-full p-2 border rounded"
-                        />
-                    </div>
-
-                    {/* ✅ APPROVE TOGGLE */}
-                    <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
-                        <input
-                            type="checkbox"
-                            checked={form.is_approved}
-                            onChange={(e) =>
-                                handleChange({
-                                    target: {
-                                        name: "is_approved",
-                                        value: e.target.checked
-                                    }
-                                })
-                            }
-                        />
-                        <label className="font-medium">
-                            Approve this leave
+                {/* Dates */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-black uppercase text-gray-500 tracking-wider flex items-center gap-2">
+                            <Calendar size={12} className="text-brand-primary" /> Start Date
                         </label>
+                        <input
+                            type="date"
+                            name="start_date"
+                            value={form.start_date}
+                            onChange={handleChange}
+                            className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
+                        />
+                        {errors.start_date && <p className="text-rose-500 text-[10px] font-bold uppercase mt-1">{errors.start_date}</p>}
                     </div>
-
-                    {/* Buttons */}
-                    <div className="flex justify-end gap-3 pt-4">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 border rounded"
-                        >
-                            Cancel
-                        </button>
-
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="px-6 py-2 bg-blue-600 text-white rounded flex items-center"
-                        >
-                            {loading ? (
-                                <>
-                                    <LoadingSpinner size="sm" className="mr-2" />
-                                    Updating...
-                                </>
-                            ) : (
-                                "Update"
-                            )}
-                        </button>
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-black uppercase text-gray-500 tracking-wider flex items-center gap-2">
+                            <Calendar size={12} className="text-brand-primary" /> End Date
+                        </label>
+                        <input
+                            type="date"
+                            name="end_date"
+                            value={form.end_date}
+                            onChange={handleChange}
+                            className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all"
+                        />
+                        {errors.end_date && <p className="text-rose-500 text-[10px] font-bold uppercase mt-1">{errors.end_date}</p>}
                     </div>
-                </form>
-            </div>
-        </div>
+                </div>
+
+                {/* Reason */}
+                <div className="space-y-1.5">
+                    <label className="text-xs font-black uppercase text-gray-500 tracking-wider flex items-center gap-2">
+                        <FileText size={12} className="text-brand-primary" /> Reason / Note
+                    </label>
+                    <textarea
+                        name="reason"
+                        value={form.reason}
+                        onChange={handleChange}
+                        rows="3"
+                        className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all resize-none"
+                        placeholder="Explain the reason for leave..."
+                    />
+                </div>
+
+                {/* Approval Toggle */}
+                <div 
+                    className="flex items-center justify-between bg-gray-50 p-4 rounded-2xl border border-gray-100 cursor-pointer hover:bg-emerald-50/50 transition-colors"
+                    onClick={() => handleChange({ target: { name: 'is_approved', value: !form.is_approved } })}
+                >
+                    <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${form.is_approved ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-200 text-gray-400'}`}>
+                            <CheckCircle size={18} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-gray-800 leading-none mb-1">Approve Application</p>
+                            <p className="text-[10px] font-medium text-gray-400 leading-none">Mark this leave as officially approved</p>
+                        </div>
+                    </div>
+                    <div className={`w-10 h-5 rounded-full relative transition-colors ${form.is_approved ? 'bg-emerald-500' : 'bg-gray-300'}`}>
+                        <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${form.is_approved ? 'left-6' : 'left-1'}`}></div>
+                    </div>
+                </div>
+            </form>
+        </BaseModal>
     );
 };
 

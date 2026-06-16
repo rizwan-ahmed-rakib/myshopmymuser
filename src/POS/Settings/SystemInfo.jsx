@@ -1,8 +1,8 @@
 // SystemInfo.jsx - System Information
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import BASE_URL_of_POS from '../../posConfig';
+import api from '../../context_or_provider/pos/posApi';
+
 
 const SystemInfo = () => {
     const [info, setInfo] = useState(null);
@@ -17,7 +17,7 @@ const SystemInfo = () => {
     const fetchSystemInfo = async () => {
         setLoading(true);
         try {
-            const response = await axios.get(`${BASE_URL_of_POS}/api/settings/system-info/`);
+            const response = await api.get(`/api/settings/system-info/`);
             setInfo(response.data);
         } catch (error) {
             // Fallback mock data

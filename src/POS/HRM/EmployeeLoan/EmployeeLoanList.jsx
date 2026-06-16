@@ -4,9 +4,11 @@ import {Edit, Trash2, Eye, Calendar, User, HandCoins, Info} from 'lucide-react';
 import BackboneTable from "../../components/BackboneTable";
 import StatusBadge from "../../components/StatusBadge";
 import {employeeLoanAPI} from "../../../context_or_provider/pos/EmployeeLoan/employee_loanAPI";
-import UpdateEmployeeLoanSuccessPopup from "./UpdateEmployeeLoanSuccessPopup";
-import LoadingSpinner from "./LoadingSpinner";
-import UpdateSalaryAdvanceModal from "./UpdateEmployeeLoanModal";
+// import UpdateEmployeeLoanSuccessPopup from "./UpdateEmployeeLoanSuccessPopup";
+import SuccessPopup from "../../components/SuccessPopup";
+
+import LoadingSpinner from "../../components/LoadingSpinner";
+import UpdateEmployeeLoanModal from "./UpdateEmployeeLoanModal";
 
 /**
  * EmployeeLoanList - Refactored to use BackboneTable and StatusBadge.
@@ -150,7 +152,7 @@ const EmployeeLoanList = ({advance, onEdit}) => {
 
             {/* Modals & Popups */}
             {showEditModal && selectedAdvance && (
-                <UpdateSalaryAdvanceModal
+                <UpdateEmployeeLoanModal
                     isOpen={showEditModal}
                     onClose={() => {
                         setShowEditModal(false);
@@ -167,9 +169,10 @@ const EmployeeLoanList = ({advance, onEdit}) => {
             )}
 
             {showSuccess && (
-                <UpdateEmployeeLoanSuccessPopup
+                <SuccessPopup
                     message={successMessage}
                     onClose={() => setShowSuccess(false)}
+                    type="success"
                 />
             )}
         </>

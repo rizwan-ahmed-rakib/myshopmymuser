@@ -1,30 +1,5 @@
-// utils/api.js
-import axios from "axios";
-import BASE_URL_of_POS from "../../../../posConfig";
+import api from "../../posApi";
 
-// Create axios instance with base URL
-const api = axios.create({
-    baseURL: BASE_URL_of_POS,
-    headers: {
-        "Content-Type": "application/json",
-    },
-});
-
-// Add request interceptor for auth token if needed
-api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem("token");
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
-    }
-);
-
-// API endpoints
 export const posCustomerAPI = {
     // Get all employees
     getAll: () => api.get("/api/sale/customers/"),

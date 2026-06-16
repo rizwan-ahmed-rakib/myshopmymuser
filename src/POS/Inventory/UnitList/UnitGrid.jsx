@@ -308,7 +308,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import UnitCard from "./UnitCard";
 import UnitList from "./UnitList";
 import AddUnitModal from "./AddUnitModal";
-import SuccessModal from "./SuccessModal";
+import SuccessModal from "../../components/SuccessModal";
 import LoadingSpinner from "./LoadingSpinner";
 import { posUnitAPI } from "../../../context_or_provider/pos/units/unitAPI";
 import { usePosUnits } from "../../../context_or_provider/pos/units/UnitProvider";
@@ -443,7 +443,16 @@ const UnitGrid = ({
             </div>
 
             <AddUnitModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onSuccess={handleProductAdded} />
-            <SuccessModal isOpen={!!successData} employee={successData} onClose={() => setSuccessData(null)} />
+            <SuccessModal 
+                isOpen={!!successData} 
+                onClose={() => setSuccessData(null)} 
+                title="Unit Registered"
+                subtitle="Measurement standard updated"
+                details={[
+                    { label: "Unit Title", value: successData?.title },
+                    { label: "Unit ID", value: `#UNT-${successData?.id}` }
+                ]}
+            />
         </div>
     );
 };

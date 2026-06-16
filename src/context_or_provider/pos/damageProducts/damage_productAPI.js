@@ -1,27 +1,4 @@
-import axios from "axios";
-import BASE_URL_of_POS from "../../../posConfig";
-
-// Create axios instance with base URL
-const api = axios.create({
-    baseURL: BASE_URL_of_POS,
-    headers: {
-        "Content-Type": "application/json",
-    },
-});
-
-// Add request interceptor for auth token
-api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem("token");
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
-    }
-);
+import api from "../posApi";
 
 export const posDamageProductAPI = {
     // Get all damage records

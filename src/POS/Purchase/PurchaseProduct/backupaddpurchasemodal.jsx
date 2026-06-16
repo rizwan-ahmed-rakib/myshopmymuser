@@ -3,7 +3,7 @@ import AsyncSelect from "react-select/async";
 import { posProductAPI } from "../../../context_or_provider/pos/products/productAPI";
 import { posPurchaseProductAPI } from "../../../context_or_provider/pos/Purchase/purchaseProduct/productPurchaseAPI";
 import { posSupplierAPI } from "../../../context_or_provider/pos/Purchase/suppliers/supplierAPI";
-import BASE_URL_of_POS from "../../../posConfig";
+
 import SuccessModal from "./SuccessModal";
 
 const emptyItem = {
@@ -543,9 +543,9 @@ export default AddPurchasePage;
 // import { posProductAPI } from "../../../context_or_provider/pos/products/productAPI";
 // import { posPurchaseProductAPI } from "../../../context_or_provider/pos/Purchase/purchaseProduct/productPurchaseAPI";
 // import { posSupplierAPI } from "../../../context_or_provider/pos/Purchase/suppliers/supplierAPI";
-// import BASE_URL_of_POS from "../../../posConfig";
+// 
 // import SuccessModal from "./SuccessModal";
-// import axios from "axios";
+// import api from '../../../context_or_provider/pos/posApi';
 //
 // const emptyItem = {
 //     product: null,
@@ -720,7 +720,7 @@ export default AddPurchasePage;
 //         try {
 //             setLoading(true);
 //             // Directly using axios because FormData handling in some API wrappers can be tricky
-//             const res = await axios.post(`${BASE_URL_of_POS}/api/purchase/purchases/`, formData, {
+//             const res = await api.post(`/api/purchase/purchases/`, formData, {
 //                 headers: { "Content-Type": "multipart/form-data" }
 //             });
 //             setInvoiceData(res.data);

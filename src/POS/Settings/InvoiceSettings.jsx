@@ -1,8 +1,8 @@
 // InvoiceSettings.jsx - Invoice Configuration
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import BASE_URL_of_POS from '../../posConfig';
+import api from '../../context_or_provider/pos/posApi';
+
 
 const InvoiceSettings = () => {
     const [settings, setSettings] = useState({
@@ -26,7 +26,7 @@ const InvoiceSettings = () => {
 
     const fetchSettings = async () => {
         try {
-            const response = await axios.get(`${BASE_URL_of_POS}/api/settings/invoice/`);
+            const response = await api.get(`/api/settings/invoice/`);
             setSettings(response.data);
         } catch (error) {
             console.error('Error fetching invoice settings:', error);
@@ -47,7 +47,7 @@ const InvoiceSettings = () => {
         setSuccess(false);
 
         try {
-            await axios.post(`${BASE_URL_of_POS}/api/settings/invoice/`, settings);
+            await api.post(`/api/settings/invoice/`, settings);
             setSuccess(true);
             setTimeout(() => setSuccess(false), 3000);
         } catch (error) {

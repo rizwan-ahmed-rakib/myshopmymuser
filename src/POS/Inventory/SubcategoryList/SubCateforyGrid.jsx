@@ -309,7 +309,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import SubcategoryCard from "./SubcategoryCard";
 import SubcategoryList from "./SubcategoryList";
 import AddSubCategoryModal from "./AddSubCategoryModal";
-import SuccessModal from "./SuccessModal";
+import SuccessModal from "../../components/SuccessModal";
 import LoadingSpinner from "./LoadingSpinner";
 import { posSubCategoryAPI } from "../../../context_or_provider/pos/subcategories/subCategoryApi";
 import { useSubPosCategory } from "../../../context_or_provider/pos/subcategories/SubCategoryProvider";
@@ -444,7 +444,16 @@ const SubCateforyGrid = ({
             </div>
 
             <AddSubCategoryModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onSuccess={handleProductAdded} />
-            <SuccessModal isOpen={!!successData} employee={successData} onClose={() => setSuccessData(null)} />
+            <SuccessModal 
+                isOpen={!!successData} 
+                onClose={() => setSuccessData(null)} 
+                title="Subcategory Registered"
+                subtitle="New database entry synchronized"
+                details={[
+                    { label: "Subcategory Title", value: successData?.title },
+                    { label: "Subcategory ID", value: `#SUB-${successData?.id}` }
+                ]}
+            />
         </div>
     );
 };

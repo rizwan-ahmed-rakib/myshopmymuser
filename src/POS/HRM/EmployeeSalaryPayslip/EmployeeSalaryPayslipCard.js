@@ -1,8 +1,8 @@
 import React, {useState, useRef, useEffect} from "react";
 import {useNavigate} from "react-router-dom";
 import UpdateEmployeeSalaryPayslipModal from "./UpdateEmployeeSalaryPayslipModal";
-import {posSizeAPI as employeeSalaryPayslipAPI} from "../../../context_or_provider/pos/sizes/sizeAPI";
-// import {employeeSalaryPayslipAPI} from "../../../context_or_provider/pos/SalaryPayslip/employee_salary_payslipAPI";
+import {salaryPayslipAPI} from "../../../context_or_provider/pos/EmployeeSalaryPayslip/salary_payslipAPI";
+
 
 const EmployeeSalaryPayslipCard = ({advance, onEdit, onDelete}) => {
     const navigate = useNavigate();
@@ -39,7 +39,7 @@ const EmployeeSalaryPayslipCard = ({advance, onEdit, onDelete}) => {
 
         setLoadingId(advance.id);
         try {
-            await employeeSalaryPayslipAPI.delete(advance.id);
+            await salaryPayslipAPI.delete(advance.id);
             if (onDelete) onDelete();
         } catch (error) {
             console.error("Delete error:", error);

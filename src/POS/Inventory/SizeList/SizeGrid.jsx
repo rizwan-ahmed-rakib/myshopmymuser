@@ -319,7 +319,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import ProductSizeCard from "./ProductSizeCard";
 import ProductSizeList from "./ProductSizeList";
 import AddSizeModal from "./AddSizeModal";
-import SuccessModal from "./SuccessModal";
+import SuccessModal from "../../components/SuccessModal";
 import LoadingSpinner from "./LoadingSpinner";
 import { posSizeAPI } from "../../../context_or_provider/pos/sizes/sizeAPI";
 import { usePosSizes } from "../../../context_or_provider/pos/sizes/SizeProvider";
@@ -454,7 +454,16 @@ const SizeGrid = ({
             </div>
 
             <AddSizeModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onSuccess={handleProductAdded} />
-            <SuccessModal isOpen={!!successData} employee={successData} onClose={() => setSuccessData(null)} />
+            <SuccessModal 
+                isOpen={!!successData} 
+                onClose={() => setSuccessData(null)} 
+                title="Size Registered"
+                subtitle="New size entry created successfully"
+                details={[
+                    { label: "Size Title", value: successData?.title },
+                    { label: "Size ID", value: `#SIZ-${successData?.id}` }
+                ]}
+            />
         </div>
     );
 };

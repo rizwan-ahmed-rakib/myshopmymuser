@@ -1,12 +1,6 @@
 // components/cashbox/CashboxEntry.jsx
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import BASE_URL_of_POS from "../../posConfig";
-
-const API_URLS = {
-  income: `${BASE_URL_of_POS}/api/cashbox/income/`,
-  expense: `${BASE_URL_of_POS}/api/cashbox/expenses/`,
-};
+import { posCashboxAPI } from "../../context_or_provider/pos/cashbox/cashboxAPI";
 
 const CashboxEntry = () => {
   const [formData, setFormData] = useState({
@@ -50,8 +44,6 @@ const CashboxEntry = () => {
     setIsError(false);
 
     try {
-      const url = formData.type === 'income' ? API_URLS.income : API_URLS.expense;
-
       const payload = {
         title: formData.title,
         amount: parseFloat(formData.amount),
@@ -71,7 +63,11 @@ const CashboxEntry = () => {
         payload.mobile_operator = formData.mobile_operator;
       }
 
-      await axios.post(url, payload);
+      if (formData.type === 'income') {
+        await posCashboxAPI.createIncome(payload);
+      } else {
+        await posCashboxAPI.createExpense(payload);
+      }
 
       setMessage(`${formData.type === 'income' ? 'Income' : 'Expense'} সফলভাবে যোগ হয়েছে!`);
       setIsError(false);

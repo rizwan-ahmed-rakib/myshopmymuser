@@ -1,8 +1,8 @@
 //
 // import React, {useEffect, useState, useCallback} from "react";
-// import axios from "axios";
+// import api from '../../../context_or_provider/pos/posApi';
 // import {FaTrash} from "react-icons/fa";
-// import BASE_URL_of_POS from "../../../posConfig";
+// 
 //
 // const EditSaleReturnModal = ({open, onClose, purchase, onUpdated}) => {
 //     const [form, setForm] = useState(null);
@@ -121,7 +121,7 @@
 //                 })),
 //             };
 //
-//             const res = await axios.patch(
+//             const res = await api.patch(
 //                 `${BASE_URL_of_POS}/api/sale/sale-returns/${form.id}/`,
 //                 payload
 //             );
@@ -288,9 +288,9 @@
 
 
 import React, { useEffect, useState, useCallback } from "react";
-import axios from "axios";
+import api from '../../../context_or_provider/pos/posApi';
 import { FaTrash } from "react-icons/fa";
-import BASE_URL_of_POS from "../../../posConfig";
+
 
 const EditSaleReturnModal = ({ open, onClose, purchase, onUpdated }) => {
     const [form, setForm] = useState(null);
@@ -458,8 +458,7 @@ const EditSaleReturnModal = ({ open, onClose, purchase, onUpdated }) => {
                 })),
             };
 
-            const res = await axios.put(
-                `${BASE_URL_of_POS}/api/sale/sale-returns/${form.id}/`,
+            const res = await api.put(`/api/sale/sale-returns/${form.id}/`,
                 payload
             );
             onUpdated(res.data);

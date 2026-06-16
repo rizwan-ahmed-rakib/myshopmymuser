@@ -1,242 +1,136 @@
-import React, {useState} from "react";
-import {useNavigate} from "react-router-dom";
-import LoadingSpinner from "./LoadingSpinner";
-import UpdateProductModal from "./UpdateProductModal";
-import {posProductAPI} from "../../../context_or_provider/pos/products/productAPI";
-import SuccessPopup from "./SuccessPopup";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Eye, Edit, Trash2, Package, TrendingDown, LayoutGrid, Info } from 'lucide-react';
+import BackboneTable from "../../components/BackboneTable";
+import StatusBadge from "../../components/StatusBadge";
+import LoadingSpinner from "../../components/LoadingSpinner";
+import { posProductAPI } from "../../../context_or_provider/pos/products/productAPI";
 
-const ProductList = ({products, onUpdate}) => {
+/**
+ * ProductList - Refactored to use BackboneTable and StatusBadge.
+ * Specifically for the Low Stock submodule.
+ */
+const ProductList = ({ products, onEdit, onDelete }) => {
     const navigate = useNavigate();
     const [loadingId, setLoadingId] = useState(null);
-    const [showEditModal, setShowEditModal] = useState(false);
-    const [selectedProduct, setSelectedProduct] = useState(null);
-    const [showSuccess, setShowSuccess] = useState(false);
-    const [successMessage, setSuccessMessage] = useState("");
 
-    const handleViewDetails = (product) => {
-        navigate(`/inventory/product/details/${product.id}`);
-        // navigate(`/inventory/products/${product.id}`);
-
+    const handleViewDetails = (item) => {
+        navigate(`/inventory/product/details/${item.id}`);
     };
 
-    const handleEdit = (product) => {
-        setSelectedProduct(product);
-        setShowEditModal(true);
-    };
-
-    const handleDelete = async (product) => {
-        if (!window.confirm(`Are you sure you want to delete ${product.name}?`)) {
-            return;
-        }
-
-        setLoadingId(product.id);
+    const handleDelete = async (item) => {
+        if (!window.confirm(`Are you sure you want to delete ${item.name}?`)) return;
+        setLoadingId(item.id);
         try {
-            await posProductAPI.delete(product.id);
-            setSuccessMessage(`${product.name} deleted successfully!`);
-            setShowSuccess(true);
-
-            if (onUpdate) {
-                onUpdate();
-            }
+            await posProductAPI.delete(item.id);
+            if (onDelete) onDelete();
         } catch (error) {
-            console.error("Delete error:", error);
+            console.error(error);
             alert("Failed to delete product.");
         } finally {
             setLoadingId(null);
         }
     };
 
-    const handleUpdateSuccess = (updatedData) => {
-        setShowEditModal(false);
-        setSuccessMessage("Product updated successfully!");
-        setShowSuccess(true);
-
-        if (onUpdate) {
-            onUpdate();
-        }
-    };
-
-    return (
-        <>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
-                    <div className="grid grid-cols-12 gap-4">
-                        <div className="col-span-4">
-                            <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                                Product
-                            </span>
-                        </div>
-                        <div className="col-span-2">
-                            <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                                Category
-                            </span>
-                        </div>
-                        <div className="col-span-2">
-                            <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                                Price
-                            </span>
-                        </div>
-                        <div className="col-span-2">
-                            <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                                Stock
-                            </span>
-                        </div>
-                        <div className="col-span-2 text-right">
-                            <span className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-                                Actions
-                            </span>
-                        </div>
+    const columns = [
+        {
+            header: "Product & Code",
+            accessor: "name",
+            render: (item) => (
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center font-bold text-xs shrink-0 border border-orange-100">
+                        <Package size={16} />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                        <span className="font-bold text-gray-900 truncate">{item.name}</span>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                            {item.product_code}
+                        </span>
                     </div>
                 </div>
-
-                <div className="divide-y divide-gray-100">
-                    {products?.filter(p => p).map((product) => (
-                        <div
-                            key={product.id}
-                            className="px-6 py-4 hover:bg-gray-50 transition-colors duration-150"
-                        >
-                            <div className="grid grid-cols-12 gap-4 items-center">
-                                <div className="col-span-4">
-                                    <div className="flex items-center">
-                                        <div className="flex-shrink-0">
-                                            <img
-                                                className="h-10 w-10 rounded-lg border border-gray-200"
-                                                src={product.image || "https://via.placeholder.com/150"}
-                                                alt={product.name}
-                                                onError={(e) => {
-                                                    e.target.src = "https://via.placeholder.com/150";
-                                                }}
-                                            />
-                                        </div>
-                                        <div className="ml-4">
-                                            <p className="text-sm font-medium text-gray-900">
-                                                {product.name}
-                                            </p>
-                                            <p className="text-xs text-gray-500">
-                                                Code: {product.product_code}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="col-span-2">
-                                    <span
-                                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                        {product.category || "N/A"}
-                                    </span>
-                                </div>
-
-                                <div className="col-span-2">
-                                    <p className="text-sm text-gray-900">৳{product.selling_price}</p>
-                                </div>
-
-                                <div className="col-span-2">
-                                    <div className="flex flex-col">
-                                        <p className={`text-sm font-bold ${
-                                            product.stock === 0 ? "text-gray-500" :
-                                            product.stock <= (product.alarm_when_stock_is_lessthanOrEqualto * 0.2) ? "text-red-600" :
-                                            "text-orange-600"
-                                        }`}>
-                                            {product.stock} Units
-                                        </p>
-                                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full w-fit mt-1 ${
-                                            product.stock === 0 ? "bg-gray-100 text-gray-600" :
-                                            product.stock <= (product.alarm_when_stock_is_lessthanOrEqualto * 0.2) ? "bg-red-100 text-red-700 animate-pulse" :
-                                            "bg-orange-100 text-orange-700"
-                                        }`}>
-                                            {product.stock === 0 ? "Out of Stock" :
-                                             product.stock <= (product.alarm_when_stock_is_lessthanOrEqualto * 0.2) ? "Critical Limit" :
-                                             "Low Stock"}
-                                        </span>
-                                        <p className="text-[10px] text-gray-400 mt-0.5">Limit: {product.alarm_when_stock_is_lessthanOrEqualto}</p>
-                                    </div>
-                                </div>
-
-                                <div className="col-span-2">
-                                    <div className="flex items-center justify-end space-x-2">
-                                        <button
-                                            onClick={() => handleViewDetails(product)}
-                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                            title="View Details"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor"
-                                                 viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                            </svg>
-                                        </button>
-
-                                        <button
-                                            onClick={() => handleEdit(product)}
-                                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                            title="Edit"
-                                            disabled={loadingId === product.id}
-                                        >
-                                            <svg className="w-4 h-4" fill="none" stroke="currentColor"
-                                                 viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                            </svg>
-                                        </button>
-
-                                        <button
-                                            onClick={() => handleDelete(product)}
-                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                            title="Delete"
-                                            disabled={loadingId === product.id}
-                                        >
-                                            {loadingId === product.id ? (
-                                                <LoadingSpinner size="xs"/>
-                                            ) : (
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor"
-                                                     viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                                </svg>
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-
-                    {(!products || products.length === 0) && (
-                        <div className="px-6 py-12 text-center">
-                            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24"
-                                 stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                      d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
-                            </svg>
-                            <h3 className="mt-2 text-sm font-medium text-gray-900">No products</h3>
-                            <p className="mt-1 text-sm text-gray-500">Get started by creating a new product.</p>
-                        </div>
-                    )}
+            )
+        },
+        {
+            header: "Category & Brand",
+            accessor: "category_name",
+            render: (item) => (
+                <div className="flex flex-col">
+                    <span className="text-xs font-bold text-gray-700">{item.category_name || "Uncategorized"}</span>
+                    <span className="text-[10px] text-gray-400 font-medium uppercase tracking-tighter italic">
+                        {item.brand_name || "No Brand"}
+                    </span>
                 </div>
-            </div>
-
-            {showEditModal && selectedProduct && (
-                <UpdateProductModal
-                    isOpen={showEditModal}
-                    onClose={() => {
-                        setShowEditModal(false);
-                        setSelectedProduct(null);
-                    }}
-                    onSuccess={handleUpdateSuccess}
-                    productData={selectedProduct}
+            )
+        },
+        {
+            header: "Stock Level",
+            accessor: "stock",
+            className: "text-center",
+            render: (item) => {
+                const stock = Number(item.stock);
+                const min = Number(item.min_stock_level || 10);
+                return (
+                    <div className="flex flex-col items-center">
+                        <div className="flex items-center gap-1.5">
+                            <span className={`font-black text-sm ${stock === 0 ? 'text-rose-600' : 'text-orange-600'}`}>
+                                {stock}
+                            </span>
+                            <span className="text-[10px] text-gray-400 uppercase font-bold">units</span>
+                        </div>
+                        <div className="w-16 h-1 bg-gray-100 rounded-full mt-1 overflow-hidden">
+                            <div 
+                                className={`h-full ${stock === 0 ? 'bg-rose-500' : 'bg-orange-500'}`} 
+                                style={{ width: `${Math.min(100, (stock / min) * 100)}%` }}
+                            />
+                        </div>
+                    </div>
+                );
+            }
+        },
+        {
+            header: "Price (Sales)",
+            accessor: "sale_price",
+            render: (item) => (
+                <div className="flex flex-col">
+                    <span className="font-black text-gray-900 text-xs">৳{parseFloat(item.sale_price).toLocaleString()}</span>
+                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tighter">
+                        Cost: ৳{parseFloat(item.purchase_price).toLocaleString()}
+                    </span>
+                </div>
+            )
+        },
+        {
+            header: "Alert Status",
+            accessor: "stock_status",
+            className: "text-center",
+            render: (item) => (
+                <StatusBadge 
+                    type={Number(item.stock) === 0 ? 'danger' : 'warning'} 
+                    label={Number(item.stock) === 0 ? 'Out of Stock' : 'Low Stock'} 
                 />
-            )}
+            )
+        },
+        {
+            header: "Actions",
+            accessor: "actions",
+            className: "text-right w-1 whitespace-nowrap",
+            render: (item) => (
+                <div className="flex justify-end gap-1">
+                    <button onClick={() => handleViewDetails(item)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="View Details"><Eye size={16} /></button>
+                    <button onClick={() => onEdit(item)} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors" title="Edit"><Edit size={16} /></button>
+                    <button onClick={() => handleDelete(item)} className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Delete">
+                        {loadingId === item.id ? <LoadingSpinner size="xs" /> : <Trash2 size={16} />}
+                    </button>
+                </div>
+            )
+        }
+    ];
 
-            {showSuccess && (
-                <SuccessPopup
-                    message={successMessage}
-                    onClose={() => setShowSuccess(false)}
-                    duration={3000}
-                />
-            )}
-        </>
+    return (
+        <BackboneTable 
+            columns={columns} 
+            data={products} 
+        />
     );
 };
 

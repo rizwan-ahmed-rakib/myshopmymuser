@@ -2,13 +2,16 @@ import React, {useState, useEffect, useMemo, useCallback} from 'react';
 import EmployeeSalaryAdvanceCard from "./EmployeeSalaryAdvanceCard";
 import EmployeeSalaryAdvanceList from "./EmployeeSalaryAdvanceList";
 import AddEmployeeSalaryAdvanceModal from "./AddEmployeeSalaryAdvanceModal";
-import SuccessModal from "./SuccessModal";
-import LoadingSpinner from "./LoadingSpinner";
+import SuccessModal from "../../components/SuccessModal";
+import LoadingSpinner from "../../components/LoadingSpinner";
+import EmptyState from "../../components/EmptyState";
 import {salaryAdvanceAPI} from "../../../context_or_provider/pos/EmployeeSalaryAdvance/salary_advanceAPI";
 import {useSalaryAdvances} from "../../../context_or_provider/pos/EmployeeSalaryAdvance/salary_advance_provider";
-import { Banknote, CheckCircle, Clock, Wallet, Search, Briefcase, Activity, Calendar, ArrowUpDown } from 'lucide-react';
+import { Banknote, CheckCircle, Clock, Wallet, Briefcase, Activity, Calendar, ArrowUpDown } from 'lucide-react';
 import { DESIGNATION_OPTIONS } from "../EmployeeList/constant/filters";
 import useModuleData from "../../hooks/useModuleData";
+import { getBrandedVoucher } from "../../utils/printTemplates";
+import { getAdvancePrintLayout } from "./AdvancePrintLayout";
 
 const EmployeeSalaryAdvanceGrid = ({ 
     viewType, 
@@ -132,6 +135,14 @@ const EmployeeSalaryAdvanceGrid = ({
         }
     }, [refresh]);
 
+    const handlePrint = (employee) => {
+        const tableContent = getAdvancePrintLayout(employee);
+        const fullHTML = getBrandedVoucher("Salary Advance", tableContent, employee.id);
+        const printWindow = window.open("", "_blank", "width=850,height=900");
+        printWindow.document.write(fullHTML);
+        printWindow.document.close();
+    };
+
     if (loading) return (
         <div className="flex flex-col items-center justify-center py-20 w-full">
             <LoadingSpinner size="lg" />
@@ -163,16 +174,31 @@ const EmployeeSalaryAdvanceGrid = ({
                 )}
 
                 {filteredEmployees.length === 0 && (
-                    <div className="text-center py-16 border border-dashed border-gray-200 rounded-xl bg-gray-50/30 mt-4">
-                        <Banknote className="w-8 h-8 text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-base font-bold text-gray-800 mb-1">No advance records found</h3>
-                        <button onClick={() => setIsAddOpen(true)} className="px-6 py-2 bg-brand-primary text-white rounded-lg text-xs font-bold mt-4 shadow-md active:scale-95">Apply For Advance</button>
-                    </div>
+                    <EmptyState 
+                        icon={<Banknote size={32} />}
+                        title="No advance records found"
+                        description="There are no salary advance records to display at this time."
+                        actionText="Apply For Advance"
+                        onAction={() => setIsAddOpen(true)}
+                    />
                 )}
             </div>
 
             <AddEmployeeSalaryAdvanceModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onSuccess={handleEmployeeAdded} />
-            <SuccessModal isOpen={!!successData} employee={successData} type={successType} onClose={() => setSuccessData(null)} />
+            
+            <SuccessModal 
+                isOpen={!!successData} 
+                onClose={() => setSuccessData(null)}
+                title={successType === 'update' ? 'Advance Updated' : 'Advance Recorded'}
+                subtitle="Transaction Completed Successfully"
+                details={[
+                    { label: "Employee", value: successData?.user_name },
+                    { label: "Amount", value: `৳${Number(successData?.amount).toLocaleString()}` },
+                    { label: "Date", value: new Date(successData?.request_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) }
+                ]}
+                onPrint={() => handlePrint(successData)}
+                printText="Print Voucher"
+            />
         </div>
     );
 };

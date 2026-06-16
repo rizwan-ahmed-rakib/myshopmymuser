@@ -1,302 +1,173 @@
-//////////////////////////****3***//////////////////////////////
-
-import React, {useState, useEffect, useMemo, useCallback} from 'react';
-import SupplierHeader from "./SupplierHeader";
-import SupplierStats from "./SupplierStats";
-import SupplierSearchFilter from "./SupplierSearchFilter";
+import React, {useState, useEffect, useCallback} from 'react';
 import SupplierCard from "./SupplierCard";
 import SupplierList from "./SupplierList";
-// import { useUserWithProfile } from "../../../context_or_provider/pos/profile/userWithProfile";
 import AddSupplierModal from "./AddSupplierModal";
 import SuccessModal from "./SuccessModal";
 import LoadingSpinner from "./LoadingSpinner";
+import EmptyState from "../../components/EmptyState";
 import {usePosSuppliers} from "../../../context_or_provider/pos/Purchase/suppliers/supplierProvider";
 import {posSupplierAPI} from "../../../context_or_provider/pos/Purchase/suppliers/supplierAPI";
 import AddSupplierDuePaymentModal from "./AddSupplierDuePaymentModal";
+import {Users, UserCheck, UserMinus, Wallet, ArrowUpDown, Calendar, Activity} from 'lucide-react';
+import useModuleData from "../../hooks/useModuleData";
 
-const SupplierGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
-    const {posSuppliers, setPosSuppliers} = usePosSuppliers();
-    // const [viewType, setViewType] = useState("grid");
-    // const [isAddOpen, setIsAddOpen] = useState(false);
+const SupplierGrid = ({
+                          viewType,
+                          isAddOpen,
+                          setIsAddOpen,
+                          onStatsLoaded,
+                          searchQuery,
+                          filters,
+                          setFilterConfig
+                      }) => {
+    const {setPosSuppliers} = usePosSuppliers();
     const [successData, setSuccessData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({
-        total: 0,
-        active: 0,
-        inactive: 0,
-        newJoiners: 0
-    });
-
-    // Search and filter states
-    const [searchQuery, setSearchQuery] = useState("");
-    const [filters, setFilters] = useState({
-        designation: "all",
-        status: "all",
-        dateRange: "all",
-        sortBy: "name_asc",
-        salaryRange: null,
-        customDateRange: null
-    });
     const [isDueCollectionOpen, setIsDueCollectionOpen] = useState(false);
-    const handleDueCollectionSuccess = () => {
-        // setIsDueCollectionOpen(false);
-        fetchEmployees(false); // ডিউ কালেকশন হলে কাস্টমারের ডিউ আপডেট দেখানোর জন্য লিস্ট রিফ্রেশ করবে (ফুল স্ক্রিন লোডিং ছাড়া)
-    };
 
-// Fetch employees on component mount
+    // 1. Provide filter configuration
     useEffect(() => {
-        fetchEmployees(true);
+        if (setFilterConfig) {
+            setFilterConfig({
+                searchPlaceholder: "Search by Name, Email or Phone...",
+                filtersConfig: [
+                    {
+                        key: "status", label: "Account Status", icon: <Activity className="w-3.5 h-3.5"/>, options: [
+                            {value: "all", label: "All Status"},
+                            {value: "active", label: "Active"},
+                            {value: "inactive", label: "Inactive"},
+                            {value: "due", label: "With Due Balance"}
+                        ]
+                    },
+                    {
+                        key: "dateRange", label: "Joined Date", icon: <Calendar className="w-3.5 h-3.5"/>, options: [
+                            {value: "all", label: "All Time"},
+                            {value: "today", label: "Today"},
+                            {value: "week", label: "This Week"},
+                            {value: "month", label: "This Month"}
+                        ]
+                    },
+                    {
+                        key: "sortBy", label: "Sort By", icon: <ArrowUpDown className="w-3.5 h-3.5"/>, options: [
+                            {value: "name_asc", label: "Name (A-Z)"},
+                            {value: "name_desc", label: "Name (Z-A)"},
+                            {value: "date_desc", label: "Joined (Newest)"},
+                            {value: "date_asc", label: "Joined (Oldest)"},
+                            {value: "due_desc", label: "Highest Due"}
+                        ]
+                    }
+                ],
+                advancedConfig: []
+            });
+        }
+    }, [setFilterConfig]);
+
+    // 2. Stats calculation
+    const calculateStats = useCallback((data) => {
+        const total = data.length;
+        const active = data.filter(emp => emp.user?.is_active !== false).length;
+        const withDue = data.filter(emp => parseFloat(emp.due_amount || 0) !== 0).length;
+        const totalDue = data.reduce((acc, curr) => acc + Math.abs(parseFloat(curr.due_amount || 0)), 0);
+
+        return [
+            { title: 'Total Suppliers', count: total.toString(), bgColor: 'bg-purple-600', icon: <Users size={24}/> },
+            { title: 'Active Accounts', count: active.toString(), bgColor: 'bg-teal-500', icon: <UserCheck size={24}/> },
+            { title: 'Outstanding Accounts', count: withDue.toString(), bgColor: 'bg-amber-500', icon: <Activity size={24}/> },
+            { title: 'Total Due Balance', count: `৳${totalDue.toLocaleString()}`, bgColor: 'bg-blue-600', icon: <Wallet size={24}/> }
+        ];
     }, []);
 
-    const fetchEmployees = async (showLoading = true) => {
-        if (showLoading) setLoading(true);
-        try {
-            const response = await posSupplierAPI.getAll();
-            setPosSuppliers(response.data);
-            calculateStats(response.data);
-        } catch (error) {
-            console.error("Error fetching employees:", error);
-        } finally {
-            if (showLoading) setLoading(false);
-        }
-    };
-    const calculateStats = (employees) => {
-        const today = new Date();
-        const last7Days = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+    // 3. Centralized Hook
+    const {
+        filteredData: filteredEmployees,
+        rawData: posSuppliers,
+        loading,
+        refresh
+    } = useModuleData({
+        apiFetch: posSupplierAPI.getAll,
+        searchQuery,
+        filters,
+        searchFields: ['name', 'email', 'phone', 'user.phone'],
+        onStatsLoaded,
+        calculateStatsFn: calculateStats,
+        filterFn: (data, f) => {
+            let result = [...data];
 
-        const total = employees.length;
-        const active = employees.filter(emp => emp.user?.is_active !== false).length;
-        const inactive = employees.filter(emp => emp.user?.is_active === false).length;
-        const newJoiners = employees.filter(emp => {
-            const joinDate = new Date(emp.date_joined);
-            return joinDate >= last7Days;
-        }).length;
-
-        setStats({total, active, inactive, newJoiners});
-    };
-
-    // ✅ useCallback দিয়ে functions wrap করুন
-    const handleSearch = useCallback((query) => {
-        setSearchQuery(query);
-    }, []);
-
-    const handleFilter = useCallback((newFilters) => {
-        console.log("Filter updated:", newFilters);
-        setFilters(prev => ({
-            ...prev,
-            ...newFilters
-        }));
-    }, []);
-
-    // Filter employees based on search and filters
-    const filteredEmployees = useMemo(() => {
-        if (!posSuppliers || posSuppliers.length === 0) return [];
-
-        let result = [...posSuppliers];
-        console.log("Total employees:", result.length);
-
-        // Apply search
-        if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase();
-            result = result.filter(employee =>
-                employee.name.toLowerCase().includes(query) ||
-                employee.email.toLowerCase().includes(query) ||
-                employee.phone_number?.toLowerCase().includes(query) ||
-                employee.user?.phone_number?.toLowerCase().includes(query) ||
-                employee.id.toString().includes(query) ||
-                employee.role.toLowerCase().includes(query)
-            );
-            console.log("After search:", result.length);
-        }
-
-        // Apply filters
-        if (filters.designation !== "all") {
-            result = result.filter(employee => employee.role === filters.designation);
-            console.log("After designation filter:", result.length);
-        }
-
-        if (filters.status !== "all") {
-            if (filters.status === "active") {
-                result = result.filter(employee => employee.user?.is_active !== false);
-            } else if (filters.status === "inactive") {
-                result = result.filter(employee => employee.user?.is_active === false);
-            } else if (filters.status === "present") {
-                result = result.filter(employee => employee.user?.is_present === true);
-            } else if (filters.status === "absent") {
-                result = result.filter(employee => employee.user?.is_present === false);
+            if (f.status && f.status !== "all") {
+                if (f.status === "active") result = result.filter(item => item.user?.is_active !== false);
+                if (f.status === "inactive") result = result.filter(item => item.user?.is_active === false);
+                if (f.status === "due") result = result.filter(item => parseFloat(item.due_amount || 0) !== 0);
             }
-            console.log("After status filter:", result.length);
-        }
 
-        // Apply date range filter
-        if (filters.dateRange !== "all") {
-            const today = new Date();
-            result = result.filter(employee => {
-                const joinDate = new Date(employee.date_joined);
+            if (f.dateRange && f.dateRange !== "all") {
+                const today = new Date();
+                result = result.filter(item => {
+                    const date = new Date(item.created_at);
+                    if (f.dateRange === "today") return date.toDateString() === today.toDateString();
+                    if (f.dateRange === "week") return date >= new Date(today - 7 * 86400000);
+                    if (f.dateRange === "month") return date >= new Date(today - 30 * 86400000);
+                    return true;
+                });
+            }
 
-                switch (filters.dateRange) {
-                    case "today":
-                        return joinDate.toDateString() === today.toDateString();
-                    case "week":
-                        const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-                        return joinDate >= lastWeek;
-                    case "month":
-                        const lastMonth = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-                        return joinDate >= lastMonth;
-                    case "year":
-                        const lastYear = new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000);
-                        return joinDate >= lastYear;
-                    default:
-                        return true;
-                }
-            });
-            console.log("After date filter:", result.length);
-        }
-
-        // Apply custom date range
-        if (filters.customDateRange?.from && filters.customDateRange?.to) {
-            const fromDate = new Date(filters.customDateRange.from);
-            const toDate = new Date(filters.customDateRange.to);
-
-            result = result.filter(employee => {
-                const joinDate = new Date(employee.date_joined);
-                return joinDate >= fromDate && joinDate <= toDate;
-            });
-            console.log("After custom date filter:", result.length);
-        }
-
-        // Apply salary range
-        if (filters.salaryRange) {
-            result = result.filter(employee => {
-                const salary = employee.salary || 0;
-                const passesMin = !filters.salaryRange.min || salary >= filters.salaryRange.min;
-                const passesMax = !filters.salaryRange.max || salary <= filters.salaryRange.max;
-                return passesMin && passesMax;
-            });
-            console.log("After salary filter:", result.length);
-        }
-
-        // Apply sorting
-        result.sort((a, b) => {
-            switch (filters.sortBy) {
-                case "name_asc":
-                    return a.name.localeCompare(b.name);
-                case "name_desc":
-                    return b.name.localeCompare(a.name);
-                case "date_asc":
-                    return new Date(a.date_joined) - new Date(b.date_joined);
-                case "date_desc":
-                    return new Date(b.date_joined) - new Date(a.date_joined);
-                case "salary_asc":
-                    return (a.salary || 0) - (b.salary || 0);
-                case "salary_desc":
-                    return (b.salary || 0) - (a.salary || 0);
-                default:
+            if (f.sortBy) {
+                result.sort((a, b) => {
+                    if (f.sortBy === "name_asc") return a.name.localeCompare(b.name);
+                    if (f.sortBy === "name_desc") return b.name.localeCompare(a.name);
+                    if (f.sortBy === "date_desc") return new Date(b.created_at) - new Date(a.created_at);
+                    if (f.sortBy === "date_asc") return new Date(a.created_at) - new Date(b.created_at);
+                    if (f.sortBy === "due_desc") return Math.abs(parseFloat(b.due_amount || 0)) - Math.abs(parseFloat(a.due_amount || 0));
                     return 0;
+                });
             }
-        });
+            return result;
+        }
+    });
 
-        console.log("Final filtered count:", result.length);
-        return result;
-    }, [posSuppliers, searchQuery, filters]);
+    useEffect(() => {
+        if (posSuppliers) setPosSuppliers(posSuppliers);
+    }, [posSuppliers, setPosSuppliers]);
 
     const handleEmployeeAdded = (newEmp) => {
-        setPosSuppliers(prev => [...prev, newEmp]);
         setIsAddOpen(false);
         setSuccessData(newEmp);
-        fetchEmployees();
+        refresh();
     };
 
     const handleEmployeeUpdated = useCallback(() => {
-        fetchEmployees();
-    }, []);
+        refresh();
+    }, [refresh]);
 
-    const displayStats = [
-        {
-            title: 'Total Employee',
-            count: stats.total.toString(),
-            bgColor: 'bg-purple-600',
-            textColor: 'text-white',
-            icon: '👥',
-            iconBg: 'bg-purple-800'
-        },
-        {
-            title: 'Active',
-            count: stats.active.toString(),
-            bgColor: 'bg-teal-500',
-            textColor: 'text-white',
-            icon: '⭐',
-            iconBg: 'bg-teal-700'
-        },
-        {
-            title: 'Inactive',
-            count: stats.inactive.toString(),
-            bgColor: 'bg-gray-500',
-            textColor: 'text-white',
-            icon: '⚠️',
-            iconBg: 'bg-gray-700'
-        },
-        {
-            title: 'New Joiners',
-            count: stats.newJoiners.toString(),
-            bgColor: 'bg-blue-500',
-            textColor: 'text-white',
-            icon: '✅',
-            iconBg: 'bg-blue-700'
-        }
-    ];
+    const handleDueCollectionSuccess = () => {
+        refresh();
+    };
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <LoadingSpinner size="lg"/>
-                    <p className="mt-4 text-gray-600">Loading employees...</p>
-                </div>
+            <div className="flex flex-col items-center justify-center py-20 w-full">
+                <LoadingSpinner size="lg"/>
+                <p className="mt-4 text-gray-500 text-sm">Loading suppliers...</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-            {/* Header */}
-            {/*<SupplierHeader*/}
-            {/*    viewType={viewType}*/}
-            {/*    setViewType={setViewType}*/}
-            {/*    onAddClick={() => setIsAddOpen(true)}*/}
-            {/*/>*/}
-
-            {/* Stats */}
-            <div className="mb-6">
-                <SupplierStats stats={displayStats}/>
-            </div>
-
-            {/* এখানে একটা "Collect Due" বাটন যুক্ত করতে চাইলে এই বাটনটা ব্যবহার করতে পারো */}
-            <div className="mb-6 flex justify-end">
-                <button
-                    onClick={() => setIsDueCollectionOpen(true)}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2"
-                >
-                    <span>💵</span> Collect Due Payment
-                </button>
-            </div>
-
-            {/* Search and Filter */}
-            <div className="mb-6">
-                <SupplierSearchFilter
-                    onSearch={handleSearch}
-                    onFilter={handleFilter}
-                />
-            </div>
-
-            {/* Main Content - Grid or List View */}
-            <div className="bg-white rounded-xl shadow-sm p-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-2 sm:mb-0">
-                        {viewType === "grid" ? "Employee Directory" : "Employee List"}
+        <div className="space-y-4">
+            <div className="p-1">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 px-1">
+                    <h2 className="text-sm font-bold text-gray-700 uppercase tracking-tight flex items-center gap-2">
+                        <Users size={16} className="text-brand-primary"/>
+                        {viewType === "grid" ? "Supplier Directory Grid" : "Supplier List Table"}
                     </h2>
-                    <div className="text-sm text-gray-500">
-                        Showing {filteredEmployees.length} of {posSuppliers?.length || 0} employees
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setIsDueCollectionOpen(true)}
+                            className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-md text-[11px] font-bold uppercase tracking-tighter hover:bg-emerald-100 transition-colors flex items-center gap-1.5"
+                        >
+                            <Wallet size={12}/> Collect Payment
+                        </button>
+                        <div className="text-[11px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
+                            SHOWING {filteredEmployees.length} OF {posSuppliers?.length || 0} RECORDS
+                        </div>
                     </div>
                 </div>
 
@@ -327,60 +198,23 @@ const SupplierGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
                     />
                 )}
 
-                {/* Empty State */}
                 {filteredEmployees.length === 0 && (
-                    <div className="text-center py-12">
-                        <div className="text-gray-400 mb-4">
-                            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-2.268A10.02 10.02 0 0122 12c0 3.22-1.64 6.065-4.14 7.8M3.86 19.8A10.02 10.02 0 012 12c0-3.22 1.64-6.065 4.14-7.8"/>
-                            </svg>
-                        </div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">No employees found</h3>
-                        <p className="text-gray-600 mb-4">
-                            {searchQuery || Object.values(filters).some(f => f !== "all" && f !== null)
-                                ? "Try changing your search or filter criteria"
-                                : "Add your first employee to get started"
-                            }
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                            {(searchQuery || Object.values(filters).some(f => f !== "all" && f !== null)) && (
-                                <button
-                                    onClick={() => {
-                                        setSearchQuery("");
-                                        setFilters({
-                                            designation: "all",
-                                            status: "all",
-                                            dateRange: "all",
-                                            sortBy: "name_asc",
-                                            salaryRange: null,
-                                            customDateRange: null
-                                        });
-                                    }}
-                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                                >
-                                    Clear Filters
-                                </button>
-                            )}
-                            <button
-                                onClick={() => setIsAddOpen(true)}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                            >
-                                Add Employee
-                            </button>
-                        </div>
-                    </div>
+                    <EmptyState
+                        icon={<Users size={32}/>}
+                        title="No suppliers found"
+                        description="There are no supplier records to display at this time."
+                        actionText="Add New Supplier"
+                        onAction={() => setIsAddOpen(true)}
+                    />
                 )}
             </div>
 
-            {/* Add Employee Modal */}
             <AddSupplierModal
                 isOpen={isAddOpen}
                 onClose={() => setIsAddOpen(false)}
                 onSuccess={handleEmployeeAdded}
             />
 
-            {/* Due Collection Modal */}
             <AddSupplierDuePaymentModal
                 isOpen={isDueCollectionOpen}
                 onClose={() => setIsDueCollectionOpen(false)}
@@ -388,7 +222,6 @@ const SupplierGrid = ({ viewType, isAddOpen, setIsAddOpen }) => {
                 suppliers={posSuppliers}
             />
 
-            {/* Success Modal */}
             <SuccessModal
                 isOpen={!!successData}
                 employee={successData}

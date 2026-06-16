@@ -1,36 +1,50 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-// 💡 useNavigate ইমপোর্ট করা হলো
+import React, { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import ModuleShell from '../components/ModuleShell';
 import DamageStockGrid from "./DamageProductList/DamageStockGrid";
 import BarcodeQRList from './BarcodeQRList';
 import ProducLowstocktGrid from "./LowStock/ProducLowstocktGrid";
 import ExpiredProducts from "./Expeired products/ExpiredProducts";
-import { ChevronDown, FileSpreadsheet, FileText, LayoutGrid, List, Plus, RefreshCw } from "lucide-react";
 
+/**
+ * Stock Module - Parent container for Stock, Damages, Low Stock, Barcodes, and Expired products.
+ * Refactored to use ModuleShell for consistent navigation and unified backbone logic.
+ */
 const Stock = () => {
     const [activeTab, setActiveTab] = useState('Damage');
     const [viewType, setViewType] = useState('grid');
     const [isAddOpen, setIsAddOpen] = useState(false);
-    const [isActionOpen, setIsActionOpen] = useState(false);
+    const [stats, setStats] = useState([]);
+    
+    // Search & Filter State
+    const [searchQuery, setSearchQuery] = useState("");
+    const [filters, setFilters] = useState({});
+    const [filterConfig, setFilterConfig] = useState({
+        searchPlaceholder: "Search...",
+        filtersConfig: [],
+        advancedConfig: []
+    });
 
     const location = useLocation();
-    const navigate = useNavigate(); // 💡 নেভিগেশন ইনিশিয়ালাইজ করা হলো
+    const isRootPath = location.pathname === '/stock' || location.pathname === '/stock/';
 
     const tabs = [
-        { id: 'Damage', name: 'Damages', icon: '⚠️', addLabel: 'Add Damage' },
-        { id: 'Low_stocks', name: 'Low Stocks', icon: '📉', addLabel: 'Add Low Stock' },
-        { id: 'Print_Barcode', name: 'Print Barcode', icon: '🏷️', addLabel: 'Add Barcode' },
-        { id: 'Print_QRrcode', name: 'Print QR Code', icon: '📱', addLabel: 'Add QR Code' },
-        { id: 'Expired_products', name: 'Expired Products', icon: '⌛', addLabel: 'Expired' },
+        { id: 'Damage', name: 'Damages', icon: '⚠️', addLabel: 'Record Damage' },
+        { id: 'Low_stocks', name: 'Low Stocks', icon: '📉', addLabel: 'Restock' },
+        { id: 'Print_Barcode', name: 'Barcodes', icon: '🏷️', addLabel: 'Generate' },
+        { id: 'Print_QRrcode', name: 'QR Codes', icon: '📱', addLabel: 'Generate' },
+        { id: 'Expired_products', name: 'Expired', icon: '⌛', addLabel: 'Manage' },
     ];
-
-    const currentTab = tabs.find(t => t.id === activeTab) || tabs[0];
 
     const renderTabContent = () => {
         const commonProps = {
             viewType,
             isAddOpen,
             setIsAddOpen,
+            onStatsLoaded: setStats,
+            searchQuery,
+            filters,
+            setFilterConfig,
         };
 
         switch (activeTab) {
@@ -49,141 +63,29 @@ const Stock = () => {
         }
     };
 
-    const isRootStockPath = location.pathname === '/stock' || location.pathname === '/stock/';
-
     return (
-        <div className="h-full flex flex-col bg-gray-50">
-
-            {/* 🔥 Top Navigation Bar */}
-            <div className="bg-white border-b px-4 py-3 flex flex-col md:flex-row md:items-start md:justify-between sticky top-0 z-30 shadow-sm gap-4">
-
-                {/* Left: Tabs Loop Container */}
-                <div className="flex flex-wrap gap-2 flex-1">
-                    {tabs.map((tab) => (
-                        <button
-                            key={tab.id}
-                            onClick={() => {
-                                setActiveTab(tab.id);
-                                setIsAddOpen(false);
-
-                                // 💡 ম্যাজিক লাইন: ট্যাবে ক্লিক করলে যদি আমরা কোনো সাব-রুটে (ডিটেইলস পেজে) থাকি,
-                                // তবে সেটিকে রিডাইরেক্ট করে মেইন স্টক পাথে নিয়ে আসবে।
-                                if (!isRootStockPath) {
-                                    navigate('/stock');
-                                }
-                            }}
-                            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2
-                                ${activeTab === tab.id
-                                    ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md"
-                                    : "text-gray-600 hover:bg-gray-100 bg-gray-50"
-                                }`}
-                        >
-                            <span>{tab.icon}</span>
-                            <span>{tab.name}</span>
-                        </button>
-                    ))}
-                </div>
-
-                {/* Right: Dynamic Actions Group */}
-                <div className="flex items-center gap-3 flex-shrink-0 self-end md:self-start">
-                    {/* Primary Add Button */}
-                    {isRootStockPath && (
-                        <button
-                            onClick={() => setIsAddOpen(true)}
-                            className="hidden sm:flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors shadow-sm whitespace-nowrap"
-                        >
-                            <Plus size={18}/>
-                            {currentTab.addLabel}
-                        </button>
-                    )}
-
-                    {/* Actions Dropdown */}
-                    <div className="relative">
-                        <button
-                            onClick={() => setIsActionOpen(!isActionOpen)}
-                            className="flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium transition-all shadow-sm"
-                        >
-                            <ChevronDown size={16} className={`transition-transform duration-200 ${isActionOpen ? 'rotate-180' : ''}`}/>
-                        </button>
-
-                        {isActionOpen && (
-                            <>
-                                <div className="fixed inset-0 z-40" onClick={() => setIsActionOpen(false)}></div>
-                                <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl z-50 py-2 animate-in fade-in zoom-in duration-200">
-                                    {isRootStockPath && (
-                                        <>
-                                            {/* Mobile only Add button */}
-                                            <button
-                                                onClick={() => {
-                                                    setIsAddOpen(true);
-                                                    setIsActionOpen(false);
-                                                }}
-                                                className="sm:hidden flex items-center gap-3 w-full px-4 py-2.5 text-sm text-blue-600 hover:bg-blue-50 font-semibold border-b"
-                                            >
-                                                <Plus size={18}/>
-                                                {currentTab.addLabel}
-                                            </button>
-
-                                            <div className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                                View Mode
-                                            </div>
-                                            <button
-                                                onClick={() => {
-                                                    setViewType('grid');
-                                                    setIsActionOpen(false);
-                                                }}
-                                                className={`flex items-center gap-3 w-full px-4 py-2 text-sm transition-colors ${viewType === 'grid' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700 hover:bg-gray-100'}`}
-                                            >
-                                                <LayoutGrid size={18}/>
-                                                Grid View
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    setViewType('list');
-                                                    setIsActionOpen(false);
-                                                }}
-                                                className={`flex items-center gap-3 w-full px-4 py-2 text-sm transition-colors ${viewType === 'list' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-gray-700 hover:bg-gray-100'}`}
-                                            >
-                                                <List size={18}/>
-                                                List View
-                                            </button>
-
-                                            <div className="my-1 border-t border-gray-100"></div>
-                                        </>
-                                    )}
-
-                                    <div className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                        Export Data
-                                    </div>
-                                    <button className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
-                                        <FileText size={18} className="text-red-500"/>
-                                        Export as PDF
-                                    </button>
-                                    <button className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
-                                        <FileSpreadsheet size={18} className="text-green-600"/>
-                                        Export as Excel
-                                    </button>
-
-                                    <div className="my-1 border-t border-gray-100"></div>
-                                    <button className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
-                                        <RefreshCw size={18} className="text-blue-500"/>
-                                        Refresh List
-                                    </button>
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* 🔥 Content Area */}
-            <div className="flex-1 p-2 overflow-auto">
-                <div className="bg-white rounded-md shadow-sm p-2">
-                    {isRootStockPath ? renderTabContent() : <Outlet />}
-                </div>
-            </div>
-
-        </div>
+        <ModuleShell
+            tabs={tabs}
+            activeTab={activeTab}
+            setActiveTab={(tabId) => {
+                setActiveTab(tabId);
+                setSearchQuery("");
+                setFilters({});
+                setStats([]);
+            }}
+            basePath="/stock"
+            onAdd={() => setIsAddOpen(true)}
+            viewType={viewType}
+            setViewType={setViewType}
+            stats={stats}
+            onSearch={setSearchQuery}
+            onFilter={setFilters}
+            searchPlaceholder={filterConfig.searchPlaceholder}
+            filtersConfig={filterConfig.filtersConfig}
+            advancedConfig={filterConfig.advancedConfig}
+        >
+            {isRootPath ? renderTabContent() : <Outlet />}
+        </ModuleShell>
     );
 };
 

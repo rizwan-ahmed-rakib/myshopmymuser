@@ -17,6 +17,7 @@ import {FaDeleteLeft} from "react-icons/fa6";
 import {salaryAdvanceAPI} from "../../../context_or_provider/pos/EmployeeSalaryAdvance/salary_advanceAPI";
 import {downloadSalaryAdvancePDF} from "./useSalaryAdvancePDF";
 import {AiFillDelete} from "react-icons/ai";
+import SuccessModal from "../../components/SuccessModal";
 
 const EmployeeSalaryAdvanceDetailsPage = () => {
     const {id} = useParams();
@@ -24,6 +25,8 @@ const EmployeeSalaryAdvanceDetailsPage = () => {
     const [advance, setAdvance] = useState(null);
     const [loading, setLoading] = useState(true);
     const [editOpen, setEditOpen] = useState(false);
+    const [successData, setSuccessData] = useState(null);
+    const [successType, setSuccessType] = useState('update');
 
     const fetchAdvance = useCallback(async () => {
         try {
@@ -43,6 +46,8 @@ const EmployeeSalaryAdvanceDetailsPage = () => {
     const handleEditSuccess = (updatedData) => {
         setAdvance(updatedData);
         setEditOpen(false);
+        setSuccessType('update');
+        setSuccessData(updatedData);
     };
 
     const handleDelete = async () => {
@@ -221,6 +226,28 @@ const EmployeeSalaryAdvanceDetailsPage = () => {
                     advanceData={advance}
                 />
             )}
+
+
+            <SuccessModal
+                isOpen={!!successData}
+                onClose={() => setSuccessData(null)}
+                title={successType === 'update' ? 'Advance Updated' : 'Advance Recorded'}
+                subtitle="Transaction Completed Successfully"
+                details={[
+                    {label: "Employee", value: successData?.user_name},
+                    {label: "Amount", value: `৳${Number(successData?.amount).toLocaleString()}`},
+                    {
+                        label: "Date",
+                        value: new Date(successData?.request_date).toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric'
+                        })
+                    }
+                ]}
+                onPrint={() => handlePrint(successData)}
+                printText="Print Voucher"
+            />
         </GenericModuleDetails>
     );
 };

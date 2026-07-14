@@ -250,6 +250,8 @@ import React, {useState, useMemo, useEffect} from "react";
 import AsyncSelect from "react-select/async";
 import { posSaleProductAPI } from "../../../context_or_provider/pos/Sale/saleProduct/productSaleAPI";
 import { posSaleReturnAPI } from "../../../context_or_provider/pos/Sale/saleReturnProduct/PosSaleReturnAPI";
+import BaseModal from "../../components/BaseModal";
+import { RotateCcw } from "lucide-react";
 
 const AddSaleReturnModal = ({ isOpen, onClose, onSuccess }) => {
   const [sale, setSale] = useState(null);
@@ -475,135 +477,136 @@ const AddSaleReturnModal = ({ isOpen, onClose, onSuccess }) => {
 
   /* ================= UI ================= */
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-xl w-full max-w-4xl max-h-[95vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">Sale Return</h2>
-          {sale && (
-            <span className={`px-3 py-1 rounded-full text-sm font-semibold ${existingReturnId ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}`}>
-              {existingReturnId ? 'Update Return' : 'New Return'}
-            </span>
-          )}
-        </div>
-
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Select Sale Invoice</label>
-          <AsyncSelect
-            loadOptions={loadSaleOptions}
-            onChange={handleSaleSelect}
-            placeholder="Search sale invoice..."
-            isClearable
-          />
-        </div>
-
-        {sale && (
-          <>
-            <div className="mb-4 p-3 bg-gray-50 rounded-lg flex justify-between">
-              <div>
-                <p className="font-semibold">Customer: {sale.customer_name || 'Walk-in'}</p>
-                <p className="text-sm text-gray-600">Original Sale: #{sale.invoice_no}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-medium">Original Net Total: ৳{sale.net_total}</p>
-                <p className="text-sm text-red-600">Original Due: ৳{sale.due_amount}</p>
-              </div>
-            </div>
-
-            <div className="mb-4 grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Return Reason</label>
-                <textarea className="input w-full" rows="1" value={returnReason} onChange={e => setReturnReason(e.target.value)} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Note</label>
-                <textarea className="input w-full" rows="1" value={note} onChange={e => setNote(e.target.value)} />
-              </div>
-            </div>
-
-            <div className="overflow-x-auto rounded-lg border">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-bold uppercase">Product</th>
-                    <th className="px-4 py-2 text-center text-xs font-bold uppercase">Sold</th>
-                    <th className="px-4 py-2 text-center text-xs font-bold uppercase">Avail.</th>
-                    <th className="px-4 py-2 text-center text-xs font-bold uppercase">Return Qty</th>
-                    <th className="px-4 py-2 text-right text-xs font-bold uppercase">Unit Price</th>
-                    <th className="px-4 py-2 text-right text-xs font-bold uppercase text-red-600">Penalty</th>
-                    <th className="px-4 py-2 text-right text-xs font-bold uppercase">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {sale.items.map(item => {
-                    const alreadyReturned = returnedQuantitiesMap[item.id] || 0;
-                    const availableQuantity = item.quantity - alreadyReturned;
-                    const qty = Number(returnItems[item.id] || 0);
-                    const penalty = Number(itemPenalties[item.id] || 0);
-                    const total = (qty * Number(item.unit_price)) - penalty;
-
-                    return (
-                      <tr key={item.id}>
-                        <td className="px-4 py-2 text-sm font-medium">{item.product_name}</td>
-                        <td className="px-4 py-2 text-center text-sm">{item.quantity}</td>
-                        <td className="px-4 py-2 text-center text-sm">{availableQuantity}</td>
-                        <td className="px-4 py-2">
-                          <input type="number" min="0" max={availableQuantity} className="input w-20 text-center mx-auto block" value={returnItems[item.id] || ""} onChange={e => handleQtyChange(item, e.target.value)} />
-                        </td>
-                        <td className="px-4 py-2 text-right text-sm">৳{item.unit_price}</td>
-                        <td className="px-4 py-2">
-                          <input type="number" min="0" className="input w-24 text-right mx-auto block text-red-600" value={itemPenalties[item.id] || ""} onChange={e => handlePenaltyChange(item.id, e.target.value)} disabled={qty === 0} />
-                        </td>
-                        <td className="px-4 py-2 text-right font-bold text-sm">৳{total.toFixed(2)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-gray-50 p-4 rounded-xl border space-y-4">
-                <label className="block text-sm font-bold text-gray-700">Payment to Customer</label>
-                <div className="grid grid-cols-3 gap-3">
-                  <div><label className="text-[10px] uppercase font-bold text-gray-500">Cash</label><input type="number" className="w-full border p-2 rounded-lg font-bold" value={paidCash} onChange={(e) => setPaidCash(Number(e.target.value))}/></div>
-                  <div><label className="text-[10px] uppercase font-bold text-gray-500">Mobile</label><input type="number" className="w-full border p-2 rounded-lg font-bold" value={paidMobile} onChange={(e) => setPaidMobile(Number(e.target.value))}/></div>
-                  <div><label className="text-[10px] uppercase font-bold text-gray-500">Bank</label><input type="number" className="w-full border p-2 rounded-lg font-bold" value={paidBank} onChange={(e) => setPaidBank(Number(e.target.value))}/></div>
-                </div>
-
-                {paidMobile > 0 && (
-                  <div className="grid grid-cols-2 gap-3 p-3 bg-orange-50 rounded-lg border">
-                    <div><label className="text-[10px] uppercase font-bold">Operator</label><select className="w-full border p-2 rounded-lg bg-white" value={mobileOperator} onChange={(e) => setMobileOperator(e.target.value)}><option value="">Select</option><option value="bkash">bKash</option><option value="nagad">Nagad</option></select></div>
-                    <div><label className="text-[10px] uppercase font-bold">Trx ID</label><input className="w-full border p-2 rounded-lg" value={transactionId} onChange={(e) => setTransactionId(e.target.value)}/></div>
-                  </div>
-                )}
-                {paidBank > 0 && (
-                  <div className="p-3 bg-blue-50 rounded-lg border"><label className="text-[10px] uppercase font-bold">Bank A/C</label><input className="w-full border p-2 rounded-lg" value={bankAccountNo} onChange={(e) => setBankAccountNo(e.target.value)}/></div>
-                )}
-              </div>
-
-              <div className="bg-gray-900 text-white p-6 rounded-xl space-y-3">
-                <div className="flex justify-between text-sm"><span>Gross Return Amount</span><span className="font-mono">৳{totalReturnAmount.toFixed(2)}</span></div>
-                <div className="flex justify-between text-sm text-red-400"><span>Total Item Penalty</span><span className="font-mono">- ৳{totalItemPenalty.toFixed(2)}</span></div>
-                <div className="flex justify-between items-center text-sm text-red-400">
-                  <span>Global Penalty</span>
-                  <input type="number" className="w-24 bg-gray-800 border-gray-700 rounded text-right p-1 font-mono text-white" value={globalPenalty} onChange={e => setGlobalPenalty(Number(e.target.value))} />
-                </div>
-                <div className="flex justify-between text-lg pt-2 border-t border-gray-700"><span className="font-bold">Net Return</span><span className="font-mono font-black text-2xl text-green-400">৳{netReturnAmount.toFixed(2)}</span></div>
-                <div className="flex justify-between text-sm pt-2 border-t border-gray-700"><span>Paid back to Customer</span><span className="font-mono">৳{totalPaid.toFixed(2)}</span></div>
-                <div className="flex justify-between text-lg text-red-500 font-bold"><span>Balance Due</span><span className="font-mono">৳{dueAmount.toFixed(2)}</span></div>
-              </div>
-            </div>
-          </>
-        )}
-
-        <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
-          <button onClick={resetForm} className="btn-gray">Cancel</button>
-          <button disabled={loading || !sale || totalReturnAmount === 0} onClick={handleSubmit} className="px-8 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 disabled:bg-gray-400">
-            {loading ? "Processing..." : existingReturnId ? "Update Return" : "Confirm Return"}
-          </button>
-        </div>
+    <BaseModal
+      isOpen={isOpen}
+      onClose={resetForm}
+      title="Sale Return"
+      icon={<RotateCcw size={18} className="text-white" />}
+      size="xl"
+      showFooter={true}
+      onSubmit={handleSubmit}
+      submitText={existingReturnId ? "Update Return" : "Confirm Return"}
+      cancelText="Cancel"
+      submitColor="bg-red-600 hover:bg-red-700 text-white"
+      isLoading={loading}
+      isSubmitDisabled={!sale || totalReturnAmount === 0}
+    >
+      <div className="mb-4">
+        <label className="block text-sm font-medium mb-1">Select Sale Invoice</label>
+        <AsyncSelect
+          loadOptions={loadSaleOptions}
+          onChange={handleSaleSelect}
+          placeholder="Search sale invoice..."
+          isClearable
+        />
       </div>
-    </div>
+
+      {sale && (
+        <>
+          <div className="mb-4 p-3 bg-gray-50 rounded-lg flex justify-between items-center">
+            <div>
+              <p className="font-semibold">Customer: {sale.customer_name || 'Walk-in'}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-sm text-gray-600">Original Sale: #{sale.invoice_no}</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${existingReturnId ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800'}`}>
+                  {existingReturnId ? 'Update Return' : 'New Return'}
+                </span>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-medium">Original Net Total: ৳{sale.net_total}</p>
+              <p className="text-sm text-red-600 font-medium">Original Due: ৳{sale.due_amount}</p>
+            </div>
+          </div>
+
+          <div className="mb-4 grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Return Reason</label>
+              <textarea className="input w-full" rows="1" value={returnReason} onChange={e => setReturnReason(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Note</label>
+              <textarea className="input w-full" rows="1" value={note} onChange={e => setNote(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="overflow-x-auto rounded-lg border">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-2 text-left text-xs font-bold uppercase">Product</th>
+                  <th className="px-4 py-2 text-center text-xs font-bold uppercase">Sold</th>
+                  <th className="px-4 py-2 text-center text-xs font-bold uppercase">Avail.</th>
+                  <th className="px-4 py-2 text-center text-xs font-bold uppercase">Return Qty</th>
+                  <th className="px-4 py-2 text-right text-xs font-bold uppercase">Unit Price</th>
+                  <th className="px-4 py-2 text-right text-xs font-bold uppercase text-red-600">Penalty</th>
+                  <th className="px-4 py-2 text-right text-xs font-bold uppercase">Total</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {sale.items.map(item => {
+                  const alreadyReturned = returnedQuantitiesMap[item.id] || 0;
+                  const availableQuantity = item.quantity - alreadyReturned;
+                  const qty = Number(returnItems[item.id] || 0);
+                  const penalty = Number(itemPenalties[item.id] || 0);
+                  const total = (qty * Number(item.unit_price)) - penalty;
+
+                  return (
+                    <tr key={item.id}>
+                      <td className="px-4 py-2 text-sm font-medium">{item.product_name}</td>
+                      <td className="px-4 py-2 text-center text-sm">{item.quantity}</td>
+                      <td className="px-4 py-2 text-center text-sm">{availableQuantity}</td>
+                      <td className="px-4 py-2">
+                        <input type="number" min="0" max={availableQuantity} className="input w-20 text-center mx-auto block" value={returnItems[item.id] || ""} onChange={e => handleQtyChange(item, e.target.value)} />
+                      </td>
+                      <td className="px-4 py-2 text-right text-sm">৳{item.unit_price}</td>
+                      <td className="px-4 py-2">
+                        <input type="number" min="0" className="input w-24 text-right mx-auto block text-red-600" value={itemPenalties[item.id] || ""} onChange={e => handlePenaltyChange(item.id, e.target.value)} disabled={qty === 0} />
+                      </td>
+                      <td className="px-4 py-2 text-right font-bold text-sm">৳{total.toFixed(2)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-gray-50 p-4 rounded-xl border space-y-4">
+              <label className="block text-sm font-bold text-gray-700">Payment to Customer</label>
+              <div className="grid grid-cols-3 gap-3">
+                <div><label className="text-[10px] uppercase font-bold text-gray-500">Cash</label><input type="number" className="w-full border p-2 rounded-lg font-bold" value={paidCash} onChange={(e) => setPaidCash(Number(e.target.value))}/></div>
+                <div><label className="text-[10px] uppercase font-bold text-gray-500">Mobile</label><input type="number" className="w-full border p-2 rounded-lg font-bold" value={paidMobile} onChange={(e) => setPaidMobile(Number(e.target.value))}/></div>
+                <div><label className="text-[10px] uppercase font-bold text-gray-500">Bank</label><input type="number" className="w-full border p-2 rounded-lg font-bold" value={paidBank} onChange={(e) => setPaidBank(Number(e.target.value))}/></div>
+              </div>
+
+              {paidMobile > 0 && (
+                <div className="grid grid-cols-2 gap-3 p-3 bg-orange-50 rounded-lg border">
+                  <div><label className="text-[10px] uppercase font-bold">Operator</label><select className="w-full border p-2 rounded-lg bg-white" value={mobileOperator} onChange={(e) => setMobileOperator(e.target.value)}><option value="">Select</option><option value="bkash">bKash</option><option value="nagad">Nagad</option></select></div>
+                  <div><label className="text-[10px] uppercase font-bold">Trx ID</label><input className="w-full border p-2 rounded-lg" value={transactionId} onChange={(e) => setTransactionId(e.target.value)}/></div>
+                </div>
+              )}
+              {paidBank > 0 && (
+                <div className="p-3 bg-blue-50 rounded-lg border"><label className="text-[10px] uppercase font-bold">Bank A/C</label><input className="w-full border p-2 rounded-lg" value={bankAccountNo} onChange={(e) => setBankAccountNo(e.target.value)}/></div>
+              )}
+            </div>
+
+            <div className="bg-gray-900 text-white p-6 rounded-xl space-y-3">
+              <div className="flex justify-between text-sm"><span>Gross Return Amount</span><span className="font-mono">৳{totalReturnAmount.toFixed(2)}</span></div>
+              <div className="flex justify-between text-sm text-red-400"><span>Total Item Penalty</span><span className="font-mono">- ৳{totalItemPenalty.toFixed(2)}</span></div>
+              <div className="flex justify-between items-center text-sm text-red-400">
+                <span>Global Penalty</span>
+                <input type="number" className="w-24 bg-gray-800 border-gray-700 rounded text-right p-1 font-mono text-white" value={globalPenalty} onChange={e => setGlobalPenalty(Number(e.target.value))} />
+              </div>
+              <div className="flex justify-between text-lg pt-2 border-t border-gray-700"><span className="font-bold">Net Return</span><span className="font-mono font-black text-2xl text-green-400">৳{netReturnAmount.toFixed(2)}</span></div>
+              <div className="flex justify-between text-sm pt-2 border-t border-gray-700"><span>Paid back to Customer</span><span className="font-mono">৳{totalPaid.toFixed(2)}</span></div>
+              <div className="flex justify-between text-lg text-red-500 font-bold"><span>Balance Due</span><span className="font-mono">৳{dueAmount.toFixed(2)}</span></div>
+            </div>
+          </div>
+        </>
+      )}
+
+    </BaseModal>
   );
 };
 

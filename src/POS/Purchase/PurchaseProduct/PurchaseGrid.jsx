@@ -2,8 +2,9 @@ import React, {useState, useEffect, useCallback} from 'react';
 import PurchaseCard from "./PurchaseCard";
 import PurchaseList from "./PurchaseList";
 import AddPurchaseModal from "./AddPurchaseModal";
-import SuccessModal from "./SuccessModal";
-import LoadingSpinner from "./LoadingSpinner";
+import SuccessModal from "../../components/SuccessModal";
+import { getPurchasePrintLayout } from "./PurchasePrintLayout";
+import { getBrandedVoucher } from "../../utils/printTemplates";
 import EditPurchaseModal from "./EditPurchaseModal";
 import EmptyState from "../../components/EmptyState";
 import {posPurchaseProductAPI} from "../../../context_or_provider/pos/Purchase/purchaseProduct/productPurchaseAPI";
@@ -12,6 +13,7 @@ import {
 } from "../../../context_or_provider/pos/Purchase/purchaseProduct/PurchaseProduct_provider";
 import {Receipt, Banknote, CheckCircle, Clock, Wallet, Activity, Calendar, ArrowUpDown, User} from 'lucide-react';
 import useModuleData from "../../hooks/useModuleData";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const PurchaseGrid = ({
                           viewType,
@@ -175,6 +177,15 @@ const PurchaseGrid = ({
         refresh();
     }
 
+    const handlePrint = (invoice) => {
+        if (!invoice) return;
+        const tableContent = getPurchasePrintLayout(invoice);
+        const fullHTML = getBrandedVoucher("Purchase Invoice", tableContent, invoice.invoice_no, "#1d4ed8");
+        const printWindow = window.open("", "_blank", "width=850,height=900");
+        printWindow.document.write(fullHTML);
+        printWindow.document.close();
+    };
+
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center py-20 w-full">
@@ -244,15 +255,31 @@ const PurchaseGrid = ({
 
             <SuccessModal
                 isOpen={!!addSuccessData}
-                invoice={addSuccessData}
                 onClose={() => setAddSuccessData(null)}
+                title="Purchase Recorded Successfully"
+                subtitle={`Invoice #${addSuccessData?.invoice_no} Generated`}
+                details={[
+                    { label: "Net Amount", value: `৳${parseFloat(addSuccessData?.net_total || addSuccessData?.netTotal || 0).toLocaleString()}` },
+                    { label: "Amount Paid", value: `৳${parseFloat(addSuccessData?.paid_amount || 0).toLocaleString()}` },
+                    { label: "Current Due", value: `৳${parseFloat(addSuccessData?.due_amount || 0).toLocaleString()}` }
+                ]}
+                onPrint={() => handlePrint(addSuccessData)}
+                printText="Print Slip"
             />
 
             {updateSuccessData && (
                  <SuccessModal
                     isOpen={!!updateSuccessData}
                     onClose={() => setUpdateSuccessData(null)}
-                    invoice={updateSuccessData}
+                    title="Purchase Updated Successfully"
+                    subtitle={`Invoice #${updateSuccessData?.invoice_no} Updated`}
+                    details={[
+                        { label: "Net Amount", value: `৳${parseFloat(updateSuccessData?.net_total || updateSuccessData?.netTotal || 0).toLocaleString()}` },
+                        { label: "Amount Paid", value: `৳${parseFloat(updateSuccessData?.paid_amount || 0).toLocaleString()}` },
+                        { label: "Current Due", value: `৳${parseFloat(updateSuccessData?.due_amount || 0).toLocaleString()}` }
+                    ]}
+                    onPrint={() => handlePrint(updateSuccessData)}
+                    printText="Print Slip"
                 />
             )}
         </div>

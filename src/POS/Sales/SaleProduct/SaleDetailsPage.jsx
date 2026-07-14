@@ -12,12 +12,13 @@ import EditSaleModal from "./EditSaleModal";
 import SaleReturnModal from "./SaleReturnModal";
 import SaleReturnSuccessModal from "./SaleReturnSuccessModal";
 import {downloadSalePDF} from "./usePurchasePDF";
-import {getBrandedVoucher} from "../../utils/printTemplates";
-import {getSalePrintLayout} from "./SalePrintLayout";
+import { usePrintManager } from "../../utils/usePrintManager";
 import GenericModuleDetails from "../../components/GenericModuleDetails";
 import DetailsInfoCard from "../../components/DetailsInfoCard";
-import SuccessModal from "./SuccessModal";
+// import SuccessModal from "./SuccessModal";
 import { posSaleProductAPI } from "../../../context_or_provider/pos/Sale/saleProduct/productSaleAPI";
+import SuccessModal from "../../components/SuccessModal";
+import BASE_URL_of_POS from "../../../posConfig";
 
 /**
  * SaleDetailsPage - Refactored to use GenericModuleDetails and DetailsInfoCard.
@@ -75,18 +76,18 @@ const SaleDetailsPage = () => {
         }
     };
 
-    const handlePrint = () => {
-        if (!sale) return;
-        const tableContent = getSalePrintLayout(sale);
-        const fullHTML = getBrandedVoucher("Sale Invoice", tableContent, sale.invoice_no, "#1d4ed8");
-        const printWindow = window.open("", "_blank", "width=850,height=900");
-        printWindow.document.write(fullHTML);
-        printWindow.document.close();
-    };
+    const { handlePrintInvoice } = usePrintManager();
+    const handlePrint = () => handlePrintInvoice(sale);
+    const handleSuccessPrint = () => handlePrintInvoice(updatedSaleData);
 
     const originalInvoiceDue = parseFloat(sale?.due_amount) || 0;
     const otherInvoicesDue = (parseFloat(sale?.customer_due_amount) || 0) - originalInvoiceDue;
     const totalCustomerDue = otherInvoicesDue + originalInvoiceDue;
+
+    const successNetTotal = parseFloat(updatedSaleData?.net_total || updatedSaleData?.netTotal || 0);
+    const successPaidAmount = parseFloat(updatedSaleData?.paid_amount || 0);
+    const successCurrentInvoiceDue = parseFloat(updatedSaleData?.due_amount || 0);
+    const successTotalCustomerDue = Number(otherInvoicesDue) + Number(successCurrentInvoiceDue);
 
     return (
         <GenericModuleDetails
@@ -247,6 +248,22 @@ const SaleDetailsPage = () => {
                                     <p className="text-base font-black uppercase tracking-widest">{sale?.payment_status}</p>
                                 </div>
                             </div>
+                            {sale?.payment_proof && (
+                                <div className="flex gap-5">
+                                    <div className="w-1.5 h-14 bg-purple-500 rounded-full shadow-lg shadow-purple-500/50"></div>
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase text-purple-400 tracking-widest mb-1">Payment Proof</p>
+                                        <a
+                                            href={sale.payment_proof.startsWith('http') ? sale.payment_proof : `${BASE_URL_of_POS}${sale.payment_proof}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-sm font-black uppercase text-blue-400 underline hover:text-blue-300 block"
+                                        >
+                                            View Attachment
+                                        </a>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         <div className="mt-10 flex items-center gap-3 text-[10px] font-black text-green-400 uppercase tracking-[0.2em] border-2 border-green-400/20 bg-green-400/5 p-5 rounded-2xl justify-center">
                             <div className="w-2 h-2 bg-green-400 rounded-full animate-ping"></div>
@@ -279,8 +296,16 @@ const SaleDetailsPage = () => {
                 <SuccessModal
                     isOpen={showSuccessModal}
                     onClose={() => setShowSuccessModal(false)}
-                    invoice={updatedSaleData}
-                    previousDue={otherInvoicesDue}
+                    title="Sale Recorded Successfully"
+                    subtitle={updatedSaleData ? `Invoice #${updatedSaleData.invoice_no} Generated` : "Transaction Completed Successfully"}
+                    details={[
+                        { label: "Net Payable", value: `৳${successNetTotal.toLocaleString()}` },
+                        { label: "Total Received", value: `৳${successPaidAmount.toLocaleString()}` },
+                        { label: "Current Due", value: `৳${successCurrentInvoiceDue.toLocaleString()}` },
+                        { label: "Total Combined Due", value: `৳${successTotalCustomerDue.toLocaleString()}` }
+                    ]}
+                    onPrint={handleSuccessPrint}
+                    printText="Print Slip"
                 />
             )}
 

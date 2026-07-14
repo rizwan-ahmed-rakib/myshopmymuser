@@ -218,6 +218,9 @@ import PosLoginPage from "./POS/components/PosLoginPage";
 import PosUserProfile from "./POS/components/PosUserProfile";
 import UserRoleManagement from "./POS/UserRoleManagement";
 import PosProtectedRoute from "./context_or_provider/pos/PosProtectedRoute";
+import PosSalePage from "./POS/Sales/PosSalePage";
+import PosPurchasePage from "./POS/Purchase/PosPurchasePage";
+import PosPurchase from "./POS/Purchase/PosPurchase";
 
 // import {CartProvider} from "./context_or_provider/CartContext";
 
@@ -333,6 +336,10 @@ const App = () => {
                             </ProtectedRoute>
                         }/>
 
+                        <Route path="/pos-sale" element={<PosSalePage/>}/>
+                        <Route path="/pos-purchase" element={<PosPurchase/>}/>
+
+
                         {/* POS Private Routes Wrapped in ProtectedRoute and Layout */}
                         <Route path="/*" element={
                             <PosProtectedRoute>
@@ -349,13 +356,18 @@ const App = () => {
                                         <Route path="/branches" element={<Branches/>}/>
                                         <Route path="/users" element={<Users/>}/>
                                         <Route path="/settings" element={<SettingsPage/>}/>
+                                        {/*<Route path="/pos-sale" element={<PosSalePage/>}/>*/}
+                                        {/*<Route path="/pos-purchase" element={<PosPurchasePage/>}/>*/}
+                                        {/*<Route path="/pos-purchase" element={<PosPurchase/>}/>*/}
 
                                         <Route path="/cashbox" element={<Cashbox/>}/>
                                         <Route path="/sales" element={<Sales/>}>
                                             <Route path="details/:id" element={<SaleDetailsPage/>}/>
                                             <Route path="sale-return/details/:id" element={<SaleReturnDetailsPage/>}/>
-                                            <Route path="due-collection/details/:id" element={<CustomerDueCollectionDetails/>}/>
+                                            <Route path="due-collection/details/:id"
+                                                   element={<CustomerDueCollectionDetails/>}/>
                                             <Route path="customer/profile/:id" element={<CustomerProfilePage/>}/>
+                                            <Route path="Pos-Sale-Page" element={<PosSalePage/>}/>
                                         </Route>
                                         <Route path="/stock" element={<Stock/>}>
                                             <Route path="details/:id" element={<DamageStockDetailsPage/>}/>
@@ -363,13 +375,16 @@ const App = () => {
 
                                         <Route path="/purchase" element={<Purchase/>}>
                                             <Route path="purchase/details/:id" element={<PurchaseDetailsPage/>}/>
-                                            <Route path="purchase-return/details/:id" element={<PurchaseReturnDetailsPage/>}/>
-                                            <Route path="due-payment/details/:id" element={<SupplierDuePaymentDetails/>}/>
+                                            <Route path="purchase-return/details/:id"
+                                                   element={<PurchaseReturnDetailsPage/>}/>
+                                            <Route path="due-payment/details/:id"
+                                                   element={<SupplierDuePaymentDetails/>}/>
                                             <Route path="supplier/profile/:id" element={<SupplierProfilePage/>}/>
                                         </Route>
                                         <Route path="/inventory" element={<Inventory/>}>
                                             <Route path="product/details/:id" element={<ProductDetailsPage/>}/>
-                                            <Route path="damage-product/details/:id" element={<DamageProductDetailsPage/>}/>
+                                            <Route path="damage-product/details/:id"
+                                                   element={<DamageProductDetailsPage/>}/>
                                             <Route path="category/details/:id" element={<CategoryDetailsPage/>}/>
                                             <Route path="subcategory/details/:id" element={<SubCategoryDetailsPage/>}/>
                                             <Route path="brand/details/:id" element={<BrandDetailsPage/>}/>
@@ -379,15 +394,19 @@ const App = () => {
                                         <Route path="/hrm" element={<HRM/>}>
                                             <Route path="employee/profile/:id" element={<EmployeeProfilePage/>}/>
                                             <Route path="loan/details/:id" element={<EmployeeLoanDetails/>}/>
-                                            <Route path="advance/details/:id" element={<EmployeeSalaryAdvanceDetailsPage/>}/>
-                                            <Route path="payslip/details/:id" element={<EmployeeSalaryPayslipDetailsPage/>}/>
-                                            <Route path="attendance/details/:id" element={<EmployeeAttendanceDetailsPage/>}/>
-                                            <Route path="leave-application/details/:id" element={<EmployeeLeaveApplicationDetailsPage/>}/>
+                                            <Route path="advance/details/:id"
+                                                   element={<EmployeeSalaryAdvanceDetailsPage/>}/>
+                                            <Route path="payslip/details/:id"
+                                                   element={<EmployeeSalaryPayslipDetailsPage/>}/>
+                                            <Route path="attendance/details/:id"
+                                                   element={<EmployeeAttendanceDetailsPage/>}/>
+                                            <Route path="leave-application/details/:id"
+                                                   element={<EmployeeLeaveApplicationDetailsPage/>}/>
                                         </Route>
                                     </Routes>
                                 </Layout>
                             </PosProtectedRoute>
-                        } />
+                        }/>
 
                     </Routes>
                 </RootProvider>

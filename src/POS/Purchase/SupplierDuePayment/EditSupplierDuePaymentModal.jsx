@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { posDuePaymentAPI } from "../../../context_or_provider/pos/Purchase/duePayment/duePaymentAPI";
-import SuccessModal from "./SuccessModal";
 import BaseModal from "../../components/BaseModal";
-import { CreditCard, Banknote, MobileAlt, Wallet, Info, FileText, CheckCircle, Receipt, Trash2 } from 'lucide-react';
-import { FaMoneyBillWave, FaMobileAlt, FaUniversity, FaHashtag } from "react-icons/fa";
+import { Receipt, FileText } from 'lucide-react';
+import { FaMoneyBillWave, FaMobileAlt, FaUniversity } from "react-icons/fa";
 
 /**
  * EditSupplierDuePaymentModal - Refactored to use BaseModal and standardized backbone layout.
@@ -19,7 +18,7 @@ const EditSupplierDuePaymentModal = ({ isOpen, onClose, onSuccess, item }) => {
         note: ""
     });
     const [loading, setLoading] = useState(false);
-    const [showSuccess, setShowSuccess] = useState(false);
+    const [errors, setErrors] = useState({});
 
     useEffect(() => {
         if (item && isOpen) {
@@ -56,7 +55,7 @@ const EditSupplierDuePaymentModal = ({ isOpen, onClose, onSuccess, item }) => {
         try {
             const updatedData = { ...item, ...form, amount: totalAmount };
             await posDuePaymentAPI.update(item.id, updatedData);
-            setShowSuccess(true);
+            onSuccess?.({ ...item, ...form, amount: totalAmount });
         } catch (err) {
             console.error(err);
             alert("Update failed.");
@@ -155,15 +154,6 @@ const EditSupplierDuePaymentModal = ({ isOpen, onClose, onSuccess, item }) => {
                 </div>
             </BaseModal>
 
-            {showSuccess && (
-                <SuccessModal 
-                    isOpen={showSuccess} 
-                    onClose={() => { setShowSuccess(false); onSuccess?.(); onClose(); }} 
-                    title="Update Successful" 
-                    data={{...item, ...form, amount: totalAmount}}
-                    message={`Payment #${item.invoice_no} has been successfully updated with the new breakdown.`}
-                />
-            )}
         </>
     );
 };

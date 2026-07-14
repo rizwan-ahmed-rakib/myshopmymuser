@@ -64,7 +64,7 @@ const UpdateCustomerModal = ({ isOpen, onClose, onSuccess, employeeData }) => {
             if (imageFile) formData.append("image", imageFile);
 
             const res = await posCustomerAPI.update(employeeData.id, formData);
-            if (onSuccess) onSuccess(res.data);
+            if (onSuccess) onSuccess({ ...employeeData, ...res.data });
             onClose();
         } catch (error) {
             setErrors(error.response?.data || { message: "Update failed" });

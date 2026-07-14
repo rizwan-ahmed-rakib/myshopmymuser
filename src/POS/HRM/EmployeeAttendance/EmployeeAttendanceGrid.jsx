@@ -7,6 +7,7 @@ import {employeeAttendanceAPI} from "../../../context_or_provider/pos/EmployeeAt
 import { Activity, Calendar, UserCheck, UserX, Clock, ClipboardList, Search, ArrowUpDown } from 'lucide-react';
 import useModuleData from "../../hooks/useModuleData";
 import LoadingSpinner from "../../components/LoadingSpinner";
+import { useUserWithProfile } from "../../../context_or_provider/pos/profile/userWithProfile";
 
 const EmployeeAttendanceGrid = ({ 
     viewType, 
@@ -19,6 +20,7 @@ const EmployeeAttendanceGrid = ({
 }) => {
     const [successData, setSuccessData] = useState(null);
     const [successType, setSuccessType] = useState('create');
+    const { allProfile } = useUserWithProfile();
 
     // 1. Provide filter configuration to parent on mount
     useEffect(() => {
@@ -109,6 +111,25 @@ const EmployeeAttendanceGrid = ({
         }
     });
 
+    const handleSuccess = useCallback((newRecord, type = 'create') => {
+        setIsAddOpen(false);
+        refresh();
+        
+        // Resolve employee name if missing in response
+        if (newRecord && !newRecord.name && newRecord.marketing_officer) {
+            const emp = allProfile?.find(e => e.id === Number(newRecord.marketing_officer));
+            if (emp) {
+                newRecord = {
+                    ...newRecord,
+                    name: emp.name
+                };
+            }
+        }
+        
+        setSuccessType(type);
+        setSuccessData(newRecord);
+    }, [refresh, allProfile]);
+
     if (loading) return (
         <div className="flex flex-col items-center justify-center py-20 w-full">
             <LoadingSpinner size="lg" />
@@ -133,11 +154,11 @@ const EmployeeAttendanceGrid = ({
                 {viewType === "grid" ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                         {displayedAttendance.map(att => (
-                            <EmployeeAttendanceCard key={att.id} attendance={att} onEdit={refresh} onDelete={refresh} />
+                            <EmployeeAttendanceCard key={att.id} attendance={att} onEdit={(data) => handleSuccess(data, 'update')} onDelete={refresh} />
                         ))}
                     </div>
                 ) : (
-                    <EmployeeAttendanceList attendance={displayedAttendance} onEdit={refresh} onDelete={refresh} />
+                    <EmployeeAttendanceList attendance={displayedAttendance} onEdit={(data) => handleSuccess(data, 'update')} onDelete={refresh} />
                 )}
 
                 {pagination.totalPages > 1 && (
@@ -169,7 +190,7 @@ const EmployeeAttendanceGrid = ({
                 )}
             </div>
 
-            <AddEmployeeAttendanceModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onSuccess={() => { setIsAddOpen(false); refresh(); }} />
+            <AddEmployeeAttendanceModal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} onSuccess={(data) => handleSuccess(data, 'create')} />
             <SuccessModal 
                 isOpen={!!successData} 
                 onClose={() => setSuccessData(null)} 

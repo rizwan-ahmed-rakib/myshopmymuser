@@ -321,11 +321,11 @@ import ProductBrandCard from "./ProductBrandCard";
 import ProductBrandList from "./ProductBrandList";
 import AddBrandModal from "./AddBrandModal";
 import SuccessModal from "../../components/SuccessModal";
-import LoadingSpinner from "./LoadingSpinner";
 import { posBrandAPI } from "../../../context_or_provider/pos/brands/brandAPI";
 import { usePosBrands } from "../../../context_or_provider/pos/brands/BrandProvider";
 import { Award, ArrowUpDown } from 'lucide-react';
 import useModuleData from "../../hooks/useModuleData";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const BrandsGrid = ({
     viewType,

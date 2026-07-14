@@ -4,12 +4,12 @@ import DamageStockList from "./DamageStockList";
 import AddDamageStockModal from "./AddDamageStockModal";
 import UpdateDamageStockModal from "./UpdateDamageStockModal";
 import SuccessModal from "./SuccessModal";
-import LoadingSpinner from "./LoadingSpinner";
 import EmptyState from "../../components/EmptyState";
 import {usePosDamageProducts} from "../../../context_or_provider/pos/damageProducts/damage_product_provider";
 import {posDamageProductAPI} from "../../../context_or_provider/pos/damageProducts/damage_productAPI";
 import { AlertTriangle, Package, Activity, Wallet, Calendar, ArrowUpDown, ShieldAlert, CheckCircle } from 'lucide-react';
 import useModuleData from "../../hooks/useModuleData";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const DamageStockGrid = ({
                               viewType,

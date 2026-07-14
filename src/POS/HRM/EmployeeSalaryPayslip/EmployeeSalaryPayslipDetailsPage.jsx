@@ -12,6 +12,7 @@ import {getBrandedVoucher} from "../../utils/printTemplates";
 import {getPayslipPrintLayout} from "./PayslipPrintLayout";
 import GenericModuleDetails from "../../components/GenericModuleDetails";
 import DetailsInfoCard from "../../components/DetailsInfoCard";
+import SuccessModal from "../../components/SuccessModal";
 import {FaDeleteLeft} from "react-icons/fa6";
 import {downloadPayslipPDF} from "./usePayslipPDF";
 import {salaryPayslipAPI} from "../../../context_or_provider/pos/EmployeeSalaryPayslip/salary_payslipAPI";
@@ -25,6 +26,8 @@ const EmployeeSalaryPayslipDetailsPage = () => {
     const [payslip, setPayslip] = useState(null);
     const [loading, setLoading] = useState(true);
     const [editOpen, setEditOpen] = useState(false);
+    const [successData, setSuccessData] = useState(null);
+    const [successType, setSuccessType] = useState('update');
 
     const fetchPayslip = useCallback(async () => {
         try {
@@ -41,9 +44,16 @@ const EmployeeSalaryPayslipDetailsPage = () => {
         fetchPayslip();
     }, [fetchPayslip]);
 
-    const handleEditSuccess = (updatedData) => {
-        setPayslip(updatedData);
+    const handleEditSuccess = async () => {
         setEditOpen(false);
+        try {
+            const res = await api.get(`/api/users/payslips/${id}/`);
+            setPayslip(res.data);
+            setSuccessType('update');
+            setSuccessData(res.data);
+        } catch (error) {
+            console.error("Error fetching updated data:", error);
+        }
     };
 
     const handleDelete = async () => {
@@ -59,10 +69,10 @@ const EmployeeSalaryPayslipDetailsPage = () => {
     };
 
 
-    const handlePrint = () => {
-        if (!payslip) return;
-        const tableContent = getPayslipPrintLayout(payslip);
-        const fullHTML = getBrandedVoucher("Salary Payslip", tableContent, payslip.id, "#2563eb");
+    const handlePrint = (printData = payslip) => {
+        if (!printData) return;
+        const tableContent = getPayslipPrintLayout(printData);
+        const fullHTML = getBrandedVoucher("Salary Payslip", tableContent, printData.id, "#2563eb");
         const printWindow = window.open("", "_blank", "width=850,height=900");
         printWindow.document.write(fullHTML);
         printWindow.document.close();
@@ -220,6 +230,23 @@ const EmployeeSalaryPayslipDetailsPage = () => {
                     advanceData={payslip}
                 />
             )}
+
+            <SuccessModal
+                isOpen={!!successData}
+                onClose={() => setSuccessData(null)}
+                title={successType === 'update' ? 'Payslip Updated' : 'Salary Disbursed'}
+                subtitle="Transaction Completed Successfully"
+                details={[
+                    {label: "Employee", value: successData?.user_name},
+                    {label: "Net Salary", value: `৳${Number(successData?.net_salary).toLocaleString()}`},
+                    {
+                        label: "Period",
+                        value: successData ? `${new Date(0, (successData?.month || 1) - 1).toLocaleString('default', {month: 'long'})} ${successData?.year}` : ""
+                    }
+                ]}
+                onPrint={() => handlePrint(successData)}
+                printText="Print Payslip"
+            />
         </GenericModuleDetails>
     );
 };

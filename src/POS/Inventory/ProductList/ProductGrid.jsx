@@ -291,7 +291,6 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import ProductCard from "./ProductCard";
 import ProductList from "./ProductList";
 import AddProductModal from "./AddProductModal";
-import LoadingSpinner from "./LoadingSpinner";
 import { usePosProducts } from "../../../context_or_provider/pos/products/product_provider";
 import { posProductAPI } from "../../../context_or_provider/pos/products/productAPI";
 import { posUnitAPI } from "../../../context_or_provider/pos/units/unitAPI";
@@ -302,6 +301,7 @@ import { posSizeAPI } from "../../../context_or_provider/pos/sizes/sizeAPI";
 import { Package, CheckCircle2, AlertTriangle, ShoppingCart, DollarSign, ArrowUpDown, Layers, Award } from 'lucide-react';
 import useModuleData from "../../hooks/useModuleData";
 import SuccessModal from "../../components/SuccessModal";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const ProductGrid = ({
     viewType,

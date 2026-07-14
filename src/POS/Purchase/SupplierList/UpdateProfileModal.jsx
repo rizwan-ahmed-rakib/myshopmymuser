@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
-import ProfileImageUpload from "./ProfileImageUpload";
 import { posSupplierAPI } from "../../../context_or_provider/pos/Purchase/suppliers/supplierAPI";
 import BaseModal from "../../components/BaseModal";
 import { User, Phone, Mail, MapPin, Edit3, Image as ImageIcon } from 'lucide-react';

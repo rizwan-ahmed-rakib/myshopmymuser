@@ -11,6 +11,7 @@ import GenericModuleDetails from "../../components/GenericModuleDetails";
 import DetailsInfoCard from "../../components/DetailsInfoCard";
 import {getBrandedVoucher} from "../../utils/printTemplates";
 import {getDuePaymentPrintLayout} from "./DuePaymentPrintLayout";
+import SuccessModal from "../../components/SuccessModal";
 
 /**
  * SupplierDuePaymentDetails - Refactored to use GenericModuleDetails and DetailsInfoCard.
@@ -22,6 +23,8 @@ const SupplierDuePaymentDetails = () => {
     const [item, setItem] = useState(null);
     const [loading, setLoading] = useState(true);
     const [editOpen, setEditOpen] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [updatedData, setUpdatedData] = useState(null);
 
     const fetchItem = useCallback(async () => {
         try {
@@ -38,15 +41,17 @@ const SupplierDuePaymentDetails = () => {
         fetchItem();
     }, [fetchItem]);
 
-    const handleEditSuccess = () => {
-        fetchItem();
+    const handleEditSuccess = (data) => {
+        setItem(data);
+        setUpdatedData(data);
         setEditOpen(false);
+        setShowSuccessModal(true);
     };
 
     const handlePrint = () => {
         if (!item) return;
         const tableContent = getDuePaymentPrintLayout(item);
-        const fullHTML = getBrandedVoucher("Due Payment", tableContent, item.invoice_no, "#10b981");
+        const fullHTML = getBrandedVoucher("Payment Receipt", tableContent, item.invoice_no, "#10b981");
         const printWindow = window.open("", "_blank", "width=850,height=900");
         printWindow.document.write(fullHTML);
         printWindow.document.close();
@@ -169,6 +174,22 @@ const SupplierDuePaymentDetails = () => {
                     onClose={() => setEditOpen(false)}
                     item={item}
                     onSuccess={handleEditSuccess}
+                />
+            )}
+
+            {showSuccessModal && (
+                <SuccessModal
+                    isOpen={showSuccessModal}
+                    onClose={() => setShowSuccessModal(false)}
+                    title="Payment Updated Successfully"
+                    subtitle={`Payment #${updatedData?.invoice_no}`}
+                    details={[
+                        { label: "Supplier", value: updatedData?.supplier_name || 'N/A' },
+                        { label: "Settled Amount", value: `৳${parseFloat(updatedData?.amount || 0).toLocaleString()}` },
+                        { label: "Payment Method", value: (updatedData?.payment_method || '').replace('_', ' ').toUpperCase() }
+                    ]}
+                    onPrint={handlePrint}
+                    printText="Print Receipt"
                 />
             )}
         </GenericModuleDetails>

@@ -26,6 +26,7 @@ const BaseModal = ({
     cancelText = "Cancel",
     submitColor = "bg-brand-primary hover:bg-brand-primaryHover text-white",
     isLoading = false,
+    isSubmitDisabled = false,
 }) => {
     
     // Listen for Escape key to close modal
@@ -44,7 +45,11 @@ const BaseModal = ({
         sm: "max-w-md",
         md: "max-w-lg",
         lg: "max-w-2xl",
-        xl: "max-w-4xl"
+        xl: "max-w-4xl",
+        "2xl": "max-w-6xl",
+        "3xl": "max-w-7xl",
+        "4xl": "max-w-[90vw]",
+        "5xl": "max-w-[95vw]",
     };
 
     // Header theme styling
@@ -103,7 +108,7 @@ const BaseModal = ({
                         <button
                             type={onSubmit ? "button" : "submit"}
                             onClick={onSubmit}
-                            disabled={isLoading}
+                            disabled={isLoading || isSubmitDisabled}
                             className={`px-5 py-2 rounded-xl font-semibold transition-all flex items-center gap-2 active:scale-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${submitColor}`}
                         >
                             {isLoading && <LoadingSpinner size="xs" />}

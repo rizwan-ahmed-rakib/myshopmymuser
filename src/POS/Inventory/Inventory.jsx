@@ -1,4 +1,4 @@
-﻿// // myshopPages/Inventory.jsx
+// // myshopPages/Inventory.jsx
 // import React, {useState} from 'react';
 // // import {Outlet, useLocation} from 'react-router-dom';
 // import {Outlet, useLocation, useNavigate} from 'react-router-dom';
@@ -258,23 +258,15 @@
 // myshopPages/Inventory.jsx
 import React, {useState} from 'react';
 import ModuleShell from '../components/ModuleShell';
-import PurchaseList from './PurchaseList';
-import AddPurchase from './AddPurchase';
-import Suppliers from './Suppliers';
+
 import ProductGrid from "./ProductList/ProductGrid";
 import CategoryGrid from "./CategoryList/CategoryGrid";
 import BrandsGrid from "./BrandList/BrandsGrid";
 import SubCateforyGrid from "./SubcategoryList/SubCateforyGrid";
 import UnitGrid from "./UnitList/UnitGrid";
 import SizeGrid from "./SizeList/SizeGrid";
-// import DamageProductGrid from "./DamageProductList/DamageProductGrid"
-// import DamageStockGrid from "./DamageProductList/DamageStockGrid";
-import BarcodeQRList from './BarcodeQRList';
-// import ProducLowstocktGrid from "./LowStock/ProducLowstocktGrid";
-// import ExpiredProducts from "./Expeired products/ExpiredProducts";
-import Warranties from "./Warranties/Warranties";
 import WarrantyPeriodsGrid from "./WarrantyPeriod/WarrantyPeriodsGrid";
-// import DamageStockGrid from "../Stock/DamageProductList/DamageStockGrid";
+import QuickCashGrid from "./QuickCash/QuickCashGrid";
 
 const Inventory = () => {
     // const [activeSection, setActiveSection] = useState('product_list');
@@ -305,13 +297,7 @@ const Inventory = () => {
         {id: 'Units', name: 'Units', icon: '👥', addLabel: 'Add Unit'},
         {id: 'Size', name: 'Size', icon: '👥', addLabel: 'Add Size'},
         {id: 'WarrantyPeriods', name: 'Warranty', icon: '👥', addLabel: 'Add Warranty'},
-        // {id: 'Print_Barcode', name: 'Print Barcode', icon: '👥', addLabel: 'Add Barcode'},
-        // {id: 'Print_QRrcode', name: 'Print QR Code', icon: '👥', addLabel: 'Add QR Code'},
-        // {id: 'Expired_products', name: 'Expired Products', icon: '👥', addLabel: 'Add Low_stocks'},
-        // {id: 'Low_stocks', name: 'Low Stocks', icon: '👥', addLabel: 'Add Purchase'},
-        // {id: 'Damage', name: 'Damages', icon: '👥', addLabel: 'Damage'},
-        // {id: 'DamageStock', name: 'DamagesStock', icon: '👥', addLabel: 'Add DamageStock'},
-        // {id: 'Warranties', name: 'Warranties', icon: '👥', addLabel: 'Add Warranties'},
+        {id: 'QuickCash', name: 'Quick Cash', icon: '💵', addLabel: 'Add Quick Cash'},
 
     ];
 
@@ -348,28 +334,14 @@ const Inventory = () => {
                 return <BrandsGrid {...commonProps} />;
             case 'WarrantyPeriods':
                 return <WarrantyPeriodsGrid {...commonProps} />;
-            case 'create_product':
-                return <AddPurchase {...commonProps} />;
-            case 'suppliers':
-                return <Suppliers {...commonProps} />;
-            // case 'Damage':
-            //     return <DamageProductGrid {...commonProps} />;
-            // case 'DamageStock':
-            //     return <DamageStockGrid {...commonProps} />;
-            // case 'Low_stocks':
-            //     return <ProducLowstocktGrid {...commonProps} />;
-            case 'Print_Barcode':
-                return <BarcodeQRList type="barcode" {...commonProps} />;
-            case 'Print_QRrcode':
-                return <BarcodeQRList type="qr" {...commonProps} />;
-            // case 'Expired_products':
-            // return <ExpiredProducts type="expire" {...commonProps} />;
-            case 'Warranties':
-                return <Warranties type="warranties" {...commonProps} />;
+            case 'QuickCash':
+                return <QuickCashGrid {...commonProps} />;
+
             default:
-                return <PurchaseList {...commonProps} />;
+                return <ProductGrid {...commonProps} />;
         }
     };
+
 
 
 

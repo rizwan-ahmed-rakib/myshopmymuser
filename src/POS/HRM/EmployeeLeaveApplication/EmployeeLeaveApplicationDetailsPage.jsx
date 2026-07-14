@@ -1,17 +1,18 @@
 import React, {useState, useEffect, useCallback} from "react";
 import {useParams, useNavigate} from "react-router-dom";
 import {
-    FaCalendarAlt, FaFileAlt, FaUserTie, FaCheckCircle, 
+    FaCalendarAlt, FaFileAlt, FaUserTie, FaCheckCircle,
     FaClock, FaTimesCircle, FaShieldAlt, FaExternalLinkAlt, FaFilePdf
 } from "react-icons/fa";
-import { leaveApplicationAPI } from "../../../context_or_provider/pos/EmployeeLeaveApplicaations/leave_applicationAPI";
+import {leaveApplicationAPI} from "../../../context_or_provider/pos/EmployeeLeaveApplicaations/leave_applicationAPI";
 import UpdateEmployeeLeaveApplicationModal from "./UpdateEmployeeLeaveApplicationModal";
-import { getBrandedVoucher } from "../../utils/printTemplates";
-import { getLeavePrintLayout } from "./LeavePrintLayout";
-import { downloadLeavePDF } from "./useLeavePDF";
+import {getBrandedVoucher} from "../../utils/printTemplates";
+import {getLeavePrintLayout} from "./LeavePrintLayout";
+import {downloadLeavePDF} from "./useLeavePDF";
 import GenericModuleDetails from "../../components/GenericModuleDetails";
 import DetailsInfoCard from "../../components/DetailsInfoCard";
 import SuccessPopup from "../../components/SuccessPopup";
+import SuccessModal from "../../components/SuccessModal";
 
 const EmployeeLeaveApplicationDetailsPage = () => {
     const {id} = useParams();
@@ -21,6 +22,9 @@ const EmployeeLeaveApplicationDetailsPage = () => {
     const [editOpen, setEditOpen] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
+    const [successData, setSuccessData] = useState(null);
+    const [successType, setSuccessType] = useState('update');
+
 
     const fetchLeaveDetails = useCallback(async () => {
         try {
@@ -42,6 +46,8 @@ const EmployeeLeaveApplicationDetailsPage = () => {
         setEditOpen(false);
         setSuccessMessage("Leave application updated successfully!");
         setShowSuccess(true);
+        setSuccessType('update');
+        setSuccessData(updatedData)
     };
 
     const handleApprove = async () => {
@@ -116,7 +122,8 @@ const EmployeeLeaveApplicationDetailsPage = () => {
                     <div className="grid sm:grid-cols-3 gap-6">
                         <DetailsInfoCard variant="simple" title="Status"
                                          value={leave?.status || (isApproved ? 'Approved' : 'Pending')}
-                                         icon={isApproved ? <FaCheckCircle/> : isRejected ? <FaTimesCircle/> : <FaClock/>} 
+                                         icon={isApproved ? <FaCheckCircle/> : isRejected ? <FaTimesCircle/> :
+                                             <FaClock/>}
                                          color={isApproved ? "emerald" : isRejected ? "rose" : "amber"}/>
                         <DetailsInfoCard variant="simple" title="Applied On"
                                          value={new Date(leave?.applied_on || leave?.request_date).toLocaleDateString()}
@@ -127,36 +134,45 @@ const EmployeeLeaveApplicationDetailsPage = () => {
                     </div>
 
                     {/* Reason Section */}
-                    <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-100 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full -mr-16 -mt-16"></div>
+                    <div
+                        className="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-100 relative overflow-hidden">
+                        <div
+                            className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full -mr-16 -mt-16"></div>
                         <h2 className="font-black text-2xl uppercase tracking-tighter flex items-center gap-4 mb-10 text-gray-800">
                             <div className="w-2 h-10 bg-amber-500 rounded-full shadow-lg shadow-amber-500/20"></div>
                             Application Reason
                         </h2>
 
-                        <div className="bg-amber-50/50 p-8 rounded-[2.5rem] border border-amber-100 italic text-gray-700 leading-relaxed text-lg">
+                        <div
+                            className="bg-amber-50/50 p-8 rounded-[2.5rem] border border-amber-100 italic text-gray-700 leading-relaxed text-lg">
                             "{leave?.reason || "No specific reason provided for this leave application."}"
                         </div>
                     </div>
                 </div>
 
                 <div className="space-y-8">
-                    <div className="bg-gray-900 p-10 rounded-[3rem] shadow-2xl text-white overflow-hidden relative group">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-700"></div>
-                        <h2 className="font-black text-xs uppercase tracking-[0.3em] text-gray-500 mb-8">Approval Info</h2>
+                    <div
+                        className="bg-gray-900 p-10 rounded-[3rem] shadow-2xl text-white overflow-hidden relative group">
+                        <div
+                            className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-700"></div>
+                        <h2 className="font-black text-xs uppercase tracking-[0.3em] text-gray-500 mb-8">Approval
+                            Info</h2>
                         <div className="space-y-8">
                             <div className="flex gap-5">
                                 <div className="w-1.5 h-14 bg-blue-500 rounded-full shadow-lg shadow-blue-500/50"></div>
                                 <div>
-                                    <p className="text-[10px] font-black uppercase text-blue-400 tracking-widest mb-1">Approved By</p>
+                                    <p className="text-[10px] font-black uppercase text-blue-400 tracking-widest mb-1">Approved
+                                        By</p>
                                     <p className="text-base font-black">{leave?.approved_by_name || "Waiting for Review"}</p>
                                 </div>
                             </div>
                             <div className="flex gap-5">
-                                <div className="w-1.5 h-14 bg-purple-500 rounded-full shadow-lg shadow-purple-500/50"></div>
+                                <div
+                                    className="w-1.5 h-14 bg-purple-500 rounded-full shadow-lg shadow-purple-500/50"></div>
                                 <div>
-                                    <p className="text-[10px] font-black uppercase text-purple-400 tracking-widest mb-1">Employee Profile</p>
-                                    <button 
+                                    <p className="text-[10px] font-black uppercase text-purple-400 tracking-widest mb-1">Employee
+                                        Profile</p>
+                                    <button
                                         onClick={() => navigate(`/hrm/employee/profile/${leave?.user}`)}
                                         className="text-sm font-black flex items-center gap-2 hover:text-purple-400 transition-colors"
                                     >
@@ -172,7 +188,8 @@ const EmployeeLeaveApplicationDetailsPage = () => {
                             <FaShieldAlt className="text-amber-400 text-lg"/> Policy Note
                         </h2>
                         <p className="text-xs font-bold text-gray-500 leading-relaxed">
-                            Leaves are subject to HR policy. Total balance will be deducted once the application is officially marked as approved.
+                            Leaves are subject to HR policy. Total balance will be deducted once the application is
+                            officially marked as approved.
                         </p>
                     </div>
                 </div>
@@ -193,6 +210,25 @@ const EmployeeLeaveApplicationDetailsPage = () => {
                     onClose={() => setShowSuccess(false)}
                 />
             )}
+
+
+            <SuccessModal
+                isOpen={!!successData}
+                onClose={() => setSuccessData(null)}
+                title={successType === 'update' ? 'Application Updated' : 'Application Submitted'}
+                subtitle="Request Processed Successfully"
+                details={[
+                    {label: "Employee", value: successData?.user_name},
+                    {label: "Leave Type", value: successData?.leave_type},
+                    {
+                        label: "Dates",
+                        value: `${new Date(successData?.start_date).toLocaleDateString()} - ${new Date(successData?.end_date).toLocaleDateString()}`
+                    }
+                ]}
+                onPrint={() => handlePrint(successData)}
+                printText="Print Voucher"
+                accentColor="amber"
+            />
         </GenericModuleDetails>
     );
 };

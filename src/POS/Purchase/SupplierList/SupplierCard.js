@@ -2,15 +2,12 @@ import React, {useState, useRef, useEffect} from "react";
 import {useNavigate} from "react-router-dom";
 import {ROLE_COLORS} from "./roles";
 import UpdateEmployeeModal from "./UpdateProfileModal";
-import SuccessPopup from "./UpdateProfileSuccessPopup";
 import {posSupplierAPI} from "../../../context_or_provider/pos/Purchase/suppliers/supplierAPI";
 
 const SupplierCard = ({employee, onEdit, onDelete}) => {
     const navigate = useNavigate();
     const [selectedEmployee, setSelectedEmployee] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
-    const [showSuccess, setShowSuccess] = useState(false);
-    const [successMessage, setSuccessMessage] = useState("");
     const [loadingId, setLoadingId] = useState(null);
 
     const [showDropdown, setShowDropdown] = useState(false);
@@ -56,8 +53,7 @@ const SupplierCard = ({employee, onEdit, onDelete}) => {
         setLoadingId(employee.id);
         try {
             await posSupplierAPI.delete(employee.id);
-            setSuccessMessage(`${employee.name} deleted successfully!`);
-            setShowSuccess(true);
+            alert(`${employee.name} deleted successfully!`);
 
             // Refresh employee list
             if (onEdit) {
@@ -73,12 +69,10 @@ const SupplierCard = ({employee, onEdit, onDelete}) => {
 
     const handleUpdateSuccess = (updatedData) => {
         setShowEditModal(false);
-        setSuccessMessage("Employee updated successfully!");
-        setShowSuccess(true);
 
         // Refresh employee list
         if (onEdit) {
-            onEdit();
+            onEdit(updatedData);
         }
     };
 
@@ -273,17 +267,8 @@ const SupplierCard = ({employee, onEdit, onDelete}) => {
                         setShowEditModal(false);
                         setSelectedEmployee(null);
                     }}
-                    onSuccess={handleUpdateSuccess}
+                    onSuccess={onEdit}
                     employeeData={selectedEmployee}
-                />
-            )}
-
-            {/* Success Popup */}
-            {showSuccess && (
-                <SuccessPopup
-                    message={successMessage}
-                    onClose={() => setShowSuccess(false)}
-                    duration={3000}
                 />
             )}
 

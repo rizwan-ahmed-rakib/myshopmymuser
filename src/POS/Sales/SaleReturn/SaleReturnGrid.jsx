@@ -2,14 +2,16 @@ import React, {useState, useEffect, useCallback} from 'react';
 import SaleReturnCard from "./SaleReturnCard";
 import SaleReturnList from "./SaleReturnList";
 import AddPurchaseModal from "./AddSaleReturnModal";
-import SuccessModal from "./SuccessModal";
-import LoadingSpinner from "./LoadingSpinner";
+import SuccessModal from "../../components/SuccessModal";
+import { getBrandedVoucher } from "../../utils/printTemplates";
+import { getSaleReturnPrintLayout } from "./SaleReturnPrintLayout";
 import EditSaleReturnModal from "./EditSaleReturnModal";
 import EmptyState from "../../components/EmptyState";
 import {posSaleReturnAPI} from "../../../context_or_provider/pos/Sale/saleReturnProduct/PosSaleReturnAPI";
 import {usePosSaleReturn} from "../../../context_or_provider/pos/Sale/saleReturnProduct/PosSaleReturn_provider";
 import {Undo2, Banknote, CheckCircle, Clock, ShoppingCart, Activity, Calendar, ArrowUpDown} from 'lucide-react';
 import useModuleData from "../../hooks/useModuleData";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const SaleReturnGrid = ({
                             viewType,
@@ -224,19 +226,43 @@ const SaleReturnGrid = ({
 
             <SuccessModal
                 isOpen={!!addSuccessData}
-                purchase={addSuccessData}
                 onClose={() => setAddSuccessData(null)}
                 title="Sale Return Added!"
-                successMessage="The sale return has been successfully recorded."
+                subtitle="The sale return has been successfully recorded."
+                details={addSuccessData ? [
+                    { label: "Net Refundable", value: `৳${parseFloat(addSuccessData.net_return_amount || 0).toLocaleString()}` },
+                    { label: "Paid Back", value: `৳${parseFloat(addSuccessData.paid_amount || 0).toLocaleString()}` },
+                    { label: "Pending Balance", value: `৳${parseFloat(addSuccessData.due_amount || 0).toLocaleString()}` }
+                ] : []}
+                onPrint={addSuccessData ? () => {
+                    const tableContent = getSaleReturnPrintLayout(addSuccessData);
+                    const fullHTML = getBrandedVoucher("Sale Return", tableContent, addSuccessData.id, "#dc2626");
+                    const printWindow = window.open("", "_blank", "width=850,height=900");
+                    printWindow.document.write(fullHTML);
+                    printWindow.document.close();
+                } : null}
+                printText="Print Voucher"
             />
 
             {updateSuccessData && (
                  <SuccessModal
                     isOpen={!!updateSuccessData}
                     onClose={() => setUpdateSuccessData(null)}
-                    purchase={updateSuccessData}
                     title="Sale Return Updated!"
-                    successMessage="The sale return has been successfully updated."
+                    subtitle="The sale return has been successfully updated."
+                    details={updateSuccessData ? [
+                        { label: "Net Refundable", value: `৳${parseFloat(updateSuccessData.net_return_amount || 0).toLocaleString()}` },
+                        { label: "Paid Back", value: `৳${parseFloat(updateSuccessData.paid_amount || 0).toLocaleString()}` },
+                        { label: "Pending Balance", value: `৳${parseFloat(updateSuccessData.due_amount || 0).toLocaleString()}` }
+                    ] : []}
+                    onPrint={updateSuccessData ? () => {
+                        const tableContent = getSaleReturnPrintLayout(updateSuccessData);
+                        const fullHTML = getBrandedVoucher("Sale Return", tableContent, updateSuccessData.id, "#dc2626");
+                        const printWindow = window.open("", "_blank", "width=850,height=900");
+                        printWindow.document.write(fullHTML);
+                        printWindow.document.close();
+                    } : null}
+                    printText="Print Voucher"
                 />
             )}
         </div>

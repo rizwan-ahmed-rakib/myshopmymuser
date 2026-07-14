@@ -84,7 +84,10 @@ const UpdateEmployeeAttendanceModal = ({
             if (form.leave_type) formData.append('leave_type', form.leave_type);
 
             const res = await employeeAttendanceAPI.update(advanceData.id, formData);
-            onSuccess?.(res.data);
+            onSuccess?.({
+                ...advanceData,
+                ...res.data
+            });
             onClose();
         } catch (err) {
             console.error(err);

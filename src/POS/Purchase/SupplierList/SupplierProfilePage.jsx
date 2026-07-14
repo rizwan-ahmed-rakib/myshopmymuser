@@ -10,7 +10,7 @@ import api from '../../../context_or_provider/pos/posApi';
 import GenericModuleDetails from "../../components/GenericModuleDetails";
 import DetailsInfoCard from "../../components/DetailsInfoCard";
 import UpdateEmployeeProfileModal from "./UpdateProfileModal";
-import UpdateProfileSuccessPopup from "./UpdateProfileSuccessPopup";
+import SuccessModal from "../../components/SuccessModal";
 import { posSupplierAPI } from "../../../context_or_provider/pos/Purchase/suppliers/supplierAPI";
 
 /**
@@ -23,8 +23,7 @@ const SupplierProfilePage = () => {
     const [employee, setEmployee] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showEditModal, setShowEditModal] = useState(false);
-    const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-    const [successMessage, setSuccessMessage] = useState("");
+    const [successData, setSuccessData] = useState(null);
 
     const fetchEmployeeProfile = useCallback(async () => {
         try {
@@ -44,8 +43,7 @@ const SupplierProfilePage = () => {
     const handleUpdateSuccess = (updatedData) => {
         setEmployee(prev => ({...prev, ...updatedData}));
         setShowEditModal(false);
-        setSuccessMessage("Supplier profile has been updated successfully!");
-        setShowSuccessPopup(true);
+        setSuccessData(updatedData);
     };
 
     const handleDelete = async () => {
@@ -188,10 +186,17 @@ const SupplierProfilePage = () => {
                 />
             )}
 
-            {showSuccessPopup && (
-                <UpdateProfileSuccessPopup
-                    message={successMessage}
-                    onClose={() => setShowSuccessPopup(false)}
+            {successData && (
+                <SuccessModal
+                    isOpen={!!successData}
+                    onClose={() => setSuccessData(null)}
+                    title="Supplier Profile Updated"
+                    subtitle="Transaction Completed Successfully"
+                    details={[
+                        {label: "Supplier Name", value: successData?.name},
+                        {label: "Phone", value: successData?.phone},
+                        {label: "Current Balance", value: `৳${successData?.balance}`}
+                    ]}
                 />
             )}
         </GenericModuleDetails>

@@ -1,39 +1,27 @@
 import React, {useEffect, useRef, useState} from "react";
 import AsyncSelect from "react-select/async";
-import {posProductAPI} from "../../../context_or_provider/pos/products/productAPI";
-import {posPurchaseProductAPI} from "../../../context_or_provider/pos/Purchase/purchaseProduct/productPurchaseAPI";
-import {posSupplierAPI} from "../../../context_or_provider/pos/Purchase/suppliers/supplierAPI";
-import {posCategoryAPI} from "../../../context_or_provider/pos/categories/categoryAPI";
-import {posSubCategoryAPI} from "../../../context_or_provider/pos/subcategories/subCategoryApi";
-import {posBrandAPI} from "../../../context_or_provider/pos/brands/brandAPI";
-import {posSizeAPI} from "../../../context_or_provider/pos/sizes/sizeAPI";
-import {posUnitAPI} from "../../../context_or_provider/pos/units/unitAPI";
-import BASE_URL_of_POS from "../../../posConfig";
-
-import api from '../../../context_or_provider/pos/posApi';
+import {posProductAPI} from "../../context_or_provider/pos/products/productAPI";
+import {posPurchaseProductAPI} from "../../context_or_provider/pos/Purchase/purchaseProduct/productPurchaseAPI";
+import {posSupplierAPI} from "../../context_or_provider/pos/Purchase/suppliers/supplierAPI";
+import {posCategoryAPI} from "../../context_or_provider/pos/categories/categoryAPI";
+import {posSubCategoryAPI} from "../../context_or_provider/pos/subcategories/subCategoryApi";
+import {posBrandAPI} from "../../context_or_provider/pos/brands/brandAPI";
+import {posSizeAPI} from "../../context_or_provider/pos/sizes/sizeAPI";
+import {posUnitAPI} from "../../context_or_provider/pos/units/unitAPI";
+import BASE_URL_of_POS from "../../posConfig";
+import Navbar from "../components/Navbar";
+import api from '../../context_or_provider/pos/posApi';
 import axios from "axios";
-import BaseModal from "../../components/BaseModal";
+import BaseModal from "../components/BaseModal";
+import SuccessModal from "../components/SuccessModal";
 import {
-    ShoppingCart,
-    User,
-    Package,
-    Trash2,
-    Plus,
-    Banknote,
-    Tag,
-    Wallet,
-    Eye,
-    UserPlus,
-    Search,
-    Sparkles,
-    ChevronRight,
-    Coins,
-    RefreshCcw,
-    Folder,
-    FolderOpen
+    ShoppingCart, User, Package, Trash2, Plus, Banknote, Tag, Wallet, Eye, UserPlus, 
+    Search, Sparkles, ChevronRight, Coins, RefreshCcw, Folder, FolderOpen
 } from 'lucide-react';
-import AddSupplierModal from "../SupplierList/AddSupplierModal";
-import {useQuickCash} from "../../../context_or_provider/pos/QuickCash/quick_cash_provider";
+import AddSupplierModal from "./SupplierList/AddSupplierModal";
+import {getPurchasePrintLayout} from "./PurchaseProduct/PurchasePrintLayout";
+import {getBrandedVoucher} from "../utils/printTemplates";
+import { useQuickCash } from "../../context_or_provider/pos/QuickCash/quick_cash_provider";
 
 const emptyItem = {
     product: null,
@@ -50,11 +38,7 @@ const emptyItem = {
     batch_no: "",
 };
 
-/**
- * AddPurchaseModal - Refactored to premium dual-pane catalog view with sidebar filtering,
- * advanced product categories toggle, supplier details modal, and payment proof.
- */
-const AddPurchaseModal = ({isOpen, onClose, onSuccess}) => {
+const PosPurchase = () => {
     /* ---------------- STATES ---------------- */
     const [supplier, setSupplier] = useState(null);
     const [isAddSupplierOpen, setIsAddSupplierOpen] = useState(false);
@@ -80,7 +64,7 @@ const AddPurchaseModal = ({isOpen, onClose, onSuccess}) => {
     const [errors, setErrors] = useState({});
 
     // Quick Cash states
-    const {quickCashList, addQuickCashOption} = useQuickCash();
+    const { quickCashList, addQuickCashOption } = useQuickCash();
     const [givenCash, setGivenCash] = useState(0);
     const [isAddQuickCashOpen, setIsAddQuickCashOpen] = useState(false);
     const [quickCashAmount, setQuickCashAmount] = useState('');
@@ -102,6 +86,10 @@ const AddPurchaseModal = ({isOpen, onClose, onSuccess}) => {
     const [selectedBrand, setSelectedBrand] = useState("All");
     const [selectedSize, setSelectedSize] = useState("All");
     const [selectedUnit, setSelectedUnit] = useState("All");
+
+    // Success & Print States
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [successData, setSuccessData] = useState(null);
 
     const hasActiveFilters =
         selectedCategory !== "All" ||
@@ -150,12 +138,12 @@ const AddPurchaseModal = ({isOpen, onClose, onSuccess}) => {
     }, [paidCash, paidMobile, paidBank]);
 
     useEffect(() => {
-        if (isOpen && barcodeRef.current) {
+        if (barcodeRef.current) {
             barcodeRef.current.focus();
         }
-    }, [isOpen]);
+    }, []);
 
-    // Initial Fetch when modal opens
+    // Initial Fetch on Mount
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -179,10 +167,8 @@ const AddPurchaseModal = ({isOpen, onClose, onSuccess}) => {
                 console.error("Error loading database:", err);
             }
         };
-        if (isOpen) {
-            fetchData();
-        }
-    }, [isOpen]);
+        fetchData();
+    }, []);
 
     // Filter products locally
     useEffect(() => {
@@ -414,24 +400,17 @@ const AddPurchaseModal = ({isOpen, onClose, onSuccess}) => {
 
     const handleAddQuickCash = async (e) => {
         e.preventDefault();
-        if (!quickCashAmount || Number(quickCashAmount) <= 0) {
-            alert("Please enter a valid amount");
-            return;
-        }
+        if (!quickCashAmount || Number(quickCashAmount) <= 0) { alert("Please enter a valid amount"); return; }
         try {
             setQuickCashLoading(true);
             const formData = new FormData();
             formData.append("amount", quickCashAmount);
             formData.append("name", quickCashName || `${quickCashAmount} Taka`);
             await addQuickCashOption(formData);
-            setQuickCashAmount('');
-            setQuickCashName('');
-            setIsAddQuickCashOpen(false);
-        } catch {
-            alert("Failed to add quick cash option.");
-        } finally {
-            setQuickCashLoading(false);
-        }
+            setQuickCashAmount(''); setQuickCashName(''); setIsAddQuickCashOpen(false);
+            if (isMobile) setIsMobileCartOpen(true);
+        } catch { alert("Failed to add quick cash option."); }
+        finally { setQuickCashLoading(false); }
     };
 
     /* ---------------- ACTIONS SUBMIT ---------------- */
@@ -440,16 +419,17 @@ const AddPurchaseModal = ({isOpen, onClose, onSuccess}) => {
         setErrors({});
 
         if (!supplier) {
-            setErrors({supplier: "Supplier required"});
+            alert("Supplier is required");
             return;
         }
         if (items.some(i => !i.product)) {
-            setErrors({items: "All product rows must be filled"});
+            alert("All product rows must be filled");
             return;
         }
 
-        const itemwise_total_discount = items.reduce((sum, i) => sum + i.discount_amount, 0);
-        const itemsPayload = items.map(i => ({
+        const validItems = items.filter(i => i.product);
+        const itemwise_total_discount = validItems.reduce((sum, i) => sum + i.discount_amount, 0);
+        const itemsPayload = validItems.map(i => ({
             product: i.product,
             quantity: i.quantity,
             unit_price: i.unit_price,
@@ -477,61 +457,43 @@ const AddPurchaseModal = ({isOpen, onClose, onSuccess}) => {
             bank_account_no: paidBank > 0 ? bankAccountNo : "",
         };
 
-        // try {
-        //     setLoading(true);
-        //     let res;
-        //     if (paymentProof) {
-        //         const formData = new FormData();
-        //         Object.keys(payload).forEach(key => {
-        //             if (key === 'items') formData.append(key, JSON.stringify(payload[key]));
-        //             else if (payload[key] !== null && payload[key] !== undefined) formData.append(key, payload[key]);
-        //         });
-        //         formData.append("payment_proof", paymentProof);
-        //         res = await api.post(`/api/purchase/purchases/`, formData);
-        //     } else {
-        //         res = await posPurchaseProductAPI.create(payload);
-        //     }
-        //     onSuccess?.(res.data);
-        //     onClose();
-        // } catch (err) {
-        //     setErrors(err.response?.data || {});
-        // } finally {
-        //     setLoading(false);
-        // }
-
-
         try {
             setLoading(true);
             let res;
-
             if (paymentProof) {
                 const formData = new FormData();
                 Object.keys(payload).forEach(key => {
-                    if (key === 'items') {
-                        formData.append(key, JSON.stringify(payload[key]));
-                    } else if (payload[key] !== null && payload[key] !== undefined) {
-                        formData.append(key, payload[key]);
-                    }
+                    if (key === 'items') formData.append(key, JSON.stringify(payload[key]));
+                    else if (payload[key] !== null && payload[key] !== undefined) formData.append(key, payload[key]);
                 });
                 formData.append("payment_proof", paymentProof);
-
-                // 🌟 BEST PRACTICE: Content-Type ম্যানুয়ালি স্ট্রিং না লিখে undefined করে দিন
-                // এতে Axios নিজে থেকে সঠিক boundary সহ multipart/form-data সেট করে নেবে
-                res = await api.post("/api/purchase/purchases/", formData, {
-                    headers: {
-                        "Content-Type": undefined,
-                    },
-                });
+                const token = localStorage.getItem("token");
+                const headers = token ? {Authorization: `Bearer ${token}`} : {};
+                res = await axios.post(`${BASE_URL_of_POS}/api/purchase/purchases/`, formData, {headers});
             } else {
                 res = await posPurchaseProductAPI.create(payload);
             }
 
-            onSuccess?.(res.data);
-            onClose();
+            await loadProducts();
+
+            setSuccessData(res.data);
+            setShowSuccess(true);
+            setItems([{...emptyItem}]);
+            setSupplier(null);
+            setPaidCash(0);
+            setPaidMobile(0);
+            setPaidBank(0);
+            setGivenCash(0);
+            setMobileOperator("");
+            setTransactionId("");
+            setBankAccountNo("");
+            setPaymentProof(null);
+            setGlobalDiscountValue(0);
+            setIsPaymentModalOpen(false);
         } catch (err) {
-            console.error("Purchase Error Detail:", err.response?.data);
+            console.error("Submission failed:", err);
+            alert(err.response?.data?.error || "Failed to record purchase invoice");
             setErrors(err.response?.data || {});
-            alert(err.response?.data?.error || "Failed to save purchase. Please check fields.");
         } finally {
             setLoading(false);
         }
@@ -564,10 +526,18 @@ const AddPurchaseModal = ({isOpen, onClose, onSuccess}) => {
         }
     };
 
+    const handlePrint = (invoice) => {
+        if (!invoice) return;
+        const tableContent = getPurchasePrintLayout(invoice);
+        const fullHTML = getBrandedVoucher("Purchase Invoice", tableContent, invoice.invoice_no, "#1d4ed8");
+        const printWindow = window.open("", "_blank", "width=850,height=900");
+        printWindow.document.write(fullHTML);
+        printWindow.document.close();
+    };
+
     const renderRightPanel = (isMobileCartContext = false) => {
         return (
             <div className={`flex flex-col h-full overflow-hidden space-y-4 ${isMobileCartContext ? 'w-full' : 'w-full lg:w-[35%]'}`}>
-
                 {/* Supplier Info Head Banner */}
                 <div
                     className="bg-blue-50/70 p-3 rounded-xl border border-blue-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0 shadow-inner">
@@ -870,18 +840,11 @@ const AddPurchaseModal = ({isOpen, onClose, onSuccess}) => {
     };
 
     return (
-        <>
-            <BaseModal
-                isOpen={isOpen}
-                onClose={onClose}
-                title="New Purchase Invoice"
-                size="3xl"
-                icon={<ShoppingCart className="text-white"/>}
-                showFooter={false}
-                isLoading={loading}
-            >
-                <form onSubmit={handleSubmit}
-                      className="flex flex-col lg:flex-row gap-4 lg:h-[78vh] h-[72vh] overflow-hidden text-gray-800">
+        <div className="flex flex-col h-screen overflow-hidden bg-white">
+            <Navbar/>
+            <div className="flex-1 p-3 overflow-hidden">
+                <form onSubmit={(e) => { e.preventDefault(); }}
+                      className="flex flex-col lg:flex-row gap-4 h-full overflow-hidden text-gray-800">
 
                     {/* Background Invisible Barcode Receptor */}
                     <input ref={barcodeRef} onKeyDown={handleBarcodeScan}
@@ -889,7 +852,7 @@ const AddPurchaseModal = ({isOpen, onClose, onSuccess}) => {
 
                     {/* LEFT PANEL: Category & Subcategory Product List Filter */}
                     <div
-                        className="w-full lg:w-[65%] flex flex-col h-full bg-gray-50 p-2.5 rounded-2xl border border-gray-200 overflow-hidden transition-all duration-350">
+                        className="w-full lg:w-[65%] flex flex-col h-full bg-gray-50 p-2.5 rounded-2xl border border-gray-200 overflow-hidden transition-all duration-300">
                     {/* Search & Filters Row */}
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 mb-3 shrink-0 items-end">
                         {/* Toggle sidebar button and Search Input */}
@@ -1253,7 +1216,7 @@ const AddPurchaseModal = ({isOpen, onClose, onSuccess}) => {
 
                     {!isMobile && renderRightPanel(false)}
                 </form>
-            </BaseModal>
+            </div>
 
             {/* Supplier CRM Modals */}
             <AddSupplierModal
@@ -1355,6 +1318,26 @@ const AddPurchaseModal = ({isOpen, onClose, onSuccess}) => {
                     </div>
                 )}
             </BaseModal>
+
+            {/* Success Invoice Recorded Modal */}
+            {successData && (
+                <SuccessModal
+                    isOpen={showSuccess}
+                    onClose={() => {
+                        setShowSuccess(false);
+                        setSuccessData(null);
+                    }}
+                    title="Purchase Recorded Successfully"
+                    subtitle={successData ? `Invoice #${successData.invoice_no} Generated` : ""}
+                    details={successData ? [
+                        {label: "Net Cost Payable", value: `৳${parseFloat(successData.net_total || 0).toLocaleString()}`},
+                        {label: "Total Paid", value: `৳${parseFloat(successData.paid_amount || 0).toLocaleString()}`},
+                        {label: "Invoice Due", value: `৳${parseFloat(successData.due_amount || 0).toLocaleString()}`},
+                    ] : []}
+                    onPrint={successData ? () => handlePrint(successData) : null}
+                    printText="Print Voucher"
+                />
+            )}
 
             {/* Mobile Cart Modal */}
             {isMobile && (
@@ -1680,8 +1663,8 @@ const AddPurchaseModal = ({isOpen, onClose, onSuccess}) => {
                     </div>
                 </div>
             </BaseModal>
-        </>
+        </div>
     );
 };
 
-export default AddPurchaseModal;
+export default PosPurchase;

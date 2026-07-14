@@ -1,7 +1,6 @@
 import React, {useState, useEffect, useCallback} from 'react';
 import SupplierDuePaymentCard from "./SupplierDuePaymentCard";
 import SupplierDuePaymentList from "./SupplierDuePaymentList";
-import LoadingSpinner from "./LoadingSpinner";
 import {posDuePaymentAPI} from "../../../context_or_provider/pos/Purchase/duePayment/duePaymentAPI";
 import {usePosDuePayment} from "../../../context_or_provider/pos/Purchase/duePayment/DuePaymentProvider";
 import AddSupplierDuePaymentModal from "../../Purchase/SupplierList/AddSupplierDuePaymentModal";
@@ -11,6 +10,10 @@ import {posSupplierAPI} from "../../../context_or_provider/pos/Purchase/supplier
 import {Receipt, Banknote, CreditCard, Wallet, Activity, Calendar, ArrowUpDown} from 'lucide-react';
 import useModuleData from "../../hooks/useModuleData";
 import EmptyState from "../../components/EmptyState";
+import SuccessModal from "../../components/SuccessModal";
+import { getDuePaymentPrintLayout } from "./DuePaymentPrintLayout";
+import { getBrandedVoucher } from "../../utils/printTemplates";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const SupplierDuePaymentGrid = ({
                                     viewType,
@@ -25,6 +28,8 @@ const SupplierDuePaymentGrid = ({
     const {posSuppliers, setPosSuppliers} = usePosSuppliers();
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
+    const [successType, setSuccessType] = useState(null);
+    const [successData, setSuccessData] = useState(null);
 
     // 1. Provide filter configuration
     useEffect(() => {
@@ -158,14 +163,27 @@ const SupplierDuePaymentGrid = ({
         setIsEditOpen(true);
     };
 
-    const handleAddSuccess = () => {
+    const handleAddSuccess = (newPayment) => {
         setIsAddOpen(false);
+        setSuccessType('add');
+        setSuccessData(newPayment);
         refresh();
     };
 
-    const handleUpdateSuccess = () => {
+    const handleUpdateSuccess = (updatedPayment) => {
         setIsEditOpen(false);
+        setSuccessType('update');
+        setSuccessData(updatedPayment);
         refresh();
+    };
+
+    const handlePrint = (invoice) => {
+        if (!invoice) return;
+        const tableContent = getDuePaymentPrintLayout(invoice);
+        const fullHTML = getBrandedVoucher("Payment Receipt", tableContent, invoice.invoice_no, "#10b981");
+        const printWindow = window.open("", "_blank", "width=850,height=900");
+        printWindow.document.write(fullHTML);
+        printWindow.document.close();
     };
 
     if (loading) {
@@ -235,6 +253,20 @@ const SupplierDuePaymentGrid = ({
                     item={selectedItem}
                 />
             )}
+
+            <SuccessModal
+                isOpen={!!successData}
+                onClose={() => { setSuccessData(null); setSuccessType(null); }}
+                title={successType === 'update' ? "Payment Updated Successfully" : "Payment Recorded Successfully"}
+                subtitle={`Payment #${successData?.invoice_no}`}
+                details={[
+                    { label: "Supplier", value: successData?.supplier_name || 'N/A' },
+                    { label: "Settled Amount", value: `৳${parseFloat(successData?.amount || 0).toLocaleString()}` },
+                    { label: "Payment Method", value: (successData?.payment_method || '').replace('_', ' ').toUpperCase() }
+                ]}
+                onPrint={() => handlePrint(successData)}
+                printText="Print Receipt"
+            />
         </div>
     );
 };

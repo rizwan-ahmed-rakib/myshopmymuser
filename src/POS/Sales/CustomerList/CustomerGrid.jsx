@@ -2,14 +2,15 @@ import React, {useState, useEffect, useCallback} from 'react';
 import CustomerCard from "./CustomerCard";
 import CustomerList from "./CustomerList";
 import AddCustomerModal from "./AddCustomerModal";
-import SuccessModal from "./SuccessModal";
-import LoadingSpinner from "./LoadingSpinner";
+import SuccessModal from "../../components/SuccessModal";
+// import LoadingSpinner from "./LoadingSpinner";
 import EmptyState from "../../components/EmptyState";
 import {usePosCustomers} from "../../../context_or_provider/pos/Sale/customer/PosCustomerProvider";
 import {posCustomerAPI} from "../../../context_or_provider/pos/Sale/customer/PosCustomerAPI";
 import AddCustomerDueCollectionModal from "./AddCustomerDueCollectionModal";
 import {Users, UserCheck, UserMinus, Wallet, ArrowUpDown, Calendar, Activity} from 'lucide-react';
 import useModuleData from "../../hooks/useModuleData";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const CustomerGrid = ({
                           viewType,
@@ -22,6 +23,7 @@ const CustomerGrid = ({
                       }) => {
     const {setPosCustomers} = usePosCustomers();
     const [successData, setSuccessData] = useState(null);
+    const [successType, setSuccessType] = useState('create');
     const [isDueCollectionOpen, setIsDueCollectionOpen] = useState(false);
 
     // 1. Provide filter configuration
@@ -129,12 +131,17 @@ const CustomerGrid = ({
 
     const handleEmployeeAdded = (newEmp) => {
         setIsAddOpen(false);
+        setSuccessType('create');
         setSuccessData(newEmp);
         refresh();
     };
 
-    const handleEmployeeUpdated = useCallback(() => {
+    const handleEmployeeUpdated = useCallback((updatedEmp) => {
         refresh();
+        if (updatedEmp) {
+            setSuccessType('update');
+            setSuccessData(updatedEmp);
+        }
     }, [refresh]);
 
     const handleDueCollectionSuccess = () => {
@@ -224,8 +231,14 @@ const CustomerGrid = ({
 
             <SuccessModal
                 isOpen={!!successData}
-                employee={successData}
                 onClose={() => setSuccessData(null)}
+                title={successType === 'update' ? "Customer Profile Updated" : "Customer Profile Created"}
+                subtitle={successType === 'update' ? "Customer Account Updated" : "New Customer Account Active"}
+                details={[
+                    { label: "Customer Name", value: successData?.name },
+                    { label: "Customer ID", value: `#${successData?.id}` },
+                    { label: "Contact Info", value: successData?.phone || successData?.user?.phone || "N/A" }
+                ]}
             />
         </div>
     );

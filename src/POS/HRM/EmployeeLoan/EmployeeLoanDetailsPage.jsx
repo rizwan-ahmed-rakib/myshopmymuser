@@ -14,8 +14,8 @@ import DetailsInfoCard from "../../components/DetailsInfoCard";
 import {getBrandedVoucher} from "../../utils/printTemplates";
 import {getLoanPrintLayout} from "./LoanPrintLayout";
 import {downloadEmployeeLoanPDF} from "./useEmployeeLoanPDF";
-import {downloadPayslipPDF} from "../EmployeeSalaryPayslip/usePayslipPDF";
 import {AiFillDelete} from "react-icons/ai";
+import SuccessModal from "../../components/SuccessModal";
 
 const EmployeeLoanDetailsPage = () => {
     const {id} = useParams();
@@ -23,6 +23,9 @@ const EmployeeLoanDetailsPage = () => {
     const [loan, setLoan] = useState(null);
     const [loading, setLoading] = useState(true);
     const [editOpen, setEditOpen] = useState(false);
+    const [successData, setSuccessData] = useState(null);
+    const [successType, setSuccessType] = useState('update');
+
 
     const fetchLoan = useCallback(async () => {
         try {
@@ -42,6 +45,8 @@ const EmployeeLoanDetailsPage = () => {
     const handleEditSuccess = (updatedData) => {
         setLoan(updatedData);
         setEditOpen(false);
+        setSuccessType('update');
+        setSuccessData({...updatedData});
     };
 
     // ব্রাউজার প্রিন্ট লজিক
@@ -255,6 +260,7 @@ const EmployeeLoanDetailsPage = () => {
                 </div>
             </div>
 
+
             {editOpen && (
                 <UpdateEmployeeLoanModal
                     isOpen={editOpen}
@@ -263,6 +269,55 @@ const EmployeeLoanDetailsPage = () => {
                     advanceData={loan}
                 />
             )}
+
+
+            <SuccessModal
+                isOpen={!!successData}
+                onClose={() => setSuccessData(null)}
+                title={successType === 'update' ? 'Loan Updated' : 'Loan Recorded'}
+                subtitle="Transaction Completed Successfully"
+                details={[
+                    {label: "Employee", value: successData?.user_name},
+                    {label: "Amount", value: `৳${Number(successData?.amount).toLocaleString()}`},
+                    {
+                        label: "Date",
+                        value: new Date(successData?.request_date).toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric'
+                        })
+                    }
+                ]}
+                onPrint={() => handlePrint(successData)}
+                printText="Print Voucher"
+            />
+
+
+            {/*<SuccessModal*/}
+            {/*    isOpen={!!successData}*/}
+            {/*    onClose={() => setSuccessData(null)}*/}
+            {/*    title={successType === 'update' ? 'Loan Updated' : 'Loan Recorded'}*/}
+            {/*    subtitle="Transaction Completed Successfully"*/}
+            {/*    details={[*/}
+            {/*        {label: "Employee", value: successData?.user_name},*/}
+            {/*        {label: "Amount", value: `৳${Number(successData?.amount || 0).toLocaleString()}`},*/}
+            {/*        {*/}
+            {/*            label: "Date",*/}
+            {/*            // এখানে request_date বদলে loan_date দেওয়া হয়েছে এবং সেফটি চেক রাখা হয়েছে*/}
+            {/*            value: successData?.loan_date*/}
+            {/*                ? new Date(successData.loan_date).toLocaleDateString('en-GB', {*/}
+            {/*                    day: '2-digit',*/}
+            {/*                    month: 'short',*/}
+            {/*                    year: 'numeric'*/}
+            {/*                })*/}
+            {/*                : new Date().toLocaleDateString('en-GB') // ব্যাকআপ হিসেবে কারেন্ট ডেট*/}
+            {/*        }*/}
+            {/*    ]}*/}
+            {/*    onPrint={() => handlePrint(successData)}*/}
+            {/*    printText="Print Voucher"*/}
+            {/*/>*/}
+
+
         </GenericModuleDetails>
     );
 };

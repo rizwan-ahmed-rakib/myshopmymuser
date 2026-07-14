@@ -320,11 +320,11 @@ import ProductSizeCard from "./ProductSizeCard";
 import ProductSizeList from "./ProductSizeList";
 import AddSizeModal from "./AddSizeModal";
 import SuccessModal from "../../components/SuccessModal";
-import LoadingSpinner from "./LoadingSpinner";
 import { posSizeAPI } from "../../../context_or_provider/pos/sizes/sizeAPI";
 import { usePosSizes } from "../../../context_or_provider/pos/sizes/SizeProvider";
 import { Maximize, ArrowUpDown } from 'lucide-react';
 import useModuleData from "../../hooks/useModuleData";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const SizeGrid = ({
     viewType,

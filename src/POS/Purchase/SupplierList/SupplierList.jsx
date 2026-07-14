@@ -6,7 +6,6 @@ import StatusBadge from "../../components/StatusBadge";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { posSupplierAPI } from "../../../context_or_provider/pos/Purchase/suppliers/supplierAPI";
 import UpdateEmployeeModal from "./UpdateProfileModal";
-import SuccessPopup from "./UpdateProfileSuccessPopup";
 
 /**
  * SupplierList - Refactored to use BackboneTable and StatusBadge.
@@ -17,8 +16,6 @@ const SupplierList = ({ employees, onUpdate }) => {
     const [loadingId, setLoadingId] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState(null);
-    const [showSuccess, setShowSuccess] = useState(false);
-    const [successMessage, setSuccessMessage] = useState("");
 
     const handleViewProfile = (item) => {
         navigate(`/purchase/supplier/profile/${item.id}`);
@@ -34,8 +31,7 @@ const SupplierList = ({ employees, onUpdate }) => {
         setLoadingId(item.id);
         try {
             await posSupplierAPI.delete(item.id);
-            setSuccessMessage(`${item.name} deleted successfully!`);
-            setShowSuccess(true);
+            alert(`${item.name} deleted successfully!`);
             if (onUpdate) onUpdate();
         } catch (error) {
             console.error(error);
@@ -47,9 +43,7 @@ const SupplierList = ({ employees, onUpdate }) => {
 
     const handleUpdateSuccess = (updatedData) => {
         setShowEditModal(false);
-        setSuccessMessage("Supplier updated successfully!");
-        setShowSuccess(true);
-        if (onUpdate) onUpdate();
+        if (onUpdate) onUpdate(updatedData);
     };
 
     const formatDate = (dateString) => {
@@ -157,14 +151,6 @@ const SupplierList = ({ employees, onUpdate }) => {
                     }}
                     onSuccess={handleUpdateSuccess}
                     employeeData={selectedEmployee}
-                />
-            )}
-
-            {showSuccess && (
-                <SuccessPopup
-                    message={successMessage}
-                    onClose={() => setShowSuccess(false)}
-                    duration={3000}
                 />
             )}
         </>

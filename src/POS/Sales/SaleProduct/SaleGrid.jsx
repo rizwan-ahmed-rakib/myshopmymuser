@@ -2,14 +2,15 @@ import React, {useState, useEffect, useCallback} from 'react';
 import SaleCard from "./SaleCard";
 import SaleList from "./SaleList";
 import AddSaleModal from "./AddSaleModal";
-import SuccessModal from "./SuccessModal";
-import LoadingSpinner from "./LoadingSpinner";
 import EditSaleModal from "./EditSaleModal";
 import EmptyState from "../../components/EmptyState";
 import {posSaleProductAPI} from "../../../context_or_provider/pos/Sale/saleProduct/productSaleAPI";
 import {usePosSaleProducts} from "../../../context_or_provider/pos/Sale/saleProduct/PosSaleProduct_provider";
 import {Receipt, Banknote, CheckCircle, Clock, ShoppingCart, Activity, Calendar, ArrowUpDown} from 'lucide-react';
 import useModuleData from "../../hooks/useModuleData";
+import LoadingSpinner from "../../components/LoadingSpinner";
+import SuccessModal from "../../components/SuccessModal";
+import { usePrintManager } from "../../utils/usePrintManager";
 
 const SaleGrid = ({
                        viewType,
@@ -21,8 +22,9 @@ const SaleGrid = ({
                        setFilterConfig
                    }) => {
     const {setPosSaleProduct} = usePosSaleProducts();
-    const [addSuccessData, setAddSuccessData] = useState(null);
-    const [updateSuccessData, setUpdateSuccessData] = useState(null);
+    const [successData, setSuccessData] = useState(null);
+    const [previousDue, setPreviousDue] = useState(0);
+    const [successType, setSuccessType] = useState('create');
     const [editingSale, setEditingSale] = useState(null);
 
     // 1. Provide filter configuration
@@ -155,7 +157,11 @@ const SaleGrid = ({
 
     const handleAddSuccess = (newSale) => {
         setIsAddOpen(false);
-        setAddSuccessData(newSale);
+        if (newSale) {
+            setPreviousDue(parseFloat(newSale.previousDue || 0));
+            setSuccessType('create');
+            setSuccessData(newSale);
+        }
         refresh();
     };
 
@@ -165,13 +171,25 @@ const SaleGrid = ({
 
     const handleUpdateSuccess = (updatedData) => {
         setEditingSale(null);
-        setUpdateSuccessData(updatedData);
+        if (updatedData) {
+            setPreviousDue(parseFloat(updatedData.previousDue || 0));
+            setSuccessType('update');
+            setSuccessData(updatedData);
+        }
         refresh();
     };
 
     const handleDeleteSuccess = () => {
         refresh();
-    }
+    };
+
+    const { handlePrintInvoice } = usePrintManager();
+    const handlePrint = (invoice) => handlePrintInvoice(invoice);
+
+    const netTotal = parseFloat(successData?.net_total || successData?.netTotal || 0);
+    const paidAmount = parseFloat(successData?.paid_amount || 0);
+    const currentInvoiceDue = parseFloat(successData?.due_amount || 0);
+    const totalCustomerDue = Number(previousDue) + Number(currentInvoiceDue);
 
     if (loading) {
         return (
@@ -241,18 +259,23 @@ const SaleGrid = ({
             )}
 
             <SuccessModal
-                isOpen={!!addSuccessData}
-                invoice={addSuccessData}
-                onClose={() => setAddSuccessData(null)}
+                isOpen={!!successData}
+                onClose={() => setSuccessData(null)}
+                title={successType === 'update' ? 'Sale Updated Successfully' : 'Sale Recorded Successfully'}
+                subtitle={
+                    successData 
+                        ? `Invoice #${successData.invoice_no} ${successType === 'update' ? 'Updated' : 'Generated'}` 
+                        : `Transaction ${successType === 'update' ? 'Updated' : 'Completed'} Successfully`
+                }
+                details={[
+                    { label: "Net Payable", value: `৳${netTotal.toLocaleString()}` },
+                    { label: "Total Received", value: `৳${paidAmount.toLocaleString()}` },
+                    { label: "Current Due", value: `৳${currentInvoiceDue.toLocaleString()}` },
+                    { label: "Total Combined Due", value: `৳${totalCustomerDue.toLocaleString()}` }
+                ]}
+                onPrint={() => handlePrint(successData)}
+                printText="Print Slip"
             />
-
-            {updateSuccessData && (
-                 <SuccessModal
-                    isOpen={!!updateSuccessData}
-                    onClose={() => setUpdateSuccessData(null)}
-                    invoice={updateSuccessData}
-                />
-            )}
         </div>
     );
 };

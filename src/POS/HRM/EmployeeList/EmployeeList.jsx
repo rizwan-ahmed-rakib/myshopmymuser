@@ -6,8 +6,8 @@ import StatusBadge from "../../components/StatusBadge";
 import {employeeAPI} from "../../../context_or_provider/pos/profile/profileupdate";
 import UpdateEmployeeModal from "./UpdateProfileModal";
 import SuccessPopup from "./UpdateProfileSuccessPopup";
-import LoadingSpinner from "./LoadingSpinner";
 import {ROLE_OPTIONS} from "./roles";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 /**
  * EmployeeList - Refactored to use BackboneTable and StatusBadge.

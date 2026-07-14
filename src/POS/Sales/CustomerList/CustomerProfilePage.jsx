@@ -10,7 +10,7 @@ import api from '../../../context_or_provider/pos/posApi';
 import GenericModuleDetails from "../../components/GenericModuleDetails";
 import DetailsInfoCard from "../../components/DetailsInfoCard";
 import UpdateEmployeeProfileModal from "./UpdateProfileModal";
-import UpdateProfileSuccessPopup from "./UpdateProfileSuccessPopup";
+import SuccessModal from "../../components/SuccessModal";
 import { posCustomerAPI } from "../../../context_or_provider/pos/Sale/customer/PosCustomerAPI";
 
 /**
@@ -24,7 +24,6 @@ const CustomerProfilePage = () => {
     const [loading, setLoading] = useState(true);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showSuccessPopup, setShowSuccessPopup] = useState(false);
-    const [successMessage, setSuccessMessage] = useState("");
 
     const fetchEmployeeProfile = useCallback(async () => {
         try {
@@ -44,7 +43,6 @@ const CustomerProfilePage = () => {
     const handleUpdateSuccess = (updatedData) => {
         setEmployee(prev => ({...prev, ...updatedData}));
         setShowEditModal(false);
-        setSuccessMessage("Customer profile has been updated successfully!");
         setShowSuccessPopup(true);
     };
 
@@ -188,12 +186,17 @@ const CustomerProfilePage = () => {
                 />
             )}
 
-            {showSuccessPopup && (
-                <UpdateProfileSuccessPopup
-                    message={successMessage}
-                    onClose={() => setShowSuccessPopup(false)}
-                />
-            )}
+            <SuccessModal
+                isOpen={showSuccessPopup}
+                onClose={() => setShowSuccessPopup(false)}
+                title="Customer Profile Updated"
+                subtitle="Customer Account Updated"
+                details={[
+                    { label: "Customer Name", value: employee?.name },
+                    { label: "Customer ID", value: `#${employee?.id}` },
+                    { label: "Contact Info", value: employee?.phone || employee?.user?.phone || "N/A" }
+                ]}
+            />
         </GenericModuleDetails>
     );
 };

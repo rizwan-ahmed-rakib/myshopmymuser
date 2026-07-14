@@ -3,12 +3,12 @@ import { useUserWithProfile } from "../../../context_or_provider/pos/profile/use
 import AddEmployeeModal from "./AddEmployeeModal";
 import SuccessModal from "../../components/SuccessModal";
 import { employeeAPI } from "../../../context_or_provider/pos/profile/profileupdate";
-import LoadingSpinner from "./LoadingSpinner";
 import { Users, ShieldCheck, UserMinus, UserPlus, Briefcase, Activity, Calendar, ArrowUpDown } from 'lucide-react';
 import { DESIGNATION_OPTIONS, STATUS_OPTIONS, DATE_FILTER_OPTIONS, SORT_OPTIONS } from "./constant/filters";
 import useModuleData from "../../hooks/useModuleData";
 import EmployeeCard from "./EmployeeCard";
 import EmployeeList from "./EmployeeList";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 /**
  * EmployeeGrid - Displays the list of employees in either grid or list view.

@@ -3,13 +3,13 @@ import ProductCard from "./ProductCard";
 import ProductList from "./ProductList";
 import AddProductModal from "./AddProductModal";
 import SuccessModal from "./SuccessModal";
-import LoadingSpinner from "./LoadingSpinner";
 import UpdateProductModal from "./UpdateProductModal";
 import EmptyState from "../../components/EmptyState";
 import {posProductAPI} from "../../../context_or_provider/pos/products/productAPI";
 import {TrendingDown, Package, Activity, Wallet, Calendar, ArrowUpDown, Filter, AlertCircle} from 'lucide-react';
 import useModuleData from "../../hooks/useModuleData";
 import {usePosProducts} from "../../../context_or_provider/pos/products/product_provider";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const ProducLowstocktGrid = ({
                                  viewType,

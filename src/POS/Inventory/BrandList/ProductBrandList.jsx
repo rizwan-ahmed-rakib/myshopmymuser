@@ -232,10 +232,10 @@ import { useNavigate } from "react-router-dom";
 import { Edit, Trash2, Eye } from 'lucide-react';
 import BackboneTable from "../../components/BackboneTable";
 import StatusBadge from "../../components/StatusBadge";
-import LoadingSpinner from "./LoadingSpinner";
 import UpdateProductModal from "./UpdateBrandModal";
 import SuccessPopup from "./SuccessPopup";
 import { posBrandAPI } from "../../../context_or_provider/pos/brands/brandAPI";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 /**
  * ProductBrandList - Refactored to use BackboneTable and StatusBadge.

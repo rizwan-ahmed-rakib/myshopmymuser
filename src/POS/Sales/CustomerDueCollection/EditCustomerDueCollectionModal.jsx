@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { posDueCollectionAPI } from "../../../context_or_provider/pos/Sale/dueCollection/dueCollectionAPI";
-import SuccessModal from "./SuccessModal";
+import SuccessModal from "../../components/SuccessModal";
+import { getBrandedVoucher } from "../../utils/printTemplates";
+import { getDueCollectionPrintLayout } from "./DueCollectionPrintLayout";
 import BaseModal from "../../components/BaseModal";
 import { CreditCard, Banknote, Wallet, Info, FileText, CheckCircle, Receipt, Trash2 } from 'lucide-react';
 import { FaMoneyBillWave, FaMobileAlt, FaUniversity, FaHashtag } from "react-icons/fa";
@@ -156,12 +158,28 @@ const EditCustomerDueCollectionModal = ({ isOpen, onClose, onSuccess, item }) =>
             </BaseModal>
 
             {showSuccess && (
-                <SuccessModal 
-                    isOpen={showSuccess} 
-                    onClose={() => { setShowSuccess(false); onSuccess?.(); onClose(); }} 
-                    title="Update Successful" 
-                    data={{...item, ...form, amount: totalAmount}}
-                    message={`Collection record #${item.invoice_no} updated successfully.`}
+                <SuccessModal
+                    isOpen={showSuccess}
+                    onClose={() => { setShowSuccess(false); onSuccess?.(); onClose(); }}
+                    title="Update Successful"
+                    subtitle={`Collection record #${item.invoice_no} updated successfully.`}
+                    details={[
+                        { label: "Customer Name", value: item.customer_name },
+                        { label: "Invoice No", value: `#${item.invoice_no}` },
+                        { label: "Total Amount Received", value: `৳${parseFloat(totalAmount).toLocaleString()}` },
+                        { label: "Cash Amount", value: `৳${parseFloat(form.paid_cash || 0).toLocaleString()}` },
+                        { label: "Mobile Amount", value: `৳${parseFloat(form.paid_mobile || 0).toLocaleString()}` },
+                        { label: "Bank Amount", value: `৳${parseFloat(form.paid_bank || 0).toLocaleString()}` }
+                    ].filter(d => d.value !== "৳0")}
+                    onPrint={() => {
+                        const printData = { ...item, ...form, amount: totalAmount };
+                        const tableContent = getDueCollectionPrintLayout(printData);
+                        const fullHTML = getBrandedVoucher("Collection Voucher", tableContent, item.invoice_no, "#10b981");
+                        const printWindow = window.open("", "_blank", "width=850,height=900");
+                        printWindow.document.write(fullHTML);
+                        printWindow.document.close();
+                    }}
+                    printText="Print Receipt"
                 />
             )}
         </>

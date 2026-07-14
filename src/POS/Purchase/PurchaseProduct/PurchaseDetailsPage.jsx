@@ -16,8 +16,9 @@ import {getBrandedVoucher} from "../../utils/printTemplates";
 import {getPurchasePrintLayout} from "./PurchasePrintLayout";
 import GenericModuleDetails from "../../components/GenericModuleDetails";
 import DetailsInfoCard from "../../components/DetailsInfoCard";
-import SuccessModal from "./SuccessModal";
+import SuccessModal from "../../components/SuccessModal";
 import { posPurchaseProductAPI } from "../../../context_or_provider/pos/Purchase/purchaseProduct/productPurchaseAPI";
+import BASE_URL_of_POS from "../../../posConfig";
 
 /**
  * PurchaseDetailsPage - Refactored to use GenericModuleDetails and DetailsInfoCard.
@@ -249,6 +250,22 @@ const PurchaseDetailsPage = () => {
                                 </div>
                             </div>
                         </div>
+                            {purchase?.payment_proof && (
+                                <div className="flex gap-5">
+                                    <div className="w-1.5 h-14 bg-purple-500 rounded-full shadow-lg shadow-purple-500/50"></div>
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase text-purple-400 tracking-widest mb-1">Payment Proof</p>
+                                        <a
+                                            href={purchase.payment_proof.startsWith('http') ? purchase.payment_proof : `${BASE_URL_of_POS}${purchase.payment_proof}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-sm font-black uppercase text-blue-400 underline hover:text-blue-300 block"
+                                        >
+                                            View Attachment
+                                        </a>
+                                    </div>
+                                </div>
+                            )}
                         <div className="mt-10 flex items-center gap-3 text-[10px] font-black text-green-400 uppercase tracking-[0.2em] border-2 border-green-400/20 bg-green-400/5 p-5 rounded-2xl justify-center">
                             <div className="w-2 h-2 bg-green-400 rounded-full animate-ping"></div>
                             Verified Transaction
@@ -280,8 +297,16 @@ const PurchaseDetailsPage = () => {
                 <SuccessModal
                     isOpen={showSuccessModal}
                     onClose={() => setShowSuccessModal(false)}
-                    invoice={updatedPurchaseData}
-                    previousDue={otherInvoicesDue}
+                    title="Purchase Updated Successfully"
+                    subtitle={`Invoice #${updatedPurchaseData?.invoice_no} Updated`}
+                    details={[
+                        { label: "Net Amount", value: `৳${parseFloat(updatedPurchaseData?.net_total || updatedPurchaseData?.netTotal || 0).toLocaleString()}` },
+                        { label: "Amount Paid", value: `৳${parseFloat(updatedPurchaseData?.paid_amount || 0).toLocaleString()}` },
+                        { label: "Current Due", value: `৳${parseFloat(updatedPurchaseData?.due_amount || 0).toLocaleString()}` },
+                        { label: "Total Combined Due", value: `৳${(Number(otherInvoicesDue) + Number(updatedPurchaseData?.due_amount || 0)).toLocaleString()}` }
+                    ]}
+                    onPrint={() => handlePrint()}
+                    printText="Print Slip"
                 />
             )}
 

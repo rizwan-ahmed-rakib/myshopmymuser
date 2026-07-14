@@ -8,7 +8,7 @@ import {
 import api from '../../../context_or_provider/pos/posApi';
 
 import EditPurchaseReturnModal from "./EditPurchaseReturnModal";
-import SuccessModal from "./SuccessModal";
+import SuccessModal from "../../components/SuccessModal";
 import {downloadPurchaseReturnPDF} from "./usePurchasePDF";
 import {getBrandedVoucher} from "../../utils/printTemplates";
 import {getPurchaseReturnPrintLayout} from "./PurchaseReturnPrintLayout";
@@ -44,17 +44,17 @@ const PurchaseReturnDetailsPage = () => {
         fetchDetails();
     }, [fetchDetails]);
 
-    const handleEditSuccess = (data) => {
-        setPurchaseReturn(data);
-        setUpdatedData(data);
+    const handleEditSuccess = (updatedData) => {
+        setPurchaseReturn(updatedData);
+        setUpdatedData(updatedData);
         setEditOpen(false);
         setShowSuccessModal(true);
     };
 
-    const handlePrint = () => {
-        if (!purchaseReturn) return;
-        const tableContent = getPurchaseReturnPrintLayout(purchaseReturn);
-        const fullHTML = getBrandedVoucher("Purchase Return", tableContent, purchaseReturn.id, "#dc2626");
+    const handlePrint = (invoice) => {
+        if (!invoice) return;
+        const tableContent = getPurchaseReturnPrintLayout(invoice);
+        const fullHTML = getBrandedVoucher("Purchase Return", tableContent, invoice.id, "#e11d48");
         const printWindow = window.open("", "_blank", "width=850,height=900");
         printWindow.document.write(fullHTML);
         printWindow.document.close();
@@ -213,9 +213,15 @@ const PurchaseReturnDetailsPage = () => {
                 <SuccessModal
                     isOpen={showSuccessModal}
                     onClose={() => setShowSuccessModal(false)}
-                    purchase={updatedData}
-                    title="Purchase Return Updated"
-                    successMessage="Purchase return updated successfully."
+                    title="Purchase Return Updated Successfully"
+                    subtitle={`Return ID #${updatedData?.id} Updated`}
+                    details={[
+                        { label: "Supplier", value: updatedData?.supplier_name || 'N/A' },
+                        { label: "Return Amount", value: `৳${parseFloat(updatedData?.return_amount || 0).toLocaleString()}` },
+                        { label: "Received Amount", value: `৳${parseFloat(updatedData?.received_amount || 0).toLocaleString()}` }
+                    ]}
+                    onPrint={() => handlePrint(updatedData)}
+                    printText="Print Slip"
                 />
             )}
         </GenericModuleDetails>

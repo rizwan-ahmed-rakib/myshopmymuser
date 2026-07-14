@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {useLocation, useNavigate, Outlet} from 'react-router-dom';
 import {ChevronDown, Plus, LayoutGrid, List, RefreshCw, FileText, FileSpreadsheet} from 'lucide-react';
 import StatCards from './StatCards';
@@ -32,6 +32,13 @@ const ModuleShell = ({
 
     const currentTab = tabs.find(t => t.id === activeTab) || tabs[0];
     const isRootPath = location.pathname === basePath || location.pathname === `${basePath}/`;
+
+    useEffect(() => {
+        if (currentTab) {
+            window.activeSubTabName = currentTab.name;
+            window.dispatchEvent(new CustomEvent('subTabChange', { detail: currentTab.name }));
+        }
+    }, [currentTab]);
 
     return (
         <div className="h-full flex flex-col bg-gray-50">

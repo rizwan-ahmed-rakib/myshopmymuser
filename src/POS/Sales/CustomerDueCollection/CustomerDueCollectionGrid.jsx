@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useCallback} from 'react';
 import CustomerDueCollectionCard from "./CustomerDueCollectionCard";
 import CustomerDueCollectionList from "./CustomerDueCollectionList";
-import LoadingSpinner from "./LoadingSpinner";
+// import LoadingSpinner from "./LoadingSpinner";
 import {posDueCollectionAPI} from "../../../context_or_provider/pos/Sale/dueCollection/dueCollectionAPI";
 import {usePosDueCollection} from "../../../context_or_provider/pos/Sale/dueCollection/DueCollectionProvider";
 import AddCustomerDueCollectionModal from "../../Sales/CustomerList/AddCustomerDueCollectionModal";
@@ -11,6 +11,7 @@ import {posCustomerAPI} from "../../../context_or_provider/pos/Sale/customer/Pos
 import {Receipt, Banknote, CreditCard, Wallet, Activity, Calendar, ArrowUpDown} from 'lucide-react';
 import useModuleData from "../../hooks/useModuleData";
 import EmptyState from "../../components/EmptyState";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const CustomerDueCollectionGrid = ({
                                        viewType,

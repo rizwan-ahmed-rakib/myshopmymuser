@@ -2,14 +2,16 @@ import React, {useState, useEffect, useCallback} from 'react';
 import PurchaseReturnCard from "./PurchaseReturnCard";
 import PurchaseReturnList from "./PurchaseReturnList";
 import AddPurchaseModal from "./AddPurchaseReturnModal";
-import SuccessModal from "./SuccessModal";
-import LoadingSpinner from "./LoadingSpinner";
 import EditPurchaseReturnModal from "./EditPurchaseReturnModal";
+import SuccessModal from "../../components/SuccessModal";
 import EmptyState from "../../components/EmptyState";
+import { getPurchaseReturnPrintLayout } from "./PurchaseReturnPrintLayout";
+import { getBrandedVoucher } from "../../utils/printTemplates";
 import {posPurchaseReturnAPI} from "../../../context_or_provider/pos/Purchase/purchaseReturnProduct/purchaseReturnAPI";
 import {usePosPurchaseReturn} from "../../../context_or_provider/pos/Purchase/purchaseReturnProduct/PurchaseReturn_provider";
 import {Undo2, Banknote, CheckCircle, Clock, Wallet, Activity, Calendar, ArrowUpDown} from 'lucide-react';
 import useModuleData from "../../hooks/useModuleData";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const PurchaseReturnGrid = ({
                                 viewType,
@@ -155,6 +157,15 @@ const PurchaseReturnGrid = ({
         refresh();
     };
 
+    const handlePrint = (invoice) => {
+        if (!invoice) return;
+        const tableContent = getPurchaseReturnPrintLayout(invoice);
+        const fullHTML = getBrandedVoucher("Purchase Return", tableContent, invoice.id, "#e11d48");
+        const printWindow = window.open("", "_blank", "width=850,height=900");
+        printWindow.document.write(fullHTML);
+        printWindow.document.close();
+    };
+
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center py-20 w-full">
@@ -224,19 +235,31 @@ const PurchaseReturnGrid = ({
 
             <SuccessModal
                 isOpen={!!addSuccessData}
-                purchase={addSuccessData}
                 onClose={() => setAddSuccessData(null)}
-                title="Purchase Return Added!"
-                successMessage="The purchase return has been successfully recorded."
+                title="Purchase Return Recorded Successfully"
+                subtitle={`Return ID #${addSuccessData?.id} Generated`}
+                details={[
+                    { label: "Supplier", value: addSuccessData?.supplier_name || 'N/A' },
+                    { label: "Return Amount", value: `৳${parseFloat(addSuccessData?.return_amount || 0).toLocaleString()}` },
+                    { label: "Received Amount", value: `৳${parseFloat(addSuccessData?.received_amount || 0).toLocaleString()}` }
+                ]}
+                onPrint={() => handlePrint(addSuccessData)}
+                printText="Print Slip"
             />
 
             {updateSuccessData && (
                  <SuccessModal
                     isOpen={!!updateSuccessData}
                     onClose={() => setUpdateSuccessData(null)}
-                    purchase={updateSuccessData}
-                    title="Purchase Return Updated!"
-                    successMessage="The purchase return has been successfully recorded."
+                    title="Purchase Return Updated Successfully"
+                    subtitle={`Return ID #${updateSuccessData?.id} Updated`}
+                    details={[
+                        { label: "Supplier", value: updateSuccessData?.supplier_name || 'N/A' },
+                        { label: "Return Amount", value: `৳${parseFloat(updateSuccessData?.return_amount || 0).toLocaleString()}` },
+                        { label: "Received Amount", value: `৳${parseFloat(updateSuccessData?.received_amount || 0).toLocaleString()}` }
+                    ]}
+                    onPrint={() => handlePrint(updateSuccessData)}
+                    printText="Print Slip"
                 />
             )}
         </div>

@@ -2,14 +2,14 @@ import React, {useState, useEffect, useCallback} from 'react';
 import SupplierCard from "./SupplierCard";
 import SupplierList from "./SupplierList";
 import AddSupplierModal from "./AddSupplierModal";
-import SuccessModal from "./SuccessModal";
-import LoadingSpinner from "./LoadingSpinner";
 import EmptyState from "../../components/EmptyState";
 import {usePosSuppliers} from "../../../context_or_provider/pos/Purchase/suppliers/supplierProvider";
 import {posSupplierAPI} from "../../../context_or_provider/pos/Purchase/suppliers/supplierAPI";
 import AddSupplierDuePaymentModal from "./AddSupplierDuePaymentModal";
 import {Users, UserCheck, UserMinus, Wallet, ArrowUpDown, Calendar, Activity} from 'lucide-react';
 import useModuleData from "../../hooks/useModuleData";
+import LoadingSpinner from "../../components/LoadingSpinner";
+import SuccessModal from "../../components/SuccessModal";
 
 const SupplierGrid = ({
                           viewType,
@@ -22,6 +22,7 @@ const SupplierGrid = ({
                       }) => {
     const {setPosSuppliers} = usePosSuppliers();
     const [successData, setSuccessData] = useState(null);
+    const [successType, setSuccessType] = useState('add');
     const [isDueCollectionOpen, setIsDueCollectionOpen] = useState(false);
 
     // 1. Provide filter configuration
@@ -69,10 +70,20 @@ const SupplierGrid = ({
         const totalDue = data.reduce((acc, curr) => acc + Math.abs(parseFloat(curr.due_amount || 0)), 0);
 
         return [
-            { title: 'Total Suppliers', count: total.toString(), bgColor: 'bg-purple-600', icon: <Users size={24}/> },
-            { title: 'Active Accounts', count: active.toString(), bgColor: 'bg-teal-500', icon: <UserCheck size={24}/> },
-            { title: 'Outstanding Accounts', count: withDue.toString(), bgColor: 'bg-amber-500', icon: <Activity size={24}/> },
-            { title: 'Total Due Balance', count: `৳${totalDue.toLocaleString()}`, bgColor: 'bg-blue-600', icon: <Wallet size={24}/> }
+            {title: 'Total Suppliers', count: total.toString(), bgColor: 'bg-purple-600', icon: <Users size={24}/>},
+            {title: 'Active Accounts', count: active.toString(), bgColor: 'bg-teal-500', icon: <UserCheck size={24}/>},
+            {
+                title: 'Outstanding Accounts',
+                count: withDue.toString(),
+                bgColor: 'bg-amber-500',
+                icon: <Activity size={24}/>
+            },
+            {
+                title: 'Total Due Balance',
+                count: `৳${totalDue.toLocaleString()}`,
+                bgColor: 'bg-blue-600',
+                icon: <Wallet size={24}/>
+            }
         ];
     }, []);
 
@@ -129,11 +140,14 @@ const SupplierGrid = ({
 
     const handleEmployeeAdded = (newEmp) => {
         setIsAddOpen(false);
+        setSuccessType('add');
         setSuccessData(newEmp);
         refresh();
     };
 
-    const handleEmployeeUpdated = useCallback(() => {
+    const handleEmployeeUpdated = useCallback((updatedEmp) => {
+        setSuccessType('update');
+        setSuccessData(updatedEmp);
         refresh();
     }, [refresh]);
 
@@ -165,7 +179,8 @@ const SupplierGrid = ({
                         >
                             <Wallet size={12}/> Collect Payment
                         </button>
-                        <div className="text-[11px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
+                        <div
+                            className="text-[11px] font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
                             SHOWING {filteredEmployees.length} OF {posSuppliers?.length || 0} RECORDS
                         </div>
                     </div>
@@ -222,11 +237,26 @@ const SupplierGrid = ({
                 suppliers={posSuppliers}
             />
 
+            {/*<SuccessModal*/}
+            {/*    isOpen={!!successData}*/}
+            {/*    employee={successData}*/}
+            {/*    onClose={() => setSuccessData(null)}*/}
+            {/*/>*/}
+
+
             <SuccessModal
                 isOpen={!!successData}
-                employee={successData}
                 onClose={() => setSuccessData(null)}
+                title={successType === 'update' ? "Supplier Updated Successfully" : "Supplier Added Successfully"}
+                subtitle="Transaction Completed Successfully"
+                details={[
+                    {label: "Supplier Name", value: successData?.name},
+                    {label: "Current Balance", value: `৳${successData?.balance}`}
+                ]}
+                printText="Print Slip"
             />
+
+
         </div>
     );
 };

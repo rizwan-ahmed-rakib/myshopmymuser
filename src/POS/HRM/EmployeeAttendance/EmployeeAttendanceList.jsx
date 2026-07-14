@@ -159,7 +159,7 @@ const EmployeeAttendanceList = ({ attendance, onEdit, onDelete }) => {
                 <UpdateEmployeeAttendanceModal
                     isOpen={showEditModal}
                     onClose={() => { setShowEditModal(false); setSelectedAttendance(null); }}
-                    onSuccess={(data) => { setShowEditModal(false); setSuccessMessage("Updated successfully!"); setShowSuccess(true); onEdit(data); }}
+                    onSuccess={(data) => { setShowEditModal(false); onEdit(data); }}
                     advanceData={selectedAttendance}
                 />
             )}

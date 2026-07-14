@@ -30,6 +30,8 @@ import {DuePaymentProvider} from "./pos/Purchase/duePayment/DuePaymentProvider";
 import {DueCollectionProvider} from "./pos/Sale/dueCollection/DueCollectionProvider";
 import {PosSettingsProvider} from "./pos/PosSettings/pos_settings_provider";
 import {PosCashboxProvider} from "./pos/cashbox/CashboxProvider";
+import {QuickCashProvider} from "./pos/QuickCash/quick_cash_provider";
+
 
 const RootProvider = ({children}) => {
     return (
@@ -64,7 +66,9 @@ const RootProvider = ({children}) => {
                                                                                                                         <DueCollectionProvider>
                                                                                                                             <PosSettingsProvider>
                                                                                                                                 <PosCashboxProvider>
-                                                                                                                                    {children}
+                                                                                                                                    <QuickCashProvider>
+                                                                                                                                        {children}
+                                                                                                                                    </QuickCashProvider>
                                                                                                                                 </PosCashboxProvider>
                                                                                                                             </PosSettingsProvider>
                                                                                                                         </DueCollectionProvider>

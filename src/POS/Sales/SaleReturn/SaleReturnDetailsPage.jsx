@@ -8,7 +8,7 @@ import {
 import api from '../../../context_or_provider/pos/posApi';
 
 import EditSaleReturnModal from "./EditSaleReturnModal";
-import SuccessModal from "./SuccessModal";
+import SuccessModal from "../../components/SuccessModal";
 import {downloadSaleReturnPDF} from "./usePurchasePDF";
 import {getBrandedVoucher} from "../../utils/printTemplates";
 import {getSaleReturnPrintLayout} from "./SaleReturnPrintLayout";
@@ -213,9 +213,21 @@ const SaleReturnDetailsPage = () => {
                 <SuccessModal
                     isOpen={showSuccessModal}
                     onClose={() => setShowSuccessModal(false)}
-                    purchase={updatedData}
                     title="Sale Return Updated"
-                    successMessage="Sale return updated successfully."
+                    subtitle="Sale return updated successfully."
+                    details={updatedData ? [
+                        { label: "Net Refundable", value: `৳${parseFloat(updatedData.net_return_amount || 0).toLocaleString()}` },
+                        { label: "Paid Back", value: `৳${parseFloat(updatedData.paid_amount || 0).toLocaleString()}` },
+                        { label: "Pending Balance", value: `৳${parseFloat(updatedData.due_amount || 0).toLocaleString()}` }
+                    ] : []}
+                    onPrint={updatedData ? () => {
+                        const tableContent = getSaleReturnPrintLayout(updatedData);
+                        const fullHTML = getBrandedVoucher("Sale Return", tableContent, updatedData.id, "#dc2626");
+                        const printWindow = window.open("", "_blank", "width=850,height=900");
+                        printWindow.document.write(fullHTML);
+                        printWindow.document.close();
+                    } : null}
+                    printText="Print Voucher"
                 />
             )}
         </GenericModuleDetails>

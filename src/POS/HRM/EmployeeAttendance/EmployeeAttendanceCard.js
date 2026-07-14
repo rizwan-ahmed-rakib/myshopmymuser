@@ -65,9 +65,6 @@ const EmployeeAttendanceCard = ({ attendance, onEdit, onDelete }) => {
 
     const handleUpdateSuccess = (updatedData) => {
         setShowEditModal(false);
-        setSuccessMessage("Attendance record updated successfully!");
-        setShowSuccess(true);
-
         if (onEdit) {
             onEdit(updatedData);
         }

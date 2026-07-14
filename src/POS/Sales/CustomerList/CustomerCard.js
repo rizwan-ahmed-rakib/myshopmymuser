@@ -2,15 +2,12 @@ import React, {useState, useRef, useEffect} from "react";
 import {useNavigate} from "react-router-dom";
 import {ROLE_COLORS} from "./roles";
 import UpdateEmployeeModal from "./UpdateProfileModal";
-import SuccessPopup from "./UpdateProfileSuccessPopup";
 import {posCustomerAPI} from "../../../context_or_provider/pos/Sale/customer/PosCustomerAPI";
 
 const CustomerCard = ({employee, onEdit, onDelete}) => {
     const navigate = useNavigate();
     const [selectedEmployee, setSelectedEmployee] = useState(null);
     const [showEditModal, setShowEditModal] = useState(false);
-    const [showSuccess, setShowSuccess] = useState(false);
-    const [successMessage, setSuccessMessage] = useState("");
     const [loadingId, setLoadingId] = useState(null);
 
     const [showDropdown, setShowDropdown] = useState(false);
@@ -56,12 +53,8 @@ const CustomerCard = ({employee, onEdit, onDelete}) => {
         setLoadingId(employee.id);
         try {
             await posCustomerAPI.delete(employee.id);
-            setSuccessMessage(`${employee.name} deleted successfully!`);
-            setShowSuccess(true);
-
-            // Refresh employee list
-            if (onEdit) {
-                onEdit();
+            if (onDelete) {
+                onDelete();
             }
         } catch (error) {
             console.error("Delete error:", error);
@@ -73,12 +66,8 @@ const CustomerCard = ({employee, onEdit, onDelete}) => {
 
     const handleUpdateSuccess = (updatedData) => {
         setShowEditModal(false);
-        setSuccessMessage("Employee updated successfully!");
-        setShowSuccess(true);
-
-        // Refresh employee list
         if (onEdit) {
-            onEdit();
+            onEdit(updatedData);
         }
     };
 
@@ -282,16 +271,6 @@ const CustomerCard = ({employee, onEdit, onDelete}) => {
                     employeeData={selectedEmployee}
                 />
             )}
-
-            {/* Success Popup */}
-            {showSuccess && (
-                <SuccessPopup
-                    message={successMessage}
-                    onClose={() => setShowSuccess(false)}
-                    duration={3000}
-                />
-            )}
-
         </>
 
 

@@ -769,7 +769,8 @@ const PosSalePage = () => {
                                                                 className="w-5 sm:w-6 text-center text-[10px] sm:text-xs font-bold font-mono">{item.quantity}</span>
                                                             <button type="button"
                                                                     onClick={() => updateQty(index, item.quantity + 1)}
-                                                                    className="w-4 sm:w-5 h-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 font-bold text-xs">+</button>
+                                                                    className="w-4 sm:w-5 h-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 font-bold text-xs">+
+                                                            </button>
                                                         </div>
                                                     )}
                                                 </td>
@@ -1065,7 +1066,8 @@ const PosSalePage = () => {
                 <div
                     className="w-full lg:w-[70%] flex flex-col h-full bg-gray-50 p-3 rounded-2xl border border-gray-200 overflow-hidden">
                     {/* Search & Filters Row */}
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 mb-3 shrink-0 items-end">
+                    <div
+                        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 mb-3 shrink-0 items-end">
                         {/* Toggle sidebar button and Search Input */}
                         <div className="flex gap-1.5 items-end lg:col-span-1">
                             <button
@@ -1074,7 +1076,7 @@ const PosSalePage = () => {
                                 title={isCategorySidebarOpen ? "Hide Categories" : "Show Categories"}
                                 className="p-1.5 bg-white border border-gray-300 rounded-lg text-gray-500 hover:text-blue-600 hover:border-blue-500 transition-colors shadow-sm cursor-pointer shrink-0 h-[28px] flex items-center justify-center mb-[1px]"
                             >
-                                {isCategorySidebarOpen ? <FolderOpen size={14} /> : <Folder size={14} />}
+                                {isCategorySidebarOpen ? <FolderOpen size={14}/> : <Folder size={14}/>}
                             </button>
                             <div className="relative flex-1">
                                 <label
@@ -1363,7 +1365,7 @@ const PosSalePage = () => {
                         {/* Product Cards List */}
                         <div
                             className={`${isCategorySidebarOpen ? 'w-[72%] md:w-[75%] lg:w-[80%]' : 'w-full'} overflow-y-auto grid gap-2 p-0.5 content-start scrollbar-thin transition-all duration-200`}
-                            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(105px, 1fr))' }}>
+                            style={{gridTemplateColumns: 'repeat(auto-fill, minmax(105px, 1fr))'}}>
                             {filteredProducts.map((product) => {
                                 const isLowStock = Number(product.stock) <= Number(product.alarm_when_stock_is_lessthanOrEqualto);
                                 const isOutOfStock = Number(product.stock) <= 0;
@@ -1418,7 +1420,8 @@ const PosSalePage = () => {
 
                     {/* Customer CRM Selector */}
 
-                    <div className="bg-blue-50/70 p-1.5 rounded-lg border border-blue-100 flex flex-col gap-1 shadow-sm">
+                    <div
+                        className="bg-blue-50/70 p-1.5 rounded-lg border border-blue-100 flex flex-col gap-1 shadow-sm">
                         <label className="block text-[8px] font-black uppercase text-blue-900 tracking-wider">
                             Customer CRM * {isWalkInActive &&
                             <span className="text-[8px] ml-1 bg-blue-600 text-white px-1 py-0.5 rounded font-black">🚶 Walk-In Active</span>}
@@ -1572,11 +1575,11 @@ const PosSalePage = () => {
                                                         onClick={() => updateQty(index, item.quantity - 1)}
                                                         className="w-3.5 sm:w-4.5 h-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 font-bold text-xs">-
                                                 </button>
-                                                <span
-                                                    className="w-4 sm:w-5 text-center text-[9px] sm:text-xs font-bold font-mono">{item.quantity}</span>
+                                                <span className="w-4 sm:w-5 text-center text-[9px] sm:text-xs font-bold font-mono">{item.quantity}</span>
                                                 <button type="button"
                                                         onClick={() => updateQty(index, item.quantity + 1)}
-                                                        className="w-3.5 sm:w-4.5 h-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 font-bold text-xs">+</button>
+                                                        className="w-3.5 sm:w-4.5 h-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 font-bold text-xs">+
+                                                </button>
                                             </div>
                                         )}
                                     </td>
@@ -1924,7 +1927,6 @@ const PosSalePage = () => {
                         </div>
 
                         {/* Summary & Buttons */}
-
 
 
                         <div className="bg-gray-100 p-3.5 rounded-xl space-y-3">

@@ -167,6 +167,8 @@ import Stock from "./POS/Stock/Stock";
 import Purchase from "./POS/Purchase/Purchase";
 import Inventory from "./POS/Inventory/Inventory";
 import Cashbox from "./POS/CashBox/cashbox";
+import Income from "./POS/Income/Income";
+import Expense from "./POS/Expense/Expense";
 import HRM from "./POS/HRM/HRM";
 import Marketing from "./POS/Marketing/Marketing";
 import CRM from "./POS/CRM/CRM";
@@ -360,7 +362,9 @@ const App = () => {
                                         {/*<Route path="/pos-purchase" element={<PosPurchasePage/>}/>*/}
                                         {/*<Route path="/pos-purchase" element={<PosPurchase/>}/>*/}
 
-                                        <Route path="/cashbox" element={<Cashbox/>}/>
+                                         <Route path="/cashbox" element={<Cashbox/>}/>
+                                         <Route path="/income" element={<Income/>}/>
+                                         <Route path="/expense" element={<Expense/>}/>
                                         <Route path="/sales" element={<Sales/>}>
                                             <Route path="details/:id" element={<SaleDetailsPage/>}/>
                                             <Route path="sale-return/details/:id" element={<SaleReturnDetailsPage/>}/>

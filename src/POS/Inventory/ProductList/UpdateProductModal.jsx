@@ -3,7 +3,7 @@ import Select from "react-select";
 import {
     Package, Tag, Layers, GitCommit,
     Scale, Maximize, ShieldCheck, Calendar, Info,
-    Camera, Image as ImageIcon, DollarSign, Target, Activity, Settings, X, FileClock
+    Camera, Image as ImageIcon, DollarSign, Target, Activity, Settings, X, FileClock, Boxes
 } from 'lucide-react';
 import { posProductAPI } from "../../../context_or_provider/pos/products/productAPI";
 import { posCategoryAPI } from "../../../context_or_provider/pos/categories/categoryAPI";
@@ -56,6 +56,7 @@ const UpdateProductModal = ({ isOpen, onClose, onSuccess, productData }) => {
             warranty_status: false,
             warranty_period: "",
             has_expiry: false,
+            instance_tracking_mode: "serial",
         },
         {
             name: (v) => !v ? "Product name is required" : null,
@@ -109,6 +110,7 @@ const UpdateProductModal = ({ isOpen, onClose, onSuccess, productData }) => {
                     warranty_status: productData.warranty_status || false,
                     warranty_period: productData.warranty_period || "",
                     has_expiry: productData.has_expiry || false,
+                    instance_tracking_mode: productData.instance_tracking_mode || "serial",
                 });
                 setPreviewImage(productData.image || null);
                 setImageFile(null);
@@ -328,7 +330,7 @@ const UpdateProductModal = ({ isOpen, onClose, onSuccess, productData }) => {
                     </div>
 
                     <div className="space-y-6">
-                        <div className="flex items-center gap-3"><div className="w-1.5 h-6 bg-orange-500 rounded-full"></div><h3 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Compliance & Warranty</h3></div>
+                        <div className="flex items-center gap-3"><div className="w-1.5 h-6 bg-orange-500 rounded-full"></div><h3 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Compliance &amp; Warranty</h3></div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div className="space-y-4 p-6 bg-gray-50 rounded-[2rem] border border-gray-100">
                                 <div className="flex items-center justify-between">
@@ -368,6 +370,78 @@ const UpdateProductModal = ({ isOpen, onClose, onSuccess, productData }) => {
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    {/* Instance Tracking Mode */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3"><div className="w-1.5 h-6 bg-violet-500 rounded-full"></div><h3 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Instance Tracking Mode</h3></div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* Serial Mode */}
+                            <button
+                                type="button"
+                                onClick={() => setFormField("instance_tracking_mode", "serial")}
+                                className={`p-5 rounded-[2rem] border-2 text-left transition-all duration-200 active:scale-95 ${
+                                    form.instance_tracking_mode === "serial"
+                                        ? "border-violet-500 bg-violet-50 shadow-md shadow-violet-100"
+                                        : "border-gray-100 bg-gray-50 hover:border-violet-200"
+                                }`}
+                            >
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className={`p-2 rounded-xl ${
+                                        form.instance_tracking_mode === "serial"
+                                            ? "bg-violet-500 text-white"
+                                            : "bg-gray-200 text-gray-400"
+                                    }`}>
+                                        <Tag size={16} />
+                                    </div>
+                                    <p className="text-[11px] font-black text-gray-800 uppercase tracking-tight">Serial / Unit</p>
+                                    {form.instance_tracking_mode === "serial" && (
+                                        <span className="ml-auto text-[9px] font-black bg-violet-500 text-white px-2 py-0.5 rounded-full uppercase">Active</span>
+                                    )}
+                                </div>
+                                <p className="text-[9px] font-bold text-gray-400 uppercase leading-relaxed">
+                                    প্রতিটি unit আলাদা instance। QR/Barcode দিয়ে track হয়।<br/>
+                                    <span className="text-violet-500">উদাহরণ: TV, Fridge, Laptop</span>
+                                </p>
+                            </button>
+
+                            {/* Batch Mode */}
+                            <button
+                                type="button"
+                                onClick={() => setFormField("instance_tracking_mode", "batch")}
+                                className={`p-5 rounded-[2rem] border-2 text-left transition-all duration-200 active:scale-95 ${
+                                    form.instance_tracking_mode === "batch"
+                                        ? "border-teal-500 bg-teal-50 shadow-md shadow-teal-100"
+                                        : "border-gray-100 bg-gray-50 hover:border-teal-200"
+                                }`}
+                            >
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className={`p-2 rounded-xl ${
+                                        form.instance_tracking_mode === "batch"
+                                            ? "bg-teal-500 text-white"
+                                            : "bg-gray-200 text-gray-400"
+                                    }`}>
+                                        <Boxes size={16} />
+                                    </div>
+                                    <p className="text-[11px] font-black text-gray-800 uppercase tracking-tight">Batch / Qty</p>
+                                    {form.instance_tracking_mode === "batch" && (
+                                        <span className="ml-auto text-[9px] font-black bg-teal-500 text-white px-2 py-0.5 rounded-full uppercase">Active</span>
+                                    )}
+                                </div>
+                                <p className="text-[9px] font-bold text-gray-400 uppercase leading-relaxed">
+                                    একই batch+expiry তে quantity update। FEFO দিয়ে sale হয়।<br/>
+                                    <span className="text-teal-500">উদাহরণ: Medicine, Food, Cosmetics</span>
+                                </p>
+                            </button>
+                        </div>
+                        {form.has_expiry && form.instance_tracking_mode === "serial" && (
+                            <div className="flex items-start gap-2 px-1">
+                                <Info size={12} className="text-amber-500 mt-0.5 shrink-0" />
+                                <p className="text-[9px] font-bold text-amber-500 uppercase leading-tight tracking-tight">
+                                    Expiry tracking চালু আছে — Medicine/FMCG হলে Batch mode ব্যবহার করুন।
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

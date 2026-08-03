@@ -16,7 +16,7 @@ import BaseModal from "../components/BaseModal";
 import SuccessModal from "../components/SuccessModal";
 import {
     ShoppingCart, User, Package, Trash2, Plus, Banknote, Tag, Wallet, Eye, UserPlus, 
-    Search, Sparkles, ChevronRight, Coins, RefreshCcw, Folder, FolderOpen
+    Search, Sparkles, ChevronRight, Coins, RefreshCcw, Folder, FolderOpen, Copy
 } from 'lucide-react';
 import AddSupplierModal from "./SupplierList/AddSupplierModal";
 import {getPurchasePrintLayout} from "./PurchaseProduct/PurchasePrintLayout";
@@ -36,6 +36,15 @@ const emptyItem = {
     manufacturing_date: "",
     shelf_life_days: 0,
     batch_no: "",
+    expiry_date: "",
+    category_name: "",
+    show_box_calc: false,
+    box_qty: 0,
+    pcs_per_box: 0,
+    strips_per_box: 0,
+    pcs_per_strip: 0,
+    loose_qty: 0,
+    price_per_box: 0,
 };
 
 const PosPurchase = () => {
@@ -234,6 +243,7 @@ const PosPurchase = () => {
                 unit_price: Number(p.purchase_price || 0),
                 product_name: p.name,
                 has_expiry: p.has_expiry,
+                category_name: p.category_name || "",
             }));
         } catch (err) {
             console.error("Error loading product options:", err);
@@ -241,15 +251,147 @@ const PosPurchase = () => {
         }
     };
 
-    const isProductDuplicate = (productId, currentIndex) => {
-        return items.some((item, index) => index !== currentIndex && item.product === productId);
+    const duplicateRow = (index) => {
+        setItems(prev => {
+            const updated = [...prev];
+            const src = updated[index];
+            // Clean replica: copy product identity + expiry info, reset quantities/prices/discount
+            const newItem = {
+                ...emptyItem,
+                product: src.product,
+                product_name: src.product_name,
+                unit_price: src.unit_price,
+                has_expiry: src.has_expiry,
+                category_name: src.category_name,
+                // copy expiry fields if present
+                manufacturing_date: src.manufacturing_date || "",
+                expiry_date: src.expiry_date || "",
+                shelf_life_days: src.shelf_life_days || 0,
+                batch_no: src.batch_no || "",
+                // quantity/discount reset
+                quantity: 1,
+                discount_type: src.discount_type,
+                discount_value: 0,
+                discount_amount: 0,
+                total_price: src.unit_price,
+                show_box_calc: false,
+            };
+            // no id/pk - this is intentionally a new row
+            updated.splice(index + 1, 0, newItem);
+            return updated;
+        });
+    };
+
+    const calculateExpiryDate = (mfgDate, shelfLifeDays) => {
+        if (!mfgDate || !shelfLifeDays) return "";
+        let normalizedMfg = mfgDate;
+        if (mfgDate.length === 7) {
+            normalizedMfg = `${mfgDate}-01`;
+        }
+        const date = new Date(normalizedMfg);
+        if (isNaN(date.getTime())) return "";
+        date.setDate(date.getDate() + Number(shelfLifeDays));
+        return date.toISOString().split("T")[0];
+    };
+
+    const calculateShelfLifeDays = (mfgDate, expDate) => {
+        if (!mfgDate || !expDate) return 0;
+        let normalizedMfg = mfgDate;
+        if (mfgDate.length === 7) {
+            normalizedMfg = `${mfgDate}-01`;
+        }
+        let normalizedExp = expDate;
+        if (expDate.length === 7) {
+            const [year, month] = expDate.split("-");
+            const lastDay = new Date(Number(year), Number(month), 0).getDate();
+            normalizedExp = `${expDate}-${String(lastDay).padStart(2, '0')}`;
+        }
+        const d1 = new Date(normalizedMfg);
+        const d2 = new Date(normalizedExp);
+        if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return 0;
+        const diffTime = d2.getTime() - d1.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays > 0 ? diffDays : 0;
+    };
+
+    const handleExpiryDateChange = (index, field, value) => {
+        setItems(prev => {
+            const updated = [...prev];
+            const item = { ...updated[index] };
+
+            if (field === "manufacturing_date") {
+                let mfg = value;
+                if (mfg.length === 7) {
+                    mfg = `${mfg}-01`;
+                }
+                item.manufacturing_date = mfg;
+                if (item.shelf_life_days > 0) {
+                    item.expiry_date = calculateExpiryDate(mfg, item.shelf_life_days);
+                } else if (item.expiry_date) {
+                    item.shelf_life_days = calculateShelfLifeDays(mfg, item.expiry_date);
+                }
+            } else if (field === "shelf_life_days") {
+                const days = Number(value) || 0;
+                item.shelf_life_days = days;
+                if (item.manufacturing_date && days > 0) {
+                    item.expiry_date = calculateExpiryDate(item.manufacturing_date, days);
+                }
+            } else if (field === "expiry_date") {
+                let exp = value;
+                if (exp.length === 7) {
+                    const [year, month] = exp.split("-");
+                    const lastDay = new Date(Number(year), Number(month), 0).getDate();
+                    exp = `${exp}-${String(lastDay).padStart(2, '0')}`;
+                }
+                item.expiry_date = exp;
+                if (item.manufacturing_date) {
+                    item.shelf_life_days = calculateShelfLifeDays(item.manufacturing_date, exp);
+                }
+            }
+
+            updated[index] = item;
+            return updated;
+        });
+    };
+
+    const handleBoxCalcChange = (index, field, value) => {
+        setItems(prev => {
+            const updated = [...prev];
+            const item = { ...updated[index], [field]: Number(value) };
+            const isMedicine = item.category_name?.toLowerCase() === 'medicine' || item.category_name?.toLowerCase().includes('medicine');
+            
+            let calculatedQty = item.quantity;
+            let calculatedUnitPrice = item.unit_price;
+
+            if (isMedicine) {
+                const strips = item.strips_per_box || 0;
+                const pcsPerStrip = item.pcs_per_strip || 0;
+                const pcsPerBox = strips * pcsPerStrip;
+                calculatedQty = ((item.box_qty || 0) * pcsPerBox) + (item.loose_qty || 0);
+                if (pcsPerBox > 0) {
+                    calculatedUnitPrice = (item.price_per_box || 0) / pcsPerBox;
+                }
+            } else {
+                const pcsPerBox = item.pcs_per_box || 0;
+                calculatedQty = ((item.box_qty || 0) * pcsPerBox) + (item.loose_qty || 0);
+                if (pcsPerBox > 0) {
+                    calculatedUnitPrice = (item.price_per_box || 0) / pcsPerBox;
+                }
+            }
+
+            const newItem = {
+                ...item,
+                quantity: calculatedQty || 1,
+                unit_price: Number(calculatedUnitPrice.toFixed(2)) || item.unit_price
+            };
+
+            const { total_price, discount_amount } = calculateItemTotal(newItem);
+            updated[index] = { ...newItem, total_price, discount_amount };
+            return updated;
+        });
     };
 
     const selectProduct = (option, index) => {
-        if (isProductDuplicate(option.value, index)) {
-            alert("Product already added!");
-            return;
-        }
         updateItem(index, {
             product: option.value,
             product_name: option.product_name,
@@ -259,12 +401,22 @@ const PosPurchase = () => {
             manufacturing_date: "",
             shelf_life_days: 0,
             batch_no: "",
+            expiry_date: "",
+            category_name: option.category_name || "",
+            show_box_calc: false,
+            box_qty: 0,
+            pcs_per_box: 0,
+            strips_per_box: 0,
+            pcs_per_strip: 0,
+            loose_qty: 0,
+            price_per_box: 0,
         });
     };
 
     /* ---------------- REALTIME ENGINE ---------------- */
     const calculateItemTotal = (item) => {
-        const baseTotal = item.unit_price * item.quantity;
+        const qty = Number(item.quantity) || 0;
+        const baseTotal = item.unit_price * qty;
         let discount = 0;
         if (item.discount_type === "percent") {
             discount = (baseTotal * item.discount_value) / 100;
@@ -313,6 +465,15 @@ const PosPurchase = () => {
                 manufacturing_date: "",
                 shelf_life_days: 0,
                 batch_no: "",
+                expiry_date: "",
+                category_name: product.category_name || "",
+                show_box_calc: false,
+                box_qty: 0,
+                pcs_per_box: 0,
+                strips_per_box: 0,
+                pcs_per_strip: 0,
+                loose_qty: 0,
+                price_per_box: 0,
             };
 
             if (isEmptyFirstRow) {
@@ -324,13 +485,62 @@ const PosPurchase = () => {
     };
 
     /* ---------------- AUTOMATIC BARCODE SCANNER ---------------- */
+    const parseBarcodeData = (code) => {
+        let parsed = {
+            productCode: code,
+            expiryDate: "",
+            manufacturingDate: "",
+            batchNo: "",
+            shelfLifeDays: 0
+        };
+
+        const cleanCode = code.replace(/[\(\)]/g, "");
+
+        const gtinMatch = cleanCode.match(/01(\d{14})/);
+        if (gtinMatch) {
+            parsed.productCode = gtinMatch[1];
+            
+            const expMatch = cleanCode.match(/17(\d{6})/);
+            if (expMatch) {
+                const yy = expMatch[1].substring(0, 2);
+                const mm = expMatch[1].substring(2, 4);
+                const dd = expMatch[1].substring(4, 6);
+                parsed.expiryDate = `20${yy}-${mm}-${dd}`;
+            }
+
+            const mfgMatch = cleanCode.match(/11(\d{6})/);
+            if (mfgMatch) {
+                const yy = mfgMatch[1].substring(0, 2);
+                const mm = mfgMatch[1].substring(2, 4);
+                const dd = mfgMatch[1].substring(4, 6);
+                parsed.manufacturingDate = `20${yy}-${mm}-${dd}`;
+            }
+
+            const batchMatch = cleanCode.match(/10([A-Za-z0-9]+)/);
+            if (batchMatch) {
+                parsed.batchNo = batchMatch[1];
+            }
+        }
+
+        if (parsed.manufacturingDate && parsed.expiryDate) {
+            parsed.shelfLifeDays = calculateShelfLifeDays(parsed.manufacturingDate, parsed.expiryDate);
+        }
+
+        return parsed;
+    };
+
     const handleBarcodeScan = async (e) => {
         if (e.key !== "Enter") return;
         const code = e.target.value.trim();
         if (!code) return;
 
+        const parsed = parseBarcodeData(code);
+
         try {
-            const res = await posProductAPI.search(code);
+            let res = await posProductAPI.search(parsed.productCode);
+            if (!res.data.length && parsed.productCode !== code) {
+                res = await posProductAPI.search(code);
+            }
             if (res.data.length) {
                 const p = res.data[0];
                 const productData = {
@@ -338,32 +548,39 @@ const PosPurchase = () => {
                     product_name: p.name,
                     unit_price: Number(p.purchase_price),
                     has_expiry: p.has_expiry,
+                    category_name: p.category_name || "",
+                    manufacturing_date: parsed.manufacturingDate || "",
+                    expiry_date: parsed.expiryDate || "",
+                    shelf_life_days: parsed.shelfLifeDays || 0,
+                    batch_no: parsed.batchNo || "",
                 };
 
                 setItems(prev => {
                     const lastItem = prev[prev.length - 1];
-                    if (!lastItem.product) {
+                    const isLastEmpty = !lastItem.product;
+                    
+                    const newItem = {
+                        ...(isLastEmpty ? lastItem : emptyItem),
+                        product: productData.value,
+                        product_name: productData.product_name,
+                        unit_price: productData.unit_price,
+                        has_expiry: productData.has_expiry,
+                        category_name: productData.category_name,
+                        manufacturing_date: productData.manufacturing_date,
+                        expiry_date: productData.expiry_date,
+                        shelf_life_days: productData.shelf_life_days,
+                        batch_no: productData.batch_no,
+                    };
+                    
+                    const {total_price, discount_amount} = calculateItemTotal(newItem);
+                    const updatedItem = {...newItem, total_price, discount_amount};
+
+                    if (isLastEmpty) {
                         const updated = [...prev];
-                        const newItem = {
-                            ...lastItem,
-                            product: productData.value,
-                            product_name: productData.product_name,
-                            unit_price: productData.unit_price,
-                            has_expiry: productData.has_expiry
-                        };
-                        const {total_price, discount_amount} = calculateItemTotal(newItem);
-                        updated[prev.length - 1] = {...newItem, total_price, discount_amount};
+                        updated[prev.length - 1] = updatedItem;
                         return updated;
                     } else {
-                        const newItem = {
-                            ...emptyItem,
-                            product: productData.value,
-                            product_name: productData.product_name,
-                            unit_price: productData.unit_price,
-                            has_expiry: productData.has_expiry
-                        };
-                        const {total_price, discount_amount} = calculateItemTotal(newItem);
-                        return [...prev, {...newItem, total_price, discount_amount}];
+                        return [...prev, updatedItem];
                     }
                 });
             }
@@ -428,10 +645,14 @@ const PosPurchase = () => {
         }
 
         const validItems = items.filter(i => i.product);
+        if (validItems.some(i => Number(i.quantity) <= 0)) {
+            alert("All items must have a valid quantity greater than 0");
+            return;
+        }
         const itemwise_total_discount = validItems.reduce((sum, i) => sum + i.discount_amount, 0);
         const itemsPayload = validItems.map(i => ({
             product: i.product,
-            quantity: i.quantity,
+            quantity: Number(i.quantity) || 1,
             unit_price: i.unit_price,
             discount_amount: i.discount_amount,
             net_total: i.total_price,
@@ -645,9 +866,101 @@ const PosPurchase = () => {
                                                 })
                                             }}
                                         />
+                                        {item.product && (
+                                            <button
+                                                type="button"
+                                                onClick={() => updateItem(index, { show_box_calc: !item.show_box_calc })}
+                                                className="text-[8px] font-bold text-blue-600 hover:underline flex items-center gap-0.5 mt-1"
+                                            >
+                                                📦 {item.show_box_calc ? "Hide Box Calc" : "Show Box Calc"}
+                                            </button>
+                                        )}
+                                        {item.show_box_calc && (
+                                            <div className="p-2 bg-blue-50 border border-blue-100 rounded-xl space-y-1.5 mt-1 animate-in fade-in duration-200">
+                                                <p className="text-[7px] font-black text-blue-800 uppercase">
+                                                    {item.category_name?.toLowerCase().includes('medicine') ? "Medicine Box Converter" : "Normal Box Converter"}
+                                                </p>
+                                                <div className="grid grid-cols-2 gap-1.5">
+                                                    <div className="space-y-0.5">
+                                                        <label className="text-[7px] font-extrabold text-blue-700 uppercase block">Box Qty</label>
+                                                        <input
+                                                            type="number"
+                                                            className="w-full border border-blue-200 p-1 rounded bg-white text-[9px] font-mono outline-none"
+                                                            placeholder="Boxes"
+                                                            value={item.box_qty || ""}
+                                                            onFocus={(e) => e.target.select()}
+                                                            onChange={(e) => handleBoxCalcChange(index, "box_qty", e.target.value)}
+                                                        />
+                                                    </div>
+                                                    
+                                                    {item.category_name?.toLowerCase().includes('medicine')&& item.has_expiry ? (
+                                                        <>
+                                                            <div className="space-y-0.5">
+                                                                <label className="text-[7px] font-extrabold text-blue-700 uppercase block">Strips/Box (Pata)</label>
+                                                                <input
+                                                                    type="number"
+                                                                    className="w-full border border-blue-200 p-1 rounded bg-white text-[9px] font-mono outline-none"
+                                                                    placeholder="Strips"
+                                                                    value={item.strips_per_box || ""}
+                                                                    onFocus={(e) => e.target.select()}
+                                                                    onChange={(e) => handleBoxCalcChange(index, "strips_per_box", e.target.value)}
+                                                                />
+                                                            </div>
+                                                            <div className="space-y-0.5">
+                                                                <label className="text-[7px] font-extrabold text-blue-700 uppercase block">Pcs/Strip</label>
+                                                                <input
+                                                                    type="number"
+                                                                    className="w-full border border-blue-200 p-1 rounded bg-white text-[9px] font-mono outline-none"
+                                                                    placeholder="Pcs/Strip"
+                                                                    value={item.pcs_per_strip || ""}
+                                                                    onFocus={(e) => e.target.select()}
+                                                                    onChange={(e) => handleBoxCalcChange(index, "pcs_per_strip", e.target.value)}
+                                                                />
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <div className="space-y-0.5">
+                                                            <label className="text-[7px] font-extrabold text-blue-700 uppercase block">Pcs/Box</label>
+                                                            <input
+                                                                    type="number"
+                                                                    className="w-full border border-blue-200 p-1 rounded bg-white text-[9px] font-mono outline-none"
+                                                                    placeholder="Pcs/box"
+                                                                    value={item.pcs_per_box || ""}
+                                                                    onFocus={(e) => e.target.select()}
+                                                                    onChange={(e) => handleBoxCalcChange(index, "pcs_per_box", e.target.value)}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                    
+                                                    <div className="space-y-0.5">
+                                                        <label className="text-[7px] font-extrabold text-blue-700 uppercase block">Loose Pcs</label>
+                                                        <input
+                                                            type="number"
+                                                            className="w-full border border-blue-200 p-1 rounded bg-white text-[9px] font-mono outline-none"
+                                                            placeholder="Loose qty"
+                                                            value={item.loose_qty || ""}
+                                                            onFocus={(e) => e.target.select()}
+                                                            onChange={(e) => handleBoxCalcChange(index, "loose_qty", e.target.value)}
+                                                        />
+                                                    </div>
+                                                    
+                                                    <div className="space-y-0.5 col-span-2">
+                                                        <label className="text-[7px] font-extrabold text-blue-700 uppercase block">Price per Box</label>
+                                                        <input
+                                                            type="number"
+                                                            className="w-full border border-blue-200 p-1 rounded bg-white text-[9px] font-mono outline-none"
+                                                            placeholder="Box purchase price"
+                                                            value={item.price_per_box || ""}
+                                                            onFocus={(e) => e.target.select()}
+                                                            onChange={(e) => handleBoxCalcChange(index, "price_per_box", e.target.value)}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                         {item.has_expiry && (
                                             <div
-                                                className="grid grid-cols-3 gap-1.5 p-2 bg-orange-50/50 border border-orange-100 rounded-xl animate-in fade-in duration-200">
+                                                className="grid grid-cols-2 gap-1.5 p-2 bg-orange-50/50 border border-orange-100 rounded-xl animate-in fade-in duration-200">
                                                 <div className="space-y-0.5">
                                                     <label
                                                         className="text-[7px] font-black text-orange-600 uppercase block">Mfg
@@ -655,8 +968,19 @@ const PosPurchase = () => {
                                                     <input
                                                         type="date"
                                                         className="w-full border border-orange-100 p-1 rounded bg-white text-[9px] font-bold outline-none"
-                                                        value={item.manufacturing_date}
-                                                        onChange={(e) => updateItem(index, {manufacturing_date: e.target.value})}
+                                                        value={item.manufacturing_date || ""}
+                                                        onChange={(e) => handleExpiryDateChange(index, "manufacturing_date", e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-0.5">
+                                                    <label
+                                                        className="text-[7px] font-black text-orange-600 uppercase block">Expire
+                                                        Date</label>
+                                                    <input
+                                                        type="date"
+                                                        className="w-full border border-orange-100 p-1 rounded bg-white text-[9px] font-bold outline-none"
+                                                        value={item.expiry_date || ""}
+                                                        onChange={(e) => handleExpiryDateChange(index, "expiry_date", e.target.value)}
                                                     />
                                                 </div>
                                                 <div className="space-y-0.5">
@@ -668,7 +992,8 @@ const PosPurchase = () => {
                                                         className="w-full border border-orange-100 p-1 rounded bg-white text-[9px] font-mono outline-none"
                                                         placeholder="Days"
                                                         value={item.shelf_life_days || ""}
-                                                        onChange={(e) => updateItem(index, {shelf_life_days: Number(e.target.value)})}
+                                                        onFocus={(e) => e.target.select()}
+                                                        onChange={(e) => handleExpiryDateChange(index, "shelf_life_days", e.target.value)}
                                                     />
                                                 </div>
                                                 <div className="space-y-0.5">
@@ -679,7 +1004,7 @@ const PosPurchase = () => {
                                                         type="text"
                                                         className="w-full border border-orange-100 p-1 rounded bg-white text-[9px] outline-none"
                                                         placeholder="Batch #"
-                                                        value={item.batch_no}
+                                                        value={item.batch_no || ""}
                                                         onChange={(e) => updateItem(index, {batch_no: e.target.value})}
                                                     />
                                                 </div>
@@ -693,6 +1018,7 @@ const PosPurchase = () => {
                                         type="number"
                                         className="w-full border p-1 rounded text-right font-mono text-[10px] bg-white text-gray-800 focus:border-blue-500 outline-none"
                                         value={item.unit_price || ""}
+                                        onFocus={(e) => e.target.select()}
                                         onChange={(e) => updateItem(index, {unit_price: Number(e.target.value)})}
                                     />
                                 </td>
@@ -707,10 +1033,22 @@ const PosPurchase = () => {
                                         >
                                             -
                                         </button>
-                                        <span
-                                            className="w-6 text-center text-[10px] font-bold font-mono text-gray-800 select-none">
-                                            {item.quantity}
-                                        </span>
+                                        <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            pattern="[0-9]*"
+                                            className="w-10 text-center text-[10px] font-bold font-mono text-gray-800 bg-transparent outline-none border-none"
+                                            value={item.quantity}
+                                            onFocus={(e) => e.target.select()}
+                                            onChange={(e) => {
+                                                const raw = e.target.value.replace(/[^0-9]/g, '');
+                                                updateItem(index, { quantity: raw === '' ? '' : Number(raw) });
+                                            }}
+                                            onBlur={(e) => {
+                                                const val = Number(e.target.value);
+                                                updateItem(index, { quantity: val > 0 ? val : 1 });
+                                            }}
+                                        />
                                         <button
                                             type="button"
                                             onClick={() => updateItem(index, {quantity: item.quantity + 1})}
@@ -737,6 +1075,7 @@ const PosPurchase = () => {
                                             className="w-full bg-transparent p-0.5 text-[9px] font-bold text-center text-gray-800 outline-none font-mono"
                                             placeholder="0"
                                             value={item.discount_value || ""}
+                                            onFocus={(e) => e.target.select()}
                                             onChange={(e) => updateItem(index, {discount_value: Number(e.target.value)})}
                                         />
                                     </div>
@@ -752,13 +1091,26 @@ const PosPurchase = () => {
                                 </td>
 
                                 <td className="py-2 px-1 text-center align-top">
-                                    <button
-                                        type="button"
-                                        onClick={() => removeRow(index)}
-                                        className="text-gray-400 hover:text-red-500 transition-colors text-base font-bold"
-                                    >
-                                        ×
-                                    </button>
+                                    <div className="flex flex-col items-center gap-1.5">
+                                        {item.product && (
+                                            <button
+                                                type="button"
+                                                onClick={() => duplicateRow(index)}
+                                                className="text-gray-400 hover:text-blue-500 transition-colors"
+                                                title="Duplicate/Replicate Row"
+                                            >
+                                                <Copy size={11} />
+                                            </button>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => removeRow(index)}
+                                            className="text-gray-450 hover:text-red-500 transition-colors text-sm font-black leading-none"
+                                            title="Delete Row"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))}

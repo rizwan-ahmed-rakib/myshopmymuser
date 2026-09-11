@@ -221,8 +221,11 @@ import PosUserProfile from "./POS/components/PosUserProfile";
 import UserRoleManagement from "./POS/UserRoleManagement";
 import PosProtectedRoute from "./context_or_provider/pos/PosProtectedRoute";
 import PosSalePage from "./POS/Sales/PosSalePage";
-import PosPurchasePage from "./POS/Purchase/PosPurchasePage";
+// import PosPurchasePage from "./POS/Purchase/PosPurchasePage";
 import PosPurchase from "./POS/Purchase/PosPurchase";
+import MasterCatalog from "./POS/masterProducCatelogt_Official/masterProductOfficial";
+import CustomerTransactionHistory from "./POS/Sales/CustomerList/CustomerTransactionHistory";
+import SupplierTransactionHistory from "./POS/Purchase/SupplierList/SupplierTransactionHistory";
 
 // import {CartProvider} from "./context_or_provider/CartContext";
 
@@ -365,6 +368,7 @@ const App = () => {
                                          <Route path="/cashbox" element={<Cashbox/>}/>
                                          <Route path="/income" element={<Income/>}/>
                                          <Route path="/expense" element={<Expense/>}/>
+                                         <Route path="/master-product-catelog" element={<MasterCatalog/>}/>
                                         <Route path="/sales" element={<Sales/>}>
                                             <Route path="details/:id" element={<SaleDetailsPage/>}/>
                                             <Route path="sale-return/details/:id" element={<SaleReturnDetailsPage/>}/>
@@ -372,6 +376,7 @@ const App = () => {
                                                    element={<CustomerDueCollectionDetails/>}/>
                                             <Route path="customer/profile/:id" element={<CustomerProfilePage/>}/>
                                             <Route path="Pos-Sale-Page" element={<PosSalePage/>}/>
+                                            <Route path="sale/customer/:id/transactions" element={<CustomerTransactionHistory />} />
                                         </Route>
                                         <Route path="/stock" element={<Stock/>}>
                                             <Route path="details/:id" element={<DamageStockDetailsPage/>}/>
@@ -384,6 +389,7 @@ const App = () => {
                                             <Route path="due-payment/details/:id"
                                                    element={<SupplierDuePaymentDetails/>}/>
                                             <Route path="supplier/profile/:id" element={<SupplierProfilePage/>}/>
+                                            <Route path="supplier/:id/transactions" element={<SupplierTransactionHistory />} />
                                         </Route>
                                         <Route path="/inventory" element={<Inventory/>}>
                                             <Route path="product/details/:id" element={<ProductDetailsPage/>}/>

@@ -2,7 +2,7 @@ import api from "../posApi";
 
 export const posSizeAPI = {
     // Get all employees
-    getAll: () => api.get("/api/bar-qr/instances/"),
+    getAll: (pageUrl = null) => api.get(pageUrl || "/api/bar-qr/instances/"),
 
     // Get single employee by ID
     getById: (id) => api.get(`/api/bar-qr/instances/${id}/`),

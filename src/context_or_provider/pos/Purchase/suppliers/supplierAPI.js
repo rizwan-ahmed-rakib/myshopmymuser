@@ -65,4 +65,10 @@ export const posSupplierAPI = {
 
     // Delete employee
     delete: (id) => api.delete(`/api/purchase/suppliers/${id}/`),
+
+     getTransactions: async (supplierId, params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        const response = await api.get(`/api/purchase/supplier-transactions/${supplierId}/transactions/?${query}`);
+        return response;
+    },
 };

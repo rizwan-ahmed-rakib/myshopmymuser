@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { posCashboxAPI } from '../../context_or_provider/pos/cashbox/cashboxAPI';
+import React, {useState, useEffect} from 'react';
+import {posCashboxAPI} from '../../context_or_provider/pos/cashbox/cashboxAPI';
 
 const PAYMENT_METHOD_LABELS = {
     cash: '💵 Cash',
@@ -20,6 +20,8 @@ const IncomeList = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [total, setTotal] = useState(0);
+    const [totalInvestment, setTotalInvestment] = useState(0); // ✅ Investment Total
+    const [totalNormalIncome, setTotalNormalIncome] = useState(0); // ✅ Normal Income Total
     const [search, setSearch] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
     const [filterMethod, setFilterMethod] = useState('');
@@ -56,8 +58,17 @@ const IncomeList = () => {
             setError('');
             const response = await posCashboxAPI.getAllIncome();
             setIncomes(response.data);
+
+            // ✅ Total, Investment, Normal Income আলাদা করে 계산
             const totalAmount = response.data.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+            const investmentAmount = response.data
+                .filter(item => item.is_investment)
+                .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+            const normalIncomeAmount = totalAmount - investmentAmount;
+
             setTotal(totalAmount);
+            setTotalInvestment(investmentAmount);
+            setTotalNormalIncome(normalIncomeAmount);
         } catch (err) {
             console.error('Error fetching incomes:', err);
             setError('Income লোড করতে সমস্যা হয়েছে।');
@@ -103,7 +114,6 @@ const IncomeList = () => {
             return;
         }
 
-        // Determine Payment Method
         let paymentMethod = 'cash';
         const activeChannelsCount = [cashVal > 0, mobileVal > 0, bankVal > 0].filter(Boolean).length;
         if (activeChannelsCount > 1) {
@@ -125,6 +135,7 @@ const IncomeList = () => {
                 paid_bank: bankVal,
                 mobile_operator: mobileVal > 0 ? editItem.mobile_operator : null,
                 description: editItem.description || null,
+                is_investment: editItem.is_investment || false, // ✅ Investment flag পাঠান
             });
             setEditItem(null);
             fetchIncomes();
@@ -150,7 +161,6 @@ const IncomeList = () => {
         const matchCategory = !filterCategory || String(inc.category) === String(filterCategory);
         const matchMethod = !filterMethod || inc.payment_method === filterMethod;
 
-        // Date range match
         let matchDate = true;
         if (startDate || endDate) {
             const incDate = new Date(inc.created_at);
@@ -171,23 +181,46 @@ const IncomeList = () => {
         return matchSearch && matchCategory && matchMethod && matchDate;
     });
 
+    // ✅ Filtered data এর উপর ভিত্তি করে আলাদা টোটাল
     const filteredTotal = filtered.reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+    const filteredInvestment = filtered
+        .filter(item => item.is_investment)
+        .reduce((sum, item) => sum + parseFloat(item.amount || 0), 0);
+    const filteredNormalIncome = filteredTotal - filteredInvestment;
 
     return (
         <div>
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+            {/* ✅ Summary Cards - Updated with Investment & Normal Income */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                {/* Total Income */}
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                    <p className="text-xs text-gray-500 mb-1">Total Income</p>
+                    <p className="text-xs text-gray-500 mb-1">💰 Total Income</p>
                     <p className="text-2xl font-bold text-green-600">৳{total.toLocaleString()}</p>
+                    <p className="text-xs text-gray-400 mt-1">সব মিলিয়ে মোট আয়</p>
                 </div>
-                <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                    <p className="text-xs text-gray-500 mb-1">Filtered Total</p>
-                    <p className="text-2xl font-bold text-emerald-500">৳{filteredTotal.toLocaleString()}</p>
+
+                {/* Normal Income */}
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-green-200 bg-green-50/30">
+                    <p className="text-xs text-gray-500 mb-1">📈 Normal Income</p>
+                    <p className="text-2xl font-bold text-emerald-600">৳{totalNormalIncome.toLocaleString()}</p>
+                    <p className="text-xs text-green-600 mt-1">✅ ইনভেস্টমেন্ট বাদে আয়</p>
                 </div>
+
+                {/* Investment */}
+                <div className="bg-white rounded-xl p-4 shadow-sm border border-blue-200 bg-blue-50/30">
+                    <p className="text-xs text-gray-500 mb-1">💰 Investment</p>
+                    <p className="text-2xl font-bold text-blue-600">৳{totalInvestment.toLocaleString()}</p>
+                    <p className="text-xs text-blue-600 mt-1">📊 মোট বিনিয়োগের পরিমাণ</p>
+                </div>
+
+                {/* Total Records */}
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                    <p className="text-xs text-gray-500 mb-1">Total Records</p>
+                    <p className="text-xs text-gray-500 mb-1">📋 Total Records</p>
                     <p className="text-2xl font-bold text-gray-700">{filtered.length}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                        💰{filtered.filter(i => i.is_investment).length} Investment ·
+                        📊{filtered.filter(i => !i.is_investment).length} Normal
+                    </p>
                 </div>
             </div>
 
@@ -270,82 +303,103 @@ const IncomeList = () => {
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead className="bg-green-50 border-b border-green-100">
-                            <tr>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-green-700 uppercase tracking-wider">#</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-green-700 uppercase tracking-wider">Title</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-green-700 uppercase tracking-wider">Category</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-green-700 uppercase tracking-wider">Amount</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-green-700 uppercase tracking-wider">Payment</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-green-700 uppercase tracking-wider">Date</th>
-                                <th className="px-4 py-3 text-left text-xs font-semibold text-green-700 uppercase tracking-wider">Actions</th>
-                            </tr>
+                        <tr>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-green-700 uppercase tracking-wider">#</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-green-700 uppercase tracking-wider">Title</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-green-700 uppercase tracking-wider">Category</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-green-700 uppercase tracking-wider">Type</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-green-700 uppercase tracking-wider">Amount</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-green-700 uppercase tracking-wider">Payment</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-green-700 uppercase tracking-wider">Date</th>
+                            <th className="px-4 py-3 text-left text-xs font-semibold text-green-700 uppercase tracking-wider">Actions</th>
+                        </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {loading ? (
-                                <tr>
-                                    <td colSpan="7" className="px-6 py-12 text-center">
-                                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mb-2"></div>
-                                        <p className="text-gray-500 text-sm">Loading incomes...</p>
+                        {loading ? (
+                            <tr>
+                                <td colSpan="8" className="px-6 py-12 text-center">
+                                    <div
+                                        className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mb-2"></div>
+                                    <p className="text-gray-500 text-sm">Loading incomes...</p>
+                                </td>
+                            </tr>
+                        ) : filtered.length === 0 ? (
+                            <tr>
+                                <td colSpan="8" className="px-6 py-12 text-center">
+                                    <div className="text-4xl mb-3">💰</div>
+                                    <p className="text-gray-500">No income records found</p>
+                                </td>
+                            </tr>
+                        ) : (
+                            filtered.map((income, idx) => (
+                                <tr key={income.id} className={`hover:bg-green-50/50 transition-colors ${
+                                    income.is_investment ? 'bg-blue-50/30' : ''
+                                }`}>
+                                    <td className="px-4 py-3 text-sm text-gray-500">{idx + 1}</td>
+                                    <td className="px-4 py-3">
+                                        <div className="text-sm font-medium text-gray-900">{income.title}</div>
+                                        {income.description && (
+                                            <div
+                                                className="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">{income.description}</div>
+                                        )}
                                     </td>
-                                </tr>
-                            ) : filtered.length === 0 ? (
-                                <tr>
-                                    <td colSpan="7" className="px-6 py-12 text-center">
-                                        <div className="text-4xl mb-3">💰</div>
-                                        <p className="text-gray-500">No income records found</p>
-                                    </td>
-                                </tr>
-                            ) : (
-                                filtered.map((income, idx) => (
-                                    <tr key={income.id} className="hover:bg-green-50/50 transition-colors">
-                                        <td className="px-4 py-3 text-sm text-gray-500">{idx + 1}</td>
-                                        <td className="px-4 py-3">
-                                            <div className="text-sm font-medium text-gray-900">{income.title}</div>
-                                            {income.description && (
-                                                <div className="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">{income.description}</div>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            {income.category_name ? (
-                                                <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                                    <td className="px-4 py-3">
+                                        {income.category_name ? (
+                                            <span
+                                                className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                                                     {income.category_name}
                                                 </span>
-                                            ) : (
-                                                <span className="text-xs text-gray-400">—</span>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <span className="text-sm font-bold text-green-600">
+                                        ) : (
+                                            <span className="text-xs text-gray-400">—</span>
+                                        )}
+                                    </td>
+
+                                    <td className="px-4 py-3">
+                                        {income.is_investment ? (
+                                            <span
+                                                className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium whitespace-nowrap">💰 Investment</span>
+                                        ) : (
+                                            <span
+                                                className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium whitespace-nowrap">📈 Income</span>
+                                        )}
+                                    </td>
+
+                                    <td className="px-4 py-3">
+                                            <span className={`text-sm font-bold ${
+                                                income.is_investment ? 'text-blue-600' : 'text-green-600'
+                                            }`}>
                                                 ৳{parseFloat(income.amount).toLocaleString()}
                                             </span>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${PAYMENT_METHOD_COLORS[income.payment_method] || 'bg-gray-100 text-gray-600'}`}>
+                                    </td>
+
+                                    <td className="px-4 py-3">
+                                            <span
+                                                className={`px-2 py-1 rounded-full text-xs font-medium ${PAYMENT_METHOD_COLORS[income.payment_method] || 'bg-gray-100 text-gray-600'}`}>
                                                 {PAYMENT_METHOD_LABELS[income.payment_method] || income.payment_method}
                                             </span>
-                                        </td>
-                                        <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
-                                            {formatDate(income.created_at)}
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => setEditItem({ ...income })}
-                                                    className="px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors font-medium"
-                                                >
-                                                    ✏️ Edit
-                                                </button>
-                                                <button
-                                                    onClick={() => setDeleteId(income.id)}
-                                                    className="px-3 py-1 text-xs bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors font-medium"
-                                                >
-                                                    🗑️ Delete
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
+                                    </td>
+                                    <td className="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
+                                        {formatDate(income.created_at)}
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => setEditItem({...income})}
+                                                className="px-3 py-1 text-xs bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors font-medium"
+                                            >
+                                                ✏️ Edit
+                                            </button>
+                                            <button
+                                                onClick={() => setDeleteId(income.id)}
+                                                className="px-3 py-1 text-xs bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors font-medium"
+                                            >
+                                                🗑️ Delete
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                         </tbody>
                     </table>
                 </div>
@@ -358,7 +412,8 @@ const IncomeList = () => {
                         <div className="text-center mb-4">
                             <div className="text-4xl mb-2">⚠️</div>
                             <h3 className="text-lg font-semibold text-gray-800">Delete Income?</h3>
-                            <p className="text-gray-500 text-sm mt-1">এই income record টি মুছে ফেলবেন? এটি আর ফেরত আনা যাবে না।</p>
+                            <p className="text-gray-500 text-sm mt-1">এই income record টি মুছে ফেলবেন? এটি আর ফেরত আনা
+                                যাবে না।</p>
                         </div>
                         <div className="flex gap-3">
                             <button
@@ -382,31 +437,35 @@ const IncomeList = () => {
             {/* Edit Modal */}
             {editItem && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+                    <div
+                        className="bg-white rounded-2xl p-6 shadow-2xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
                         <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
                             ✏️ Edit Income
                         </h3>
 
                         {editError && (
-                            <div className="mb-3 p-2 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100">{editError}</div>
+                            <div
+                                className="mb-3 p-2 bg-red-50 text-red-700 rounded-lg text-sm border border-red-100">{editError}</div>
                         )}
 
                         <div className="space-y-3">
                             <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">Title</label>
+                                <label
+                                    className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">Title</label>
                                 <input
                                     type="text"
                                     className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300 text-sm"
                                     value={editItem.title}
-                                    onChange={e => setEditItem({ ...editItem, title: e.target.value })}
+                                    onChange={e => setEditItem({...editItem, title: e.target.value})}
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">Category</label>
+                                <label
+                                    className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">Category</label>
                                 <select
                                     className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300 text-sm bg-white"
                                     value={editItem.category || ''}
-                                    onChange={e => setEditItem({ ...editItem, category: e.target.value || null })}
+                                    onChange={e => setEditItem({...editItem, category: e.target.value || null})}
                                 >
                                     <option value="">-- No Category --</option>
                                     {categories.map(cat => (
@@ -414,51 +473,74 @@ const IncomeList = () => {
                                     ))}
                                 </select>
                             </div>
+
+                            {/* ✅ Edit Modal-এ Investment Checkbox */}
+                            <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl border border-blue-200">
+                                <input
+                                    type="checkbox"
+                                    checked={editItem.is_investment || false}
+                                    onChange={e => setEditItem({...editItem, is_investment: e.target.checked})}
+                                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                />
+                                <label className="text-sm font-medium text-blue-800">
+                                    💰 Investment?
+                                    <span className="block text-xs text-blue-600 font-normal">
+                                        চেক করলে এটি ইনকাম হিসেবে গণ্য হবে না
+                                    </span>
+                                </label>
+                            </div>
+
                             {/* Payment Channels Block */}
                             <div className="bg-gray-50 p-3 rounded-xl border border-gray-200 space-y-3">
-                                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Payment Channels</label>
+                                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Payment
+                                    Channels</label>
                                 <div className="grid grid-cols-3 gap-2">
                                     <div>
-                                        <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">Cash (৳)</label>
+                                        <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">Cash
+                                            (৳)</label>
                                         <input
                                             type="number"
                                             min="0"
                                             className="w-full border border-gray-200 p-1.5 rounded-lg text-xs bg-white focus:border-green-500 outline-none font-mono"
                                             value={editItem.paid_cash || ''}
-                                            onChange={e => setEditItem({ ...editItem, paid_cash: e.target.value })}
+                                            onChange={e => setEditItem({...editItem, paid_cash: e.target.value})}
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">Mobile (৳)</label>
+                                        <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">Mobile
+                                            (৳)</label>
                                         <input
                                             type="number"
                                             min="0"
                                             className="w-full border border-gray-200 p-1.5 rounded-lg text-xs bg-white focus:border-green-500 outline-none font-mono"
                                             value={editItem.paid_mobile || ''}
-                                            onChange={e => setEditItem({ ...editItem, paid_mobile: e.target.value })}
+                                            onChange={e => setEditItem({...editItem, paid_mobile: e.target.value})}
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">Bank (৳)</label>
+                                        <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">Bank
+                                            (৳)</label>
                                         <input
                                             type="number"
                                             min="0"
                                             className="w-full border border-gray-200 p-1.5 rounded-lg text-xs bg-white focus:border-green-500 outline-none font-mono"
                                             value={editItem.paid_bank || ''}
-                                            onChange={e => setEditItem({ ...editItem, paid_bank: e.target.value })}
+                                            onChange={e => setEditItem({...editItem, paid_bank: e.target.value})}
                                         />
                                     </div>
                                 </div>
 
                                 {parseFloat(editItem.paid_mobile || 0) > 0 && (
-                                    <div className="p-2 bg-orange-50/70 rounded-xl border border-orange-100 animate-in fade-in duration-200">
-                                        <label className="block text-[9px] uppercase font-black text-orange-850 mb-1">Mobile Operator *</label>
+                                    <div
+                                        className="p-2 bg-orange-50/70 rounded-xl border border-orange-100 animate-in fade-in duration-200">
+                                        <label className="block text-[9px] uppercase font-black text-orange-850 mb-1">Mobile
+                                            Operator *</label>
                                         <div className="grid grid-cols-4 gap-1.5">
                                             {['bkash', 'nagad', 'rocket', 'upay'].map(op => (
                                                 <button
                                                     key={op}
                                                     type="button"
-                                                    onClick={() => setEditItem({ ...editItem, mobile_operator: op })}
+                                                    onClick={() => setEditItem({...editItem, mobile_operator: op})}
                                                     className={`py-1 rounded-lg text-[10px] font-bold border transition-all capitalize ${
                                                         editItem.mobile_operator === op
                                                             ? 'border-orange-500 bg-orange-100 text-orange-800'
@@ -472,7 +554,8 @@ const IncomeList = () => {
                                     </div>
                                 )}
 
-                                <div className="flex justify-between items-center text-xs font-bold border-t border-gray-200 pt-2">
+                                <div
+                                    className="flex justify-between items-center text-xs font-bold border-t border-gray-200 pt-2">
                                     <span className="text-gray-500">Total Amount:</span>
                                     <span className="font-mono text-green-600">
                                         ৳{(parseFloat(editItem.paid_cash || 0) + parseFloat(editItem.paid_mobile || 0) + parseFloat(editItem.paid_bank || 0)).toLocaleString()}
@@ -480,19 +563,23 @@ const IncomeList = () => {
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">Description</label>
+                                <label
+                                    className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">Description</label>
                                 <textarea
                                     rows="2"
                                     className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-300 text-sm resize-none"
                                     value={editItem.description || ''}
-                                    onChange={e => setEditItem({ ...editItem, description: e.target.value })}
+                                    onChange={e => setEditItem({...editItem, description: e.target.value})}
                                 />
                             </div>
                         </div>
 
                         <div className="flex gap-3 mt-5">
                             <button
-                                onClick={() => { setEditItem(null); setEditError(''); }}
+                                onClick={() => {
+                                    setEditItem(null);
+                                    setEditError('');
+                                }}
                                 className="flex-1 px-4 py-2 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 font-medium text-sm"
                             >
                                 Cancel

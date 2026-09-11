@@ -5,6 +5,7 @@ import PurchaseGrid from "./PurchaseProduct/PurchaseGrid";
 import SupplierGrid from "./SupplierList/SupplierGrid";
 import PurchaseReturnGrid from "./PurchaseReturn/PurchaseReturnGrid";
 import SupplierDuePaymentGrid from "./SupplierDuePayment/SupplierDuePaymentGrid";
+import SupplierTransactionTab from "./SupplierTransactionTab";
 
 /**
  * Purchase Module - Acts as the parent container for all Purchase-related features.
@@ -33,6 +34,7 @@ const Purchase = () => {
         { id: 'purchase-return-list', name: 'Purchase Return', icon: '↩️', addLabel: 'Add Return' },
         { id: 'Supplier-list', name: 'Supplier', icon: '👥', addLabel: 'Add Supplier' },
         { id: 'Supplier-due-payment-list', name: 'Supplier Due Payment', icon: '📋', addLabel: 'Payment Due' },
+        { id: 'supplier-transactions', name: 'Supplier Transactions', icon: '📊', addLabel: null },
     ];
 
     const renderTabContent = () => {
@@ -55,6 +57,8 @@ const Purchase = () => {
                 return <PurchaseReturnGrid {...commonProps} />;
             case 'Supplier-due-payment-list':
                 return <SupplierDuePaymentGrid {...commonProps} />;
+            case 'supplier-transactions':
+                return <SupplierTransactionTab {...commonProps} />;
             default:
                 return <PurchaseGrid {...commonProps} />;
         }

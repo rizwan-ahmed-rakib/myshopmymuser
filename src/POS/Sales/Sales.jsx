@@ -5,6 +5,7 @@ import SaleGrid from "./SaleProduct/SaleGrid";
 import CustomerGrid from "./CustomerList/CustomerGrid";
 import SaleReturnGrid from "./SaleReturn/SaleReturnGrid";
 import CustomerDueCollectionGrid from "./CustomerDueCollection/CustomerDueCollectionGrid";
+import CustomerTransactionTab from "./CustomerTransactionTab";
 
 /**
  * Sales Module - Acts as the parent container for all Sales-related features.
@@ -33,6 +34,7 @@ const Sales = () => {
         { id: 'sales-return', name: 'Sale Return', icon: '↩️', addLabel: 'Add Return' },
         { id: 'customers', name: 'Customer', icon: '👥', addLabel: 'Add Customer' },
         { id: 'customers-due-collection', name: 'Due Collection', icon: '📥', addLabel: 'Collect Due' },
+        { id: 'customer-transactions', name: 'Customer Transactions', icon: '📊', addLabel: null },
     ];
 
     const renderTabContent = () => {
@@ -55,6 +57,8 @@ const Sales = () => {
                 return <SaleReturnGrid {...commonProps} />;
             case 'customers-due-collection':
                 return <CustomerDueCollectionGrid {...commonProps} />;
+            case 'customer-transactions':  // ✅ নতুন কেস
+                return <CustomerTransactionTab {...commonProps} />;
             default:
                 return <SaleGrid {...commonProps} />;
         }

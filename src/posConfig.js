@@ -1,4 +1,5 @@
 const BASE_URL_of_POS = "http://localhost:8000"; // লোকাল ডেভেলপমেন্টে চাইলে এটা রাখো
 // const BASE_URL_of_POS = "https://pos.myshopmym.com"; // লোকাল ডেভেলপমেন্টে চাইলে এটা রাখো
+const MasterProductList_url_of_POS = "https://masterp.myshopmym.com";
 
 export default BASE_URL_of_POS;

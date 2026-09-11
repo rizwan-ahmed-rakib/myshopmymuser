@@ -1,5 +1,6 @@
 import React, {useEffect, useRef, useState} from "react";
 import AsyncSelect from "react-select/async";
+import Select from "react-select";
 import {posProductAPI} from "../../context_or_provider/pos/products/productAPI";
 import {posSaleProductAPI} from "../../context_or_provider/pos/Sale/saleProduct/productSaleAPI";
 import {posCustomerAPI} from "../../context_or_provider/pos/Sale/customer/PosCustomerAPI";
@@ -23,7 +24,10 @@ import {
     RefreshCcw,
     AlertTriangle,
     Folder,
-    FolderOpen
+    FolderOpen,
+    Clock,
+    FileText,
+    PauseCircle
 } from "lucide-react";
 import SuccessModal from "../components/SuccessModal";
 import {usePrintManager} from "../utils/usePrintManager";
@@ -32,7 +36,51 @@ import BaseModal from "../components/BaseModal";
 import {useQuickCash} from "../../context_or_provider/pos/QuickCash/quick_cash_provider";
 import Navbar from "../components/Navbar";
 import api from "../../context_or_provider/pos/posApi";
+import HoldListModal from "../components/HoldAndQuotation/HoldListModal";
+import QuotationListModal from "../components/HoldAndQuotation/QuotationListModal";
+import CreateQuotationModal from "../components/HoldAndQuotation/CreateQuotationModal";
+import {posHoldQuotationAPI} from "../../context_or_provider/pos/HoldQuotation/holdQuotationAPI";
+import {printQuotation} from "../utils/quotationPrintTemplate";
 
+
+const customSelectStyles = {
+    control: (provided) => ({
+        ...provided,
+        minHeight: '28px',
+        height: '28px',
+        fontSize: '10px',
+        fontWeight: '700',
+        borderRadius: '0.5rem',
+        borderColor: '#d1d5db',
+        boxShadow: 'none',
+        '&:hover': {
+            borderColor: '#3b82f6'
+        }
+    }),
+    valueContainer: (provided) => ({
+        ...provided,
+        height: '28px',
+        padding: '0 6px'
+    }),
+    input: (provided) => ({
+        ...provided,
+        margin: '0px',
+        padding: '0px'
+    }),
+    indicatorsContainer: (provided) => ({
+        ...provided,
+        height: '28px'
+    }),
+    dropdownIndicator: (provided) => ({
+        ...provided,
+        padding: '2px'
+    }),
+    menu: (provided) => ({
+        ...provided,
+        fontSize: '10px',
+        zIndex: 50
+    })
+};
 
 const emptyItem = {
     product: null,
@@ -47,7 +95,27 @@ const emptyItem = {
     is_unique: false,
     stock: 0,
     success_msg: "",
-    error_msg: ""
+    error_msg: "",
+    // Expiry fields
+    has_expiry: false,
+    manufacturing_date: "",
+    shelf_life_days: 0,
+    batch_no: "",
+    expiry_date: "",
+    category_name: "",
+    specification: null,
+    // Panel toggle flags
+    show_box_calc: false,
+    show_expiry_calc: false,
+    show_spec_products: false,
+    spec_products_list: [],
+    // Box calc fields
+    box_qty: 0,
+    pcs_per_box: 0,
+    strips_per_box: 0,
+    pcs_per_strip: 0,
+    loose_qty: 0,
+    price_per_box: 0,
 };
 
 const PosSalePage = () => {
@@ -61,6 +129,161 @@ const PosSalePage = () => {
     const [isViewCustomerOpen, setIsViewCustomerOpen] = useState(false);
     const [customerDetails, setCustomerDetails] = useState(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
+
+    // Hold & Quotation Modals & Loading State
+    const [isHoldModalOpen, setIsHoldModalOpen] = useState(false);
+    const [isCreateQuotationOpen, setIsCreateQuotationOpen] = useState(false);
+    const [isQuotationModalOpen, setIsQuotationModalOpen] = useState(false);
+    const [holdQuotationLoading, setHoldQuotationLoading] = useState(false);
+    const [isActionsDropdownOpen, setIsActionsDropdownOpen] = useState(false);
+
+    const handleHoldSale = async () => {
+        const validItems = items.filter(i => i.product);
+        if (validItems.length === 0) return alert("Please add products to hold");
+
+        const itemsPayload = validItems.map(item => ({
+            product: item.product,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            discount_amount: item.discount_amount,
+            total_price: item.total_price,
+            manufacturing_date: item.manufacturing_date || null,
+            expiry_date: item.expiry_date || null,
+            batch_no: item.batch_no || null
+        }));
+
+        const payload = {
+            transaction_type: 'sale',
+            status: 'hold',
+            title: customer?.label ? `Hold - ${customer.label}` : 'Sale Hold',
+            customer: customer?.value || null,
+            subtotal: subtotal,
+            discount_amount: globalDiscountAmount,
+            net_total: netTotal,
+            items: itemsPayload
+        };
+
+        try {
+            setHoldQuotationLoading(true);
+            await posHoldQuotationAPI.create(payload);
+            alert("Sale successfully put on hold!");
+            setItems([{...emptyItem}]);
+            setPaidCash(0);
+            setGivenCash(0);
+            setPaidMobile(0);
+            setPaidBank(0);
+            setGlobalDiscountValue(0);
+            setCustomerSelectKey(k => k + 1);
+        } catch (err) {
+            alert(err.response?.data?.error || "Failed to hold sale");
+        } finally {
+            setHoldQuotationLoading(false);
+        }
+    };
+
+    const handleSaveQuotation = async (quotationData) => {
+        const validItems = items.filter(i => i.product);
+        if (validItems.length === 0) return alert("Please add products to quotation");
+
+        const itemsPayload = validItems.map(item => ({
+            product: item.product,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            discount_amount: item.discount_amount,
+            total_price: item.total_price,
+            manufacturing_date: item.manufacturing_date || null,
+            expiry_date: item.expiry_date || null,
+            batch_no: item.batch_no || null
+        }));
+
+        const payload = {
+            transaction_type: 'sale',
+            status: 'quotation',
+            title: quotationData.title || `Quotation - ${customer?.label || 'Client'}`,
+            customer: customer?.value || null,
+            expires_at: quotationData.expires_at || null,
+            notes: quotationData.notes || '',
+            subtotal: subtotal,
+            discount_amount: globalDiscountAmount,
+            net_total: netTotal,
+            items: itemsPayload
+        };
+
+        try {
+            setHoldQuotationLoading(true);
+            const res = await posHoldQuotationAPI.create(payload);
+            alert("Sales Quotation created successfully!");
+            setIsCreateQuotationOpen(false);
+
+            if (window.confirm("Do you want to print this quotation now?")) {
+                printQuotation(res.data);
+            }
+
+            setItems([{...emptyItem}]);
+            setPaidCash(0);
+            setGivenCash(0);
+            setPaidMobile(0);
+            setPaidBank(0);
+            setGlobalDiscountValue(0);
+            setCustomerSelectKey(k => k + 1);
+        } catch (err) {
+            alert(err.response?.data?.error || "Failed to create quotation");
+        } finally {
+            setHoldQuotationLoading(false);
+        }
+    };
+
+    const handleRestoreHoldOrQuotation = async (data) => {
+        if (data.customer) {
+            setCustomer({
+                value: data.customer,
+                label: data.customer_name ? `${data.customer_name} ${data.customer_phone ? `(${data.customer_phone})` : ''}` : "Selected Client",
+                due_amount: 0,
+                is_walk_in: false
+            });
+        }
+        if (data.items && data.items.length > 0) {
+            const restoredItems = await Promise.all(data.items.map(async (item) => {
+                const specId = item.specification || item.product_specification || null;
+                let specList = [];
+                if (specId) {
+                    specList = await fetchSpecProductsList(specId);
+                }
+
+                const mfgDate = item.manufacturing_date || "";
+                const expDate = item.expiry_date || "";
+                const shelfLife = calculateShelfLifeDays(mfgDate, expDate);
+
+                return {
+                    ...emptyItem,
+                    product: item.product,
+                    product_name: item.product_name || "Product",
+                    unit_price: Number(item.unit_price || item.selling_price || 0),
+                    quantity: Number(item.quantity || 1),
+                    discount_type: "fixed",
+                    discount_value: Number(item.discount_amount || 0),
+                    discount_amount: Number(item.discount_amount || 0),
+                    total_price: Number(item.total_price || 0),
+                    manufacturing_date: mfgDate,
+                    expiry_date: expDate,
+                    shelf_life_days: shelfLife,
+                    batch_no: item.batch_no || "",
+                    stock: item.stock || 0,
+                    has_expiry: Boolean(item.has_expiry || item.expiry_date || mfgDate),
+                    show_expiry_calc: Boolean(item.has_expiry || item.expiry_date || mfgDate),
+                    category_name: item.category_name || "",
+                    specification: specId,
+                    spec_products_list: specList,
+                    show_spec_products: false,
+                };
+            }));
+            setItems(restoredItems);
+        }
+        if (data.discount_amount) {
+            setGlobalDiscountType("fixed");
+            setGlobalDiscountValue(Number(data.discount_amount));
+        }
+    };
 
     const [customer, setCustomer] = useState(null);
     const [items, setItems] = useState([{...emptyItem}]);
@@ -102,6 +325,7 @@ const PosSalePage = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedCategory, setSelectedCategory] = useState("All");
     const [selectedSubCategory, setSelectedSubCategory] = useState(null);
+    const [selectedSpecification, setSelectedSpecification] = useState("All");
     const [selectedBrand, setSelectedBrand] = useState("All");
     const [selectedSize, setSelectedSize] = useState("All");
     const [selectedUnit, setSelectedUnit] = useState("All");
@@ -109,6 +333,7 @@ const PosSalePage = () => {
     const hasActiveFilters =
         selectedCategory !== "All" ||
         selectedSubCategory !== null ||
+        selectedSpecification !== "All" ||
         selectedBrand !== "All" ||
         selectedSize !== "All" ||
         selectedUnit !== "All" ||
@@ -117,6 +342,7 @@ const PosSalePage = () => {
     const handleClearFilters = () => {
         setSelectedCategory("All");
         setSelectedSubCategory(null);
+        setSelectedSpecification("All");
         setSelectedBrand("All");
         setSelectedSize("All");
         setSelectedUnit("All");
@@ -212,6 +438,30 @@ const PosSalePage = () => {
         fetchData();
     }, [customerSelectKey]); // রিমাইন্ডার ট্রিপল কি ক্লিয়ারেন্স
 
+    // Extract available specifications list from allProducts (with per-spec product count)
+    const availableSpecifications = React.useMemo(() => {
+        const specMap = new Map();
+        const countMap = new Map();
+        allProducts.forEach(p => {
+            const specId = p.specification || p.specification_id;
+            const specName = p.specification_name || p.specification_title || p.specification_details || (typeof p.specification === 'object' ? p.specification?.name : null);
+            if (specId) {
+                const key = String(specId);
+                const label = specName || `Specification #${specId}`;
+                if (!specMap.has(key)) {
+                    specMap.set(key, {
+                        id: specId,
+                        name: label,
+                        sub_category: p.sub_category || p.sub_category_id || p.subcategory || p.subcategory_id,
+                        category: p.category || p.category_id
+                    });
+                }
+                countMap.set(key, (countMap.get(key) || 0) + 1);
+            }
+        });
+        return Array.from(specMap.values()).map(sp => ({...sp, count: countMap.get(String(sp.id)) || 0}));
+    }, [allProducts]);
+
     // Filter products locally
     useEffect(() => {
         let result = allProducts;
@@ -221,6 +471,13 @@ const PosSalePage = () => {
                 p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (p.product_code && p.product_code.toLowerCase().includes(searchTerm.toLowerCase()))
             );
+        }
+
+        if (selectedSpecification !== "All") {
+            result = result.filter(p => {
+                const pSpec = p.specification || p.specification_id;
+                return pSpec == selectedSpecification;
+            });
         }
 
         if (selectedSubCategory) {
@@ -242,7 +499,7 @@ const PosSalePage = () => {
         }
 
         setFilteredProducts(result);
-    }, [searchTerm, selectedCategory, selectedSubCategory, selectedBrand, selectedSize, selectedUnit, allProducts]);
+    }, [searchTerm, selectedCategory, selectedSubCategory, selectedSpecification, selectedBrand, selectedSize, selectedUnit, allProducts]);
 
     /* ---------------- CUSTOMER SEARCH ---------------- */
     const loadCustomerOptions = async (inputValue) => {
@@ -264,8 +521,174 @@ const PosSalePage = () => {
             label: `${p.name} (${p.product_code})`,
             unit_price: Number(p.sale_price || p.selling_price),
             product_name: p.name,
-            stock: p.stock
+            stock: p.stock,
+            has_expiry: p.has_expiry,
+            category_name: p.category_name || "",
+            specification: p.specification || p.specification_id,
+            tracking_mode: p.instance_tracking_mode,  // নতুন যোগ
         }));
+    };
+
+    /* ---------------- SAME SPECIFICATION PRODUCTS ---------------- */
+    const loadSameSpecificationProducts = async (index, specificationId) => {
+        if (!specificationId) return;
+        try {
+            let specProducts = [];
+            try {
+                const response = await import('axios').then(m => m.default.get(`${BASE_URL_of_POS || "http://localhost:8000"}/api/products/product/?specification=${specificationId}`));
+                if (response.data && Array.isArray(response.data)) {
+                    specProducts = response.data;
+                }
+            } catch (e) {
+                console.warn("API specification filter fetch fallback to local products:", e);
+            }
+            if (!specProducts || specProducts.length === 0) {
+                specProducts = allProducts.filter(p => {
+                    const pSpec = p.specification || p.specification_id;
+                    return pSpec == specificationId;
+                });
+            }
+            setItems(prev => {
+                const updated = [...prev];
+                updated[index] = {...updated[index], spec_products_list: specProducts || []};
+                return updated;
+            });
+        } catch (error) {
+            console.error("Error loading specification products:", error);
+        }
+    };
+
+    /* ---------------- EXPIRY DATE HELPERS ---------------- */
+    const calculateExpiryDate = (mfgDate, shelfLifeDays) => {
+        if (!mfgDate || !shelfLifeDays) return "";
+        let normalizedMfg = mfgDate;
+        if (mfgDate.length === 7) normalizedMfg = `${mfgDate}-01`;
+        const date = new Date(normalizedMfg);
+        if (isNaN(date.getTime())) return "";
+        date.setDate(date.getDate() + Number(shelfLifeDays));
+        return date.toISOString().split("T")[0];
+    };
+
+    const calculateShelfLifeDays = (mfgDate, expDate) => {
+        if (!mfgDate || !expDate) return 0;
+        let normalizedMfg = mfgDate;
+        if (mfgDate.length === 7) normalizedMfg = `${mfgDate}-01`;
+        let normalizedExp = expDate;
+        if (expDate.length === 7) {
+            const [year, month] = expDate.split("-");
+            const lastDay = new Date(Number(year), Number(month), 0).getDate();
+            normalizedExp = `${expDate}-${String(lastDay).padStart(2, '0')}`;
+        }
+        const d1 = new Date(normalizedMfg);
+        const d2 = new Date(normalizedExp);
+        if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return 0;
+        const diffDays = Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+        return diffDays > 0 ? diffDays : 0;
+    };
+
+    const calculateRemainingDays = (expiryDate) => {
+        if (!expiryDate) return null;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // সময় শূন্য করে দিন
+
+        const exp = new Date(expiryDate);
+        exp.setHours(0, 0, 0, 0);
+
+        const diffTime = exp.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        return diffDays;
+    };
+
+    // const handleExpiryDateChange = (index, field, value) => {
+    //     setItems(prev => {
+    //         const updated = [...prev];
+    //         const item = {...updated[index]};
+    //         if (field === "manufacturing_date") {
+    //             let mfg = value;
+    //             if (mfg.length === 7) mfg = `${mfg}-01`;
+    //             item.manufacturing_date = mfg;
+    //             if (item.shelf_life_days > 0) item.expiry_date = calculateExpiryDate(mfg, item.shelf_life_days);
+    //             else if (item.expiry_date) item.shelf_life_days = calculateShelfLifeDays(mfg, item.expiry_date);
+    //         } else if (field === "shelf_life_days") {
+    //             const days = Number(value) || 0;
+    //             item.shelf_life_days = days;
+    //             if (item.manufacturing_date && days > 0) item.expiry_date = calculateExpiryDate(item.manufacturing_date, days);
+    //         } else if (field === "expiry_date") {
+    //             let exp = value;
+    //             if (exp.length === 7) {
+    //                 const [year, month] = exp.split("-");
+    //                 const lastDay = new Date(Number(year), Number(month), 0).getDate();
+    //                 exp = `${exp}-${String(lastDay).padStart(2, '0')}`;
+    //             }
+    //             item.expiry_date = exp;
+    //             if (item.manufacturing_date) item.shelf_life_days = calculateShelfLifeDays(item.manufacturing_date, exp);
+    //         }
+    //         updated[index] = item;
+    //         return updated;
+    //     });
+    // };
+
+
+    const handleExpiryDateChange = (index, field, value) => {
+        setItems(prev => {
+            const updated = [...prev];
+            const item = {...updated[index]};
+
+            if (field === "manufacturing_date") {
+                let mfg = value;
+                if (mfg.length === 7) mfg = `${mfg}-01`;
+                item.manufacturing_date = mfg;
+                // শেল্ফ লাইফ থাকলে এক্সপাইরি ক্যালকুলেট করো
+                if (item.shelf_life_days > 0) {
+                    item.expiry_date = calculateExpiryDate(mfg, item.shelf_life_days);
+                } else if (item.expiry_date) {
+                    // অথবা এক্সপাইরি থাকলে শেল্ফ লাইফ বের করো
+                    item.shelf_life_days = calculateShelfLifeDays(mfg, item.expiry_date);
+                }
+            } else if (field === "shelf_life_days") {
+                const days = Number(value) || 0;
+                item.shelf_life_days = days;
+                if (item.manufacturing_date && days > 0) {
+                    item.expiry_date = calculateExpiryDate(item.manufacturing_date, days);
+                }
+            } else if (field === "expiry_date") {
+                let exp = value;
+                if (exp.length === 7) {
+                    const [year, month] = exp.split("-");
+                    const lastDay = new Date(Number(year), Number(month), 0).getDate();
+                    exp = `${exp}-${String(lastDay).padStart(2, '0')}`;
+                }
+                item.expiry_date = exp;
+                if (item.manufacturing_date) {
+                    item.shelf_life_days = calculateShelfLifeDays(item.manufacturing_date, exp);
+                }
+            }
+            updated[index] = item;
+            return updated;
+        });
+    };
+
+    /* ---------------- BOX CALC HANDLER ---------------- */
+    const handleBoxCalcChange = (index, field, value) => {
+        setItems(prev => {
+            const updated = [...prev];
+            const item = {...updated[index], [field]: Number(value)};
+            const isMedicine = item.category_name?.toLowerCase().includes('medicine');
+            let calculatedQty = item.quantity;
+            if (isMedicine) {
+                const pcsPerBox = (item.strips_per_box || 0) * (item.pcs_per_strip || 0);
+                calculatedQty = ((item.box_qty || 0) * pcsPerBox) + (item.loose_qty || 0);
+            } else {
+                const pcsPerBox = item.pcs_per_box || 0;
+                calculatedQty = ((item.box_qty || 0) * pcsPerBox) + (item.loose_qty || 0);
+            }
+            const newItem = {...item, quantity: calculatedQty || 1};
+            const {total_price, discount_amount} = calculateItemTotal(newItem);
+            updated[index] = {...newItem, total_price, discount_amount};
+            return updated;
+        });
     };
 
     const isProductDuplicate = (productId, currentIndex) => {
@@ -300,12 +723,57 @@ const PosSalePage = () => {
         });
     };
 
-    const selectProduct = (option, index) => {
+
+    const fetchFEFOBatchData = async (productId) => {
+        try {
+            const response = await fetch(`${BASE_URL_of_POS}/api/bar-qr/instances/fefo-batch/?product_id=${productId}`);
+            const data = await response.json();
+            if (response.ok && data.id) {
+                return {
+                    manufacturing_date: data.manufacturing_date || '',
+                    expiry_date: data.expiry_date || '',
+                    batch_no: data.batch_no || '',
+                    shelf_life_days: calculateShelfLifeDays(data.manufacturing_date, data.expiry_date)
+                };
+            }
+        } catch (err) {
+            console.error("Error fetching FEFO batch:", err);
+        }
+        return null;
+    };
+
+    const fetchSpecProductsList = async (specificationId) => {
+        if (!specificationId) return [];
+        try {
+            let specProducts = [];
+            try {
+                const response = await import('axios').then(m => m.default.get(`${BASE_URL_of_POS || "http://localhost:8000"}/api/products/product/?specification=${specificationId}`));
+                if (response.data && Array.isArray(response.data)) {
+                    specProducts = response.data;
+                }
+            } catch (e) {
+                console.warn("API specification filter fetch fallback to local products:", e);
+            }
+            if (!specProducts || specProducts.length === 0) {
+                specProducts = allProducts.filter(p => {
+                    const pSpec = p.specification || p.specification_id;
+                    return pSpec == specificationId;
+                });
+            }
+            return specProducts || [];
+        } catch (error) {
+            console.error("Error loading specification products:", error);
+            return [];
+        }
+    };
+
+    const selectProduct = async (option, index) => {
         if (isProductDuplicate(option.value, index)) {
             updateItem(index, {error_msg: "Product already added!"});
             return;
         }
-        updateItem(index, {
+
+        const baseUpdates = {
             product: option.value,
             product_name: option.product_name,
             unit_price: option.unit_price,
@@ -315,11 +783,38 @@ const PosSalePage = () => {
             isScanned: false,
             unique_serial: "",
             error_msg: "",
-            success_msg: ""
-        });
+            success_msg: "",
+            has_expiry: option.has_expiry || false,
+            category_name: option.category_name || "",
+            specification: option.specification || null,
+            manufacturing_date: "",
+            shelf_life_days: 0,
+            batch_no: "",
+            expiry_date: "",
+            show_box_calc: false,
+            show_expiry_calc: false,
+            show_spec_products: false,
+            spec_products_list: [],
+            box_qty: 0, pcs_per_box: 0, strips_per_box: 0, pcs_per_strip: 0, loose_qty: 0, price_per_box: 0
+        };
+
+        if (option.has_expiry) {
+            const batchInfo = await fetchFEFOBatchData(option.value);
+            if (batchInfo) {
+                Object.assign(baseUpdates, batchInfo);
+            }
+        }
+
+        const specId = option.specification || null;
+        if (specId) {
+            const specList = await fetchSpecProductsList(specId);
+            baseUpdates.spec_products_list = specList;
+        }
+
+        updateItem(index, baseUpdates);
     };
 
-    const handleAddProductToCart = (product) => {
+    const handleAddProductToCart = async (product) => {
         if (Number(product.stock) <= 0) {
             alert(`${product.name} is out of stock!`);
             return;
@@ -354,28 +849,93 @@ const PosSalePage = () => {
                 is_unique: false,
                 stock: product.stock,
                 success_msg: "",
-                error_msg: ""
+                error_msg: "",
+                has_expiry: product.has_expiry || false,
+                manufacturing_date: "",
+                shelf_life_days: 0,
+                batch_no: "",
+                expiry_date: "",
+                category_name: product.category_name || "",
+                specification: product.specification || product.specification_id || null,
+                show_box_calc: false,
+                show_expiry_calc: false,
+                show_spec_products: false,
+                spec_products_list: [],
+                box_qty: 0, pcs_per_box: 0, strips_per_box: 0, pcs_per_strip: 0, loose_qty: 0, price_per_box: 0
             };
+
+            if (product.has_expiry) {
+                const batchInfo = await fetchFEFOBatchData(product.id);
+                if (batchInfo) {
+                    Object.assign(newItem, batchInfo);
+                }
+            }
+
+            const specId = product.specification || product.specification_id || null;
+            if (specId) {
+                const specList = await fetchSpecProductsList(specId);
+                newItem.spec_products_list = specList;
+            }
 
             if (isEmptyFirstRow) {
                 setItems([newItem]);
             } else {
-                setItems([...items, newItem]);
+                setItems([newItem, ...items]);
             }
         }
     };
 
     /* ---------------- SERIAL VERIFY ---------------- */
+    // const handleSerialVerify = async (serial, index) => {
+    //     if (!serial || serial.length < 3) return;
+    //     if (isSerialDuplicate(serial, index)) {
+    //         updateItem(index, {error_msg: "Already scanned!"});
+    //         return;
+    //     }
+    //     try {
+    //         const response = await fetch(`${BASE_URL_of_POS}/api/bar-qr/verify/verify/?serial=${serial}`);
+    //         const data = await response.json();
+    //         if (data.valid && data.status_code === 'in_stock') {
+    //             updateItem(index, {
+    //                 product: data.product_id,
+    //                 product_name: data.product.name,
+    //                 unit_price: Number(data.product.sale_price || data.product.selling_price),
+    //                 quantity: 1,
+    //                 unique_serial: serial,
+    //                 is_unique: true,
+    //                 isScanned: true,
+    //                 stock: data.product.stock,
+    //                 success_msg: "Valid",
+    //                 error_msg: ""
+    //             });
+    //         } else {
+    //             updateItem(index, {
+    //                 is_unique: false,
+    //                 error_msg: !data.valid ? "Invalid" : "Not in stock",
+    //                 success_msg: ""
+    //             });
+    //         }
+    //     } catch (err) {
+    //         console.error(err);
+    //     }
+    // };
+
+
     const handleSerialVerify = async (serial, index) => {
         if (!serial || serial.length < 3) return;
         if (isSerialDuplicate(serial, index)) {
             updateItem(index, {error_msg: "Already scanned!"});
             return;
         }
+
         try {
             const response = await fetch(`${BASE_URL_of_POS}/api/bar-qr/verify/verify/?serial=${serial}`);
             const data = await response.json();
+
             if (data.valid && data.status_code === 'in_stock') {
+                // এক্সপাইরি ডেটা বের করা
+                const expiry = data.expiry_info || {};
+
                 updateItem(index, {
                     product: data.product_id,
                     product_name: data.product.name,
@@ -386,17 +946,25 @@ const PosSalePage = () => {
                     isScanned: true,
                     stock: data.product.stock,
                     success_msg: "Valid",
-                    error_msg: ""
+                    error_msg: "",
+                    has_expiry: data.product.has_expiry || false,
+                    manufacturing_date: expiry.manufacturing_date || '',
+                    expiry_date: expiry.expiry_date || '',
+                    batch_no: expiry.batch_no || '',
+                    shelf_life_days: expiry.shelf_life_days || 0,
+                    // প্যানেল খুলে দেখান (যদি এক্সপাইরি থাকে)
+                    show_expiry_calc: !!expiry.expiry_date,
                 });
             } else {
                 updateItem(index, {
                     is_unique: false,
-                    error_msg: !data.valid ? "Invalid" : "Not in stock",
+                    error_msg: !data.valid ? "Invalid Serial" : "Not in stock",
                     success_msg: ""
                 });
             }
         } catch (err) {
-            console.error(err);
+            console.error("Serial verification error:", err);
+            updateItem(index, {error_msg: "Verification failed", success_msg: ""});
         }
     };
 
@@ -1099,81 +1667,149 @@ const PosSalePage = () => {
                         <div>
                             <label
                                 className="block text-[8px] font-black uppercase text-gray-500 tracking-wider mb-0.5 pl-0.5">Category</label>
-                            <select
-                                value={selectedCategory}
-                                onChange={(e) => {
-                                    setSelectedCategory(e.target.value);
-                                    setSelectedSubCategory(null);
+                            <Select
+                                value={selectedCategory === "All" ? {
+                                    value: "All",
+                                    label: "All Categories"
+                                } : {
+                                    value: selectedCategory,
+                                    label: categories.find(c => c.id == selectedCategory)?.title || selectedCategory
                                 }}
-                                className="w-full px-2 py-1 bg-white border border-gray-300 rounded-lg text-[10px] font-bold text-gray-700 outline-none focus:border-blue-500 transition-colors cursor-pointer"
-                            >
-                                <option value="All">All Categories</option>
-                                {categories.map((cat) => (
-                                    <option key={cat.id} value={cat.id}>{cat.title}</option>
-                                ))}
-                            </select>
+                                onChange={(option) => {
+                                    const val = option ? option.value : "All";
+                                    setSelectedCategory(val);
+                                    setSelectedSubCategory(null);
+                                    setSelectedSpecification("All");
+                                }}
+                                options={[
+                                    {value: "All", label: "All Categories"},
+                                    ...categories.map(cat => ({value: cat.id, label: cat.title}))
+                                ]}
+                                styles={customSelectStyles}
+                                placeholder="Search Category..."
+                                isSearchable
+                            />
                         </div>
                         <div>
                             <label
                                 className="block text-[8px] font-black uppercase text-gray-500 tracking-wider mb-0.5 pl-0.5">Subcategory</label>
-                            <select
-                                value={selectedSubCategory || "All"}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    setSelectedSubCategory(val === "All" ? null : val);
+                            <Select
+                                value={!selectedSubCategory ? {
+                                    value: "All",
+                                    label: "All Subcategories"
+                                } : {
+                                    value: selectedSubCategory,
+                                    label: subCategories.find(s => s.id == selectedSubCategory)?.title || selectedSubCategory
                                 }}
-                                className="w-full px-2 py-1 bg-white border border-gray-300 rounded-lg text-[10px] font-bold text-gray-700 outline-none focus:border-blue-500 transition-colors cursor-pointer"
-                            >
-                                <option value="All">All Subcategories</option>
-                                {(selectedCategory === "All"
-                                        ? subCategories
-                                        : subCategories.filter(sub => sub.category == selectedCategory || sub.category_id == selectedCategory)
-                                ).map((sub) => (
-                                    <option key={sub.id} value={sub.id}>{sub.title}</option>
-                                ))}
-                            </select>
+                                onChange={(option) => {
+                                    const val = option ? option.value : "All";
+                                    setSelectedSubCategory(val === "All" ? null : val);
+                                    setSelectedSpecification("All");
+                                }}
+                                options={[
+                                    {value: "All", label: "All Subcategories"},
+                                    ...(selectedCategory === "All"
+                                            ? subCategories
+                                            : subCategories.filter(sub => sub.category == selectedCategory || sub.category_id == selectedCategory)
+                                    ).map(sub => ({value: sub.id, label: sub.title}))
+                                ]}
+                                styles={customSelectStyles}
+                                placeholder="Search Subcategory..."
+                                isSearchable
+                            />
+                        </div>
+                        <div>
+                            <label
+                                className="block text-[8px] font-black uppercase text-gray-500 tracking-wider mb-0.5 pl-0.5">Specification</label>
+                            <Select
+                                value={selectedSpecification === "All" ? {
+                                    value: "All",
+                                    label: "All Specifications"
+                                } : {
+                                    value: selectedSpecification,
+                                    label: availableSpecifications.find(s => s.id == selectedSpecification)?.name || selectedSpecification
+                                }}
+                                onChange={(option) => {
+                                    const val = option ? option.value : "All";
+                                    setSelectedSpecification(val);
+                                }}
+                                options={[
+                                    {value: "All", label: "All Specifications"},
+                                    ...availableSpecifications
+                                        .filter(sp => {
+                                            if (selectedSubCategory) return sp.sub_category == selectedSubCategory;
+                                            if (selectedCategory !== "All") return sp.category == selectedCategory;
+                                            return true;
+                                        })
+                                        .map(sp => ({value: sp.id, label: sp.name}))
+                                ]}
+                                styles={customSelectStyles}
+                                placeholder="Search Specification..."
+                                isSearchable
+                            />
                         </div>
                         <div>
                             <label
                                 className="block text-[8px] font-black uppercase text-gray-500 tracking-wider mb-0.5 pl-0.5">Brand</label>
-                            <select
-                                value={selectedBrand}
-                                onChange={(e) => setSelectedBrand(e.target.value)}
-                                className="w-full px-2 py-1 bg-white border border-gray-300 rounded-lg text-[10px] font-bold text-gray-700 outline-none focus:border-blue-500 transition-colors cursor-pointer"
-                            >
-                                <option value="All">All Brands</option>
-                                {brands.map((br) => (
-                                    <option key={br.id} value={br.id}>{br.title}</option>
-                                ))}
-                            </select>
+                            <Select
+                                value={selectedBrand === "All" ? {
+                                    value: "All",
+                                    label: "All Brands"
+                                } : {
+                                    value: selectedBrand,
+                                    label: brands.find(b => b.id == selectedBrand)?.title || selectedBrand
+                                }}
+                                onChange={(option) => setSelectedBrand(option ? option.value : "All")}
+                                options={[
+                                    {value: "All", label: "All Brands"},
+                                    ...brands.map(br => ({value: br.id, label: br.title}))
+                                ]}
+                                styles={customSelectStyles}
+                                placeholder="Search Brand..."
+                                isSearchable
+                            />
                         </div>
                         <div>
                             <label
                                 className="block text-[8px] font-black uppercase text-gray-500 tracking-wider mb-0.5 pl-0.5">Size</label>
-                            <select
-                                value={selectedSize}
-                                onChange={(e) => setSelectedSize(e.target.value)}
-                                className="w-full px-2 py-1 bg-white border border-gray-300 rounded-lg text-[10px] font-bold text-gray-700 outline-none focus:border-blue-500 transition-colors cursor-pointer"
-                            >
-                                <option value="All">All Sizes</option>
-                                {sizes.map((sz) => (
-                                    <option key={sz.id} value={sz.id}>{sz.title}</option>
-                                ))}
-                            </select>
+                            <Select
+                                value={selectedSize === "All" ? {
+                                    value: "All",
+                                    label: "All Sizes"
+                                } : {
+                                    value: selectedSize,
+                                    label: sizes.find(s => s.id == selectedSize)?.title || selectedSize
+                                }}
+                                onChange={(option) => setSelectedSize(option ? option.value : "All")}
+                                options={[
+                                    {value: "All", label: "All Sizes"},
+                                    ...sizes.map(sz => ({value: sz.id, label: sz.title}))
+                                ]}
+                                styles={customSelectStyles}
+                                placeholder="Search Size..."
+                                isSearchable
+                            />
                         </div>
                         <div>
                             <label
                                 className="block text-[8px] font-black uppercase text-gray-500 tracking-wider mb-0.5 pl-0.5">Unit</label>
-                            <select
-                                value={selectedUnit}
-                                onChange={(e) => setSelectedUnit(e.target.value)}
-                                className="w-full px-2 py-1 bg-white border border-gray-300 rounded-lg text-[10px] font-bold text-gray-700 outline-none focus:border-blue-500 transition-colors cursor-pointer"
-                            >
-                                <option value="All">All Units</option>
-                                {units.map((ut) => (
-                                    <option key={ut.id} value={ut.id}>{ut.title}</option>
-                                ))}
-                            </select>
+                            <Select
+                                value={selectedUnit === "All" ? {
+                                    value: "All",
+                                    label: "All Units"
+                                } : {
+                                    value: selectedUnit,
+                                    label: units.find(u => u.id == selectedUnit)?.title || selectedUnit
+                                }}
+                                onChange={(option) => setSelectedUnit(option ? option.value : "All")}
+                                options={[
+                                    {value: "All", label: "All Units"},
+                                    ...units.map(ut => ({value: ut.id, label: ut.title}))
+                                ]}
+                                styles={customSelectStyles}
+                                placeholder="Search Unit..."
+                                isSearchable
+                            />
                         </div>
                         <div>
                             <label
@@ -1184,7 +1820,7 @@ const PosSalePage = () => {
                                 disabled={!hasActiveFilters}
                                 className={`w-full text-[9px] font-extrabold px-2 py-1 rounded-lg transition-all duration-200 border flex items-center justify-center gap-1 h-[28px] ${
                                     hasActiveFilters
-                                        ? "text-red-500 bg-red-55 hover:bg-red-100 border-red-200 cursor-pointer shadow-sm active:scale-95"
+                                        ? "text-red-500 bg-red-50 hover:bg-red-100 border-red-200 cursor-pointer shadow-sm active:scale-95"
                                         : "text-gray-300 bg-gray-50 border-gray-200 cursor-not-allowed"
                                 }`}
                             >
@@ -1199,83 +1835,65 @@ const PosSalePage = () => {
                             {selectedCategory !== "All" && (
                                 <span
                                     className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-blue-200">
-                                         <span>Cat: {categories.find(c => c.id == selectedCategory)?.title || selectedCategory}</span>
-                                         <button
-                                             type="button"
-                                             onClick={() => {
-                                                 setSelectedCategory("All");
-                                                 setSelectedSubCategory(null);
-                                             }}
-                                             className="text-blue-500 hover:text-blue-900 font-bold focus:outline-none"
-                                         >
-                                             ×
-                                         </button>
-                                     </span>
+                                    <span>Cat: {categories.find(c => c.id == selectedCategory)?.title || selectedCategory}</span>
+                                    <button type="button" onClick={() => {
+                                        setSelectedCategory("All");
+                                        setSelectedSubCategory(null);
+                                        setSelectedSpecification("All");
+                                    }}
+                                            className="text-blue-500 hover:text-blue-900 font-bold focus:outline-none">×</button>
+                                </span>
                             )}
                             {selectedSubCategory && (
                                 <span
                                     className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-indigo-200">
-                                         <span>Sub: {subCategories.find(s => s.id == selectedSubCategory)?.title || selectedSubCategory}</span>
-                                         <button
-                                             type="button"
-                                             onClick={() => setSelectedSubCategory(null)}
-                                             className="text-indigo-500 hover:text-indigo-900 font-bold focus:outline-none"
-                                         >
-                                             ×
-                                         </button>
-                                     </span>
+                                    <span>Sub: {subCategories.find(s => s.id == selectedSubCategory)?.title || selectedSubCategory}</span>
+                                    <button type="button" onClick={() => {
+                                        setSelectedSubCategory(null);
+                                        setSelectedSpecification("All");
+                                    }}
+                                            className="text-indigo-500 hover:text-indigo-900 font-bold focus:outline-none">×</button>
+                                </span>
+                            )}
+                            {selectedSpecification !== "All" && (
+                                <span
+                                    className="inline-flex items-center gap-1 bg-teal-50 text-teal-700 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-teal-200">
+                                    <span>Spec: {availableSpecifications.find(s => s.id == selectedSpecification)?.name || selectedSpecification}</span>
+                                    <button type="button" onClick={() => setSelectedSpecification("All")}
+                                            className="text-teal-500 hover:text-teal-900 font-bold focus:outline-none">×</button>
+                                </span>
                             )}
                             {selectedBrand !== "All" && (
                                 <span
                                     className="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-amber-200">
-                                         <span>Brand: {brands.find(b => b.id == selectedBrand)?.title || selectedBrand}</span>
-                                         <button
-                                             type="button"
-                                             onClick={() => setSelectedBrand("All")}
-                                             className="text-amber-500 hover:text-amber-900 font-bold focus:outline-none"
-                                         >
-                                             ×
-                                         </button>
-                                     </span>
+                                    <span>Brand: {brands.find(b => b.id == selectedBrand)?.title || selectedBrand}</span>
+                                    <button type="button" onClick={() => setSelectedBrand("All")}
+                                            className="text-amber-500 hover:text-amber-900 font-bold focus:outline-none">×</button>
+                                </span>
                             )}
                             {selectedSize !== "All" && (
                                 <span
                                     className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-emerald-200">
-                                         <span>Size: {sizes.find(s => s.id == selectedSize)?.title || selectedSize}</span>
-                                         <button
-                                             type="button"
-                                             onClick={() => setSelectedSize("All")}
-                                             className="text-emerald-500 hover:text-emerald-900 font-bold focus:outline-none"
-                                         >
-                                             ×
-                                         </button>
-                                     </span>
+                                    <span>Size: {sizes.find(s => s.id == selectedSize)?.title || selectedSize}</span>
+                                    <button type="button" onClick={() => setSelectedSize("All")}
+                                            className="text-emerald-500 hover:text-emerald-900 font-bold focus:outline-none">×</button>
+                                </span>
                             )}
                             {selectedUnit !== "All" && (
                                 <span
                                     className="inline-flex items-center gap-1 bg-purple-50 text-purple-700 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-purple-200">
-                                         <span>Unit: {units.find(u => u.id == selectedUnit)?.title || selectedUnit}</span>
-                                         <button
-                                             type="button"
-                                             onClick={() => setSelectedUnit("All")}
-                                             className="text-purple-500 hover:text-purple-900 font-bold focus:outline-none"
-                                         >
-                                             ×
-                                         </button>
-                                     </span>
+                                    <span>Unit: {units.find(u => u.id == selectedUnit)?.title || selectedUnit}</span>
+                                    <button type="button" onClick={() => setSelectedUnit("All")}
+                                            className="text-purple-500 hover:text-purple-900 font-bold focus:outline-none">×</button>
+                                </span>
                             )}
                             {searchTerm && (
                                 <span
-                                    className="inline-flex items-center gap-1 bg-gray-155 text-gray-700 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-gray-300">
-                                         <span>Search: "{searchTerm}"</span>
-                                         <button
-                                             type="button"
-                                             onClick={() => setSearchTerm("")}
-                                             className="text-gray-500 hover:text-gray-900 font-bold focus:outline-none"
-                                         >
-                                             ×
-                                         </button>
-                                     </span>
+                                    className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 text-[9px] font-extrabold px-1.5 py-0.5 rounded border border-gray-300">
+                                    <span>Search: "{searchTerm}"</span>
+                                    <button type="button" onClick={() => setSearchTerm("")}
+                                            className="text-gray-500 hover:text-gray-900 font-bold focus:outline-none">×</button>
+                                </span>
                             )}
                         </div>
                     )}
@@ -1295,7 +1913,7 @@ const PosSalePage = () => {
                             className={`${isCategorySidebarOpen ? 'w-[28%] md:w-[25%] lg:w-[20%] border-r border-gray-200 pr-1' : 'w-0 overflow-hidden border-none pr-0'} transition-all duration-200 overflow-y-auto text-[10px] scrollbar-thin`}
                         >
                             <h4 className="font-extrabold text-gray-450 uppercase text-[8px] tracking-wider mb-2 flex items-center gap-1">
-                                <Sparkles size={9} className="text-blue-500"/> Categories
+                                <Sparkles size={9} className="text-blue-500"/> Categories & Specs
                             </h4>
                             <div className="space-y-1">
                                 <button
@@ -1303,16 +1921,17 @@ const PosSalePage = () => {
                                     onClick={() => {
                                         setSelectedCategory("All");
                                         setSelectedSubCategory(null);
+                                        setSelectedSpecification("All");
                                     }}
                                     className={`w-full text-left px-2 py-1 rounded font-bold transition-all ${
-                                        selectedCategory === "All" ? "bg-blue-50 text-blue-600 border border-blue-100/50" : "text-gray-600 hover:bg-gray-100 border border-transparent"
+                                        selectedCategory === "All" && selectedSpecification === "All" ? "bg-blue-50 text-blue-600 border border-blue-100/50" : "text-gray-600 hover:bg-gray-100 border border-transparent"
                                     }`}
                                 >
                                     📦 All Items
                                 </button>
                                 {categories.map((cat) => {
                                     const isCatSelected = selectedCategory == cat.id;
-                                    const currentSubs = subCategories.filter(sub => sub.category == cat.id);
+                                    const currentSubs = subCategories.filter(sub => sub.category == cat.id || sub.category_id == cat.id);
                                     return (
                                         <div key={cat.id} className="space-y-0.5">
                                             <button
@@ -1324,6 +1943,7 @@ const PosSalePage = () => {
                                                         setSelectedCategory(cat.id);
                                                     }
                                                     setSelectedSubCategory(null);
+                                                    setSelectedSpecification("All");
                                                 }}
                                                 className={`w-full flex justify-between items-center text-left px-2 py-1.5 rounded font-bold transition-all ${
                                                     isCatSelected && !selectedSubCategory ? "bg-blue-600 text-white shadow-sm font-extrabold" : isCatSelected ? "text-blue-600 bg-blue-50/50 font-bold" : "text-gray-700 hover:bg-gray-100"
@@ -1335,25 +1955,63 @@ const PosSalePage = () => {
                                             </button>
                                             {currentSubs.length > 0 && isCatSelected && (
                                                 <div className="pl-2 border-l border-gray-200 ml-2 mt-1 space-y-0.5">
-                                                    {currentSubs.map((sub) => (
-                                                        <button
-                                                            type="button"
-                                                            key={sub.id}
-                                                            onClick={() => {
-                                                                if (selectedSubCategory == sub.id) {
-                                                                    setSelectedSubCategory(null);
-                                                                } else {
-                                                                    setSelectedCategory(cat.id);
-                                                                    setSelectedSubCategory(sub.id);
-                                                                }
-                                                            }}
-                                                            className={`w-full text-left px-2 py-1 rounded text-[9px] transition-all duration-150 ${
-                                                                selectedSubCategory == sub.id ? "bg-blue-100 text-blue-700 font-extrabold" : "text-gray-500 hover:bg-gray-100"
-                                                            }`}
-                                                        >
-                                                            • {sub.title}
-                                                        </button>
-                                                    ))}
+                                                    {currentSubs.map((sub) => {
+                                                        const isSubSelected = selectedSubCategory == sub.id;
+                                                        const subSpecs = availableSpecifications.filter(sp => sp.sub_category == sub.id);
+                                                        return (
+                                                            <div key={sub.id} className="space-y-0.5">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        if (selectedSubCategory == sub.id) {
+                                                                            setSelectedSubCategory(null);
+                                                                        } else {
+                                                                            setSelectedCategory(cat.id);
+                                                                            setSelectedSubCategory(sub.id);
+                                                                        }
+                                                                        setSelectedSpecification("All");
+                                                                    }}
+                                                                    className={`w-full flex justify-between items-center text-left px-2 py-1 rounded text-[9px] transition-all duration-150 ${
+                                                                        isSubSelected && selectedSpecification === "All" ? "bg-blue-100 text-blue-700 font-extrabold" : isSubSelected ? "text-blue-700 font-bold bg-blue-50/60" : "text-gray-500 hover:bg-gray-100"
+                                                                    }`}
+                                                                >
+                                                                    <span className="truncate">• {sub.title}</span>
+                                                                    {subSpecs.length > 0 && <ChevronRight size={8}
+                                                                                                          className={`transform transition-transform ${isSubSelected ? 'rotate-90 text-blue-600' : 'text-gray-400'}`}/>}
+                                                                </button>
+                                                                {subSpecs.length > 0 && isSubSelected && (
+                                                                    <div
+                                                                        className="pl-2 border-l border-indigo-200 ml-2 mt-0.5 space-y-0.5">
+                                                                        {subSpecs.map((sp) => (
+                                                                            <button
+                                                                                type="button"
+                                                                                key={sp.id}
+                                                                                onClick={() => {
+                                                                                    if (selectedSpecification == sp.id) {
+                                                                                        setSelectedSpecification("All");
+                                                                                    } else {
+                                                                                        setSelectedCategory(cat.id);
+                                                                                        setSelectedSubCategory(sub.id);
+                                                                                        setSelectedSpecification(sp.id);
+                                                                                    }
+                                                                                }}
+                                                                                className={`w-full flex justify-between items-center text-left px-1.5 py-0.5 rounded text-[8px] transition-all duration-150 ${
+                                                                                    selectedSpecification == sp.id ? "bg-teal-100 text-teal-800 font-black" : "text-gray-500 hover:bg-teal-50 hover:text-gray-700"
+                                                                                }`}
+                                                                            >
+                                                                                <span
+                                                                                    className="truncate">🔬 {sp.name}</span>
+                                                                                <span
+                                                                                    className={`shrink-0 ml-1 inline-flex items-center justify-center rounded-full text-[7px] font-black px-1 min-w-[16px] h-[14px] ${
+                                                                                        selectedSpecification == sp.id ? 'bg-teal-600 text-white' : 'bg-gray-200 text-gray-600'
+                                                                                    }`}>{sp.count}</span>
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             )}
                                         </div>
@@ -1509,109 +2167,457 @@ const PosSalePage = () => {
                                 <th className="py-1.5 px-0.5 w-[4%] min-w-[15px] text-center bg-gray-100/90"></th>
                             </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200 bg-white">
+                            <tbody className="divide-y divide-gray-100 bg-white">
                             {items.map((item, index) => (
-                                <tr key={index} className="text-xs hover:bg-gray-50/60">
-                                    <td className="py-1 px-1 text-gray-400 font-bold text-center w-[4%] min-w-[15px]">{index + 1}</td>
-                                    <td className="py-1 px-1 w-[16%] min-w-[65px]">
-                                        <input
-                                            type="text" placeholder="Scan..."
-                                            className={`w-full border p-0.5 rounded font-mono text-[9px] sm:text-[10px] outline-none transition-all ${item.error_msg ? 'border-red-400 bg-red-55 text-red-750 font-bold' : 'border-gray-300 focus:border-blue-500'}`}
-                                            value={item.unique_serial}
-                                            onChange={(e) => {
-                                                updateItem(index, {unique_serial: e.target.value});
-                                                if (e.target.value.length >= 3) handleSerialVerify(e.target.value, index);
-                                            }}
-                                        />
-                                        {item.error_msg &&
-                                            <p className="text-red-500 text-[8px] font-bold mt-0.5 leading-none">{item.error_msg}</p>}
-                                        {item.success_msg &&
-                                            <p className="text-green-600 text-[8px] font-bold mt-0.5 leading-none">{item.success_msg}</p>}
-                                    </td>
-                                    <td className="py-1 px-1 w-[27%] min-w-[90px]">
-                                        <AsyncSelect
-                                            loadOptions={loadProductOptions} defaultOptions={false}
-                                            onChange={(opt) => selectProduct(opt, index)}
-                                            value={item.product ? {
-                                                value: item.product,
-                                                label: item.product_name
-                                            } : null}
-                                            placeholder="Find..."
-                                            isDisabled={item.is_unique}
-                                            menuPortalTarget={document.body}
-                                            styles={{
-                                                menuPortal: base => ({...base, zIndex: 9999}),
-                                                control: base => ({...base, minHeight: '24px', height: '24px'}),
-                                                valueContainer: base => ({...base, height: '24px', padding: '0 4px'}),
-                                                input: base => ({...base, margin: '0px'}),
-                                                indicatorsContainer: base => ({...base, height: '24px'}),
-                                            }}
-                                            className="text-[9px] sm:text-[10px]"
-                                        />
-                                        {item.product && !item.is_unique && <span
-                                            className="text-[8px] font-bold text-blue-500 mt-0.5 block leading-none">Stock: {item.stock}</span>}
-                                    </td>
-                                    <td className="py-1 px-1 w-[11%] min-w-[45px]">
-                                        <input
-                                            type="number"
-                                            value={item.unit_price || 0}
-                                            onChange={(e) => updateItem(index, {unit_price: Number(e.target.value)})}
-                                            readOnly={item.isScanned}
-                                            className={`w-full border p-0.5 rounded text-right font-mono text-[9px] sm:text-[10px] ${
-                                                item.isScanned ? "bg-gray-100 cursor-not-allowed text-gray-500" : "bg-white text-gray-800 focus:border-blue-500 outline-none"
-                                            }`}
-                                        />
-                                    </td>
-                                    <td className="py-1 px-1 w-[11%] min-w-[45px]">
-                                        {item.is_unique ? (
-                                            <div className="text-center">
-                                                 <span
-                                                     className="text-[8px] font-bold text-amber-600 bg-amber-50 px-1 py-0.5 rounded border border-amber-200">Unique</span>
-                                            </div>
-                                        ) : (
+                                <React.Fragment key={index}>
+                                    <tr className="text-xs hover:bg-gray-50/60">
+                                        <td className="py-1 px-1 text-gray-400 font-bold text-center w-[4%] min-w-[15px]">{index + 1}</td>
+                                        <td className="py-1 px-1 w-[16%] min-w-[65px]">
+                                            <input
+                                                type="text" placeholder="Scan..."
+                                                className={`w-full border p-0.5 rounded font-mono text-[9px] sm:text-[10px] outline-none transition-all ${item.error_msg ? 'border-red-400 bg-red-50 text-red-700 font-bold' : 'border-gray-300 focus:border-blue-500'}`}
+                                                value={item.unique_serial}
+                                                onChange={(e) => {
+                                                    updateItem(index, {unique_serial: e.target.value});
+                                                    if (e.target.value.length >= 3) handleSerialVerify(e.target.value, index);
+                                                }}
+                                            />
+                                            {item.error_msg &&
+                                                <p className="text-red-500 text-[8px] font-bold mt-0.5 leading-none">{item.error_msg}</p>}
+                                            {item.success_msg &&
+                                                <p className="text-green-600 text-[8px] font-bold mt-0.5 leading-none">{item.success_msg}</p>}
+                                        </td>
+                                        <td className="py-1 px-1 w-[27%] min-w-[90px]">
+                                            <AsyncSelect
+                                                loadOptions={loadProductOptions} defaultOptions={false}
+                                                onChange={(opt) => selectProduct(opt, index)}
+                                                value={item.product ? {
+                                                    value: item.product,
+                                                    label: item.product_name
+                                                } : null}
+                                                placeholder="Find..."
+                                                isDisabled={item.is_unique}
+                                                menuPortalTarget={document.body}
+                                                styles={{
+                                                    menuPortal: base => ({...base, zIndex: 9999}),
+                                                    control: base => ({...base, minHeight: '24px', height: '24px'}),
+                                                    valueContainer: base => ({
+                                                        ...base,
+                                                        height: '24px',
+                                                        padding: '0 4px'
+                                                    }),
+                                                    input: base => ({...base, margin: '0px'}),
+                                                    indicatorsContainer: base => ({...base, height: '24px'}),
+                                                }}
+                                                className="text-[9px] sm:text-[10px]"
+                                            />
+                                            {item.product && !item.is_unique && <span
+                                                className="text-[8px] font-bold text-blue-500 mt-0.5 block leading-none">Stock: {item.stock}</span>}
+                                        </td>
+                                        <td className="py-1 px-1 w-[11%] min-w-[45px]">
+                                            <input
+                                                type="number"
+                                                value={item.unit_price || 0}
+                                                onChange={(e) => updateItem(index, {unit_price: Number(e.target.value)})}
+                                                readOnly={item.isScanned}
+                                                className={`w-full border p-0.5 rounded text-right font-mono text-[9px] sm:text-[10px] ${
+                                                    item.isScanned ? "bg-gray-100 cursor-not-allowed text-gray-500" : "bg-white text-gray-800 focus:border-blue-500 outline-none"
+                                                }`}
+                                            />
+                                        </td>
+                                        <td className="py-1 px-1 w-[11%] min-w-[45px]">
+                                            {item.is_unique ? (
+                                                <div className="text-center">
+                                                    <span
+                                                        className="text-[8px] font-bold text-amber-600 bg-amber-50 px-1 py-0.5 rounded border border-amber-200">Unique</span>
+                                                </div>
+                                            ) : (
+                                                <div
+                                                    className="flex items-center justify-center bg-gray-50 border border-gray-300 rounded-lg overflow-hidden h-6 inline-flex">
+                                                    <button type="button"
+                                                            onClick={() => updateQty(index, item.quantity - 1)}
+                                                            className="w-4 h-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 font-bold text-xs">-
+                                                    </button>
+                                                    <input
+                                                        type="text" inputMode="numeric" pattern="[0-9]*"
+                                                        className="w-6 text-center text-[9px] font-bold font-mono text-gray-800 bg-transparent outline-none border-none"
+                                                        value={item.quantity}
+                                                        onFocus={(e) => e.target.select()}
+                                                        onChange={(e) => {
+                                                            const raw = e.target.value.replace(/[^0-9]/g, '');
+                                                            updateItem(index, {quantity: raw === '' ? '' : Number(raw)});
+                                                        }}
+                                                        onBlur={(e) => {
+                                                            const val = Number(e.target.value);
+                                                            updateQty(index, val > 0 ? val : 1);
+                                                        }}
+                                                    />
+                                                    <button type="button"
+                                                            onClick={() => updateQty(index, item.quantity + 1)}
+                                                            className="w-4 h-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 font-bold text-xs">+
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="py-1 px-1 w-[16%] min-w-[70px]">
                                             <div
-                                                className="flex items-center justify-center bg-gray-50 border border-gray-300 rounded-lg overflow-hidden h-6 sm:h-7 inline-flex">
-                                                <button type="button"
-                                                        onClick={() => updateQty(index, item.quantity - 1)}
-                                                        className="w-3.5 sm:w-4.5 h-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 font-bold text-xs">-
-                                                </button>
-                                                <span className="w-4 sm:w-5 text-center text-[9px] sm:text-xs font-bold font-mono">{item.quantity}</span>
-                                                <button type="button"
-                                                        onClick={() => updateQty(index, item.quantity + 1)}
-                                                        className="w-3.5 sm:w-4.5 h-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 font-bold text-xs">+
-                                                </button>
+                                                className="flex items-center border border-gray-300 rounded overflow-hidden bg-white h-6 sm:h-7">
+                                                <select
+                                                    className="bg-gray-50 text-[8px] sm:text-[9px] p-0.5 border-r border-gray-300 outline-none cursor-pointer font-bold shrink-0"
+                                                    value={item.discount_type}
+                                                    onChange={(e) => updateItem(index, {discount_type: e.target.value})}>
+                                                    <option value="fixed">৳</option>
+                                                    <option value="percent">%</option>
+                                                </select>
+                                                <input type="number"
+                                                       className="w-full min-w-0 bg-transparent p-0.5 text-[9px] sm:text-[10px] font-bold text-center text-gray-800 outline-none font-mono"
+                                                       placeholder="0" value={item.discount_value || ""}
+                                                       onChange={(e) => updateItem(index, {discount_value: Number(e.target.value)})}/>
                                             </div>
-                                        )}
-                                    </td>
-                                    <td className="py-1 px-1 w-[16%] min-w-[70px]">
-                                        <div
-                                            className="flex items-center border border-gray-300 rounded overflow-hidden bg-white h-6 sm:h-7">
-                                            <select
-                                                className="bg-gray-55 text-[8px] sm:text-[9px] p-0.5 border-r border-gray-300 outline-none cursor-pointer font-bold shrink-0"
-                                                value={item.discount_type}
-                                                onChange={(e) => updateItem(index, {discount_type: e.target.value})}>
-                                                <option value="fixed">৳</option>
-                                                <option value="percent">%</option>
-                                            </select>
-                                            <input type="number"
-                                                   className="w-full min-w-0 bg-transparent p-0.5 text-[9px] sm:text-[10px] font-bold text-center text-gray-800 outline-none font-mono"
-                                                   placeholder="0" value={item.discount_value || ""}
-                                                   onChange={(e) => updateItem(index, {discount_value: Number(e.target.value)})}/>
-                                        </div>
-                                    </td>
-                                    <td className="py-1 px-1 text-right w-[11%] min-w-[45px]">
-                                         <span
-                                             className="font-bold font-mono text-blue-700 text-[10px] sm:text-[11px] block">৳{item.total_price.toFixed(0)}</span>
-                                        {item.discount_amount > 0 &&
+                                        </td>
+                                        <td className="py-1 px-1 text-right w-[11%] min-w-[45px]">
                                             <span
+                                                className="font-bold font-mono text-blue-700 text-[10px] sm:text-[11px] block">৳{item.total_price.toFixed(0)}</span>
+                                            {item.discount_amount > 0 && <span
                                                 className="text-[8px] text-green-600 font-bold block leading-none mt-0.5">Saved: ৳{item.discount_amount.toFixed(0)}</span>}
-                                    </td>
-                                    <td className="py-1 px-0.5 text-center w-[4%] min-w-[15px]">
-                                        <button type="button" onClick={() => removeRow(index)}
-                                                className="text-gray-400 hover:text-red-500 font-bold text-sm sm:text-base p-0.5">×
-                                        </button>
-                                    </td>
-                                </tr>
+                                        </td>
+                                        <td className="py-1 px-0.5 text-center w-[4%] min-w-[15px]">
+                                            <button type="button" onClick={() => removeRow(index)}
+                                                    className="text-gray-400 hover:text-red-500 font-bold text-sm p-0.5">×
+                                            </button>
+                                        </td>
+                                    </tr>
+
+                                    {/* Action Buttons Row */}
+                                    {item.product && (
+                                        <tr className="bg-gray-50/30 border-b border-gray-100">
+                                            <td colSpan={8} className="px-2 py-1">
+                                                <div className="flex items-center gap-3 text-[9px]">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => updateItem(index, {show_box_calc: !item.show_box_calc})}
+                                                        className={`font-bold flex items-center gap-1 px-2 py-0.5 rounded transition-colors ${
+                                                            item.show_box_calc ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200'
+                                                        }`}
+                                                    >
+                                                        📦 {item.show_box_calc ? "Hide Box Calc" : "Box Calc"}
+                                                    </button>
+
+                                                    {item.has_expiry && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => updateItem(index, {show_expiry_calc: !item.show_expiry_calc})}
+                                                            className={`font-bold flex items-center gap-1.5 px-2 py-0.5 rounded transition-colors ${
+                                                                item.show_expiry_calc ? 'bg-orange-600 text-white' : 'bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200'
+                                                            }`}
+                                                        >
+                                                            📅 {item.show_expiry_calc ? "Hide Expiry" : "Expiry/Cal"}
+                                                            <span
+                                                                className={`inline-flex items-center gap-0.5 px-1 rounded-sm text-[7px] font-black uppercase tracking-wider ${
+                                                                    item.show_expiry_calc
+                                                                        ? (item.manufacturing_date && item.expiry_date && item.batch_no ? 'bg-green-200 text-green-900' : 'bg-red-200 text-red-900')
+                                                                        : (item.manufacturing_date && item.expiry_date && item.batch_no ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')
+                                                                }`}>
+                                                                <span
+                                                                    className={`w-1 h-1 rounded-full ${item.manufacturing_date && item.expiry_date && item.batch_no ? 'bg-green-500' : 'bg-red-500'}`}/>
+                                                                {item.manufacturing_date && item.expiry_date && item.batch_no ? "Filled" : "Empty"}
+                                                            </span>
+                                                        </button>
+                                                    )}
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const nextState = !item.show_spec_products;
+                                                            updateItem(index, {show_spec_products: nextState});
+                                                            if (nextState && (!item.spec_products_list || item.spec_products_list.length === 0)) {
+                                                                loadSameSpecificationProducts(index, item.specification);
+                                                            }
+                                                        }}
+                                                        className={`font-bold flex items-center gap-1 px-2 py-0.5 rounded transition-colors ml-auto ${
+                                                            item.show_spec_products ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
+                                                        }`}
+                                                    >
+                                                        🔬 Same Spec ({item.spec_products_list?.length || 0})
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+
+                                    {/* Expandable Detail Panels */}
+                                    {item.product && (item.show_box_calc || (item.has_expiry && item.show_expiry_calc) || item.show_spec_products) && (
+                                        <tr className="bg-gray-50/50">
+                                            <td colSpan={8} className="p-2 border-b border-gray-200">
+                                                <div className="space-y-2">
+
+                                                    {/* Box Calculator Panel */}
+                                                    {item.show_box_calc && (
+                                                        <div
+                                                            className="p-2 bg-blue-50 border border-blue-100 rounded-xl space-y-1.5">
+                                                            <p className="text-[7px] font-black text-blue-800 uppercase">
+                                                                {item.category_name?.toLowerCase().includes('medicine') ? "Medicine Box Converter" : "Normal Box Converter"}
+                                                            </p>
+                                                            <div
+                                                                className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                                                                <div className="space-y-0.5">
+                                                                    <label
+                                                                        className="text-[7px] font-extrabold text-blue-700 uppercase block">Box
+                                                                        Qty</label>
+                                                                    <input type="number"
+                                                                           className="w-full border border-blue-200 p-1 rounded bg-white text-[9px] font-mono outline-none"
+                                                                           placeholder="Boxes"
+                                                                           value={item.box_qty || ""}
+                                                                           onFocus={(e) => e.target.select()}
+                                                                           onChange={(e) => handleBoxCalcChange(index, "box_qty", e.target.value)}/>
+                                                                </div>
+                                                                {item.category_name?.toLowerCase().includes('medicine') && item.has_expiry ? (
+                                                                    <>
+                                                                        <div className="space-y-0.5">
+                                                                            <label
+                                                                                className="text-[7px] font-extrabold text-blue-700 uppercase block">Strips/Box</label>
+                                                                            <input type="number"
+                                                                                   className="w-full border border-blue-200 p-1 rounded bg-white text-[9px] font-mono outline-none"
+                                                                                   placeholder="Strips"
+                                                                                   value={item.strips_per_box || ""}
+                                                                                   onFocus={(e) => e.target.select()}
+                                                                                   onChange={(e) => handleBoxCalcChange(index, "strips_per_box", e.target.value)}/>
+                                                                        </div>
+                                                                        <div className="space-y-0.5">
+                                                                            <label
+                                                                                className="text-[7px] font-extrabold text-blue-700 uppercase block">Pcs/Strip</label>
+                                                                            <input type="number"
+                                                                                   className="w-full border border-blue-200 p-1 rounded bg-white text-[9px] font-mono outline-none"
+                                                                                   placeholder="Pcs/Strip"
+                                                                                   value={item.pcs_per_strip || ""}
+                                                                                   onFocus={(e) => e.target.select()}
+                                                                                   onChange={(e) => handleBoxCalcChange(index, "pcs_per_strip", e.target.value)}/>
+                                                                        </div>
+                                                                    </>
+                                                                ) : (
+                                                                    <div className="space-y-0.5">
+                                                                        <label
+                                                                            className="text-[7px] font-extrabold text-blue-700 uppercase block">Pcs/Box</label>
+                                                                        <input type="number"
+                                                                               className="w-full border border-blue-200 p-1 rounded bg-white text-[9px] font-mono outline-none"
+                                                                               placeholder="Pcs/box"
+                                                                               value={item.pcs_per_box || ""}
+                                                                               onFocus={(e) => e.target.select()}
+                                                                               onChange={(e) => handleBoxCalcChange(index, "pcs_per_box", e.target.value)}/>
+                                                                    </div>
+                                                                )}
+                                                                <div className="space-y-0.5">
+                                                                    <label
+                                                                        className="text-[7px] font-extrabold text-blue-700 uppercase block">Loose
+                                                                        Pcs</label>
+                                                                    <input type="number"
+                                                                           className="w-full border border-blue-200 p-1 rounded bg-white text-[9px] font-mono outline-none"
+                                                                           placeholder="Loose qty"
+                                                                           value={item.loose_qty || ""}
+                                                                           onFocus={(e) => e.target.select()}
+                                                                           onChange={(e) => handleBoxCalcChange(index, "loose_qty", e.target.value)}/>
+                                                                </div>
+                                                                <div className="space-y-0.5">
+                                                                    <label
+                                                                        className="text-[7px] font-extrabold text-blue-700 uppercase block">Qty
+                                                                        Result</label>
+                                                                    <div
+                                                                        className="w-full border border-blue-300 p-1 rounded bg-blue-100 text-[9px] font-black font-mono text-blue-900 text-center">{item.quantity}</div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Expiry Date Panel */}
+                                                    {/*{item.has_expiry && item.show_expiry_calc && (*/}
+                                                    {/*    <div*/}
+                                                    {/*        className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2 bg-orange-50/50 border border-orange-100 rounded-xl">*/}
+                                                    {/*        <div className="space-y-0.5">*/}
+                                                    {/*            <label*/}
+                                                    {/*                className="text-[7px] font-black text-orange-600 uppercase block">Mfg*/}
+                                                    {/*                Date</label>*/}
+                                                    {/*            <input type="date"*/}
+                                                    {/*                   className="w-full border border-orange-100 p-1 rounded bg-white text-[9px] font-bold outline-none"*/}
+                                                    {/*                   value={item.manufacturing_date || ""}*/}
+                                                    {/*                   onChange={(e) => handleExpiryDateChange(index, "manufacturing_date", e.target.value)}/>*/}
+                                                    {/*        </div>*/}
+                                                    {/*        <div className="space-y-0.5">*/}
+                                                    {/*            <label*/}
+                                                    {/*                className="text-[7px] font-black text-orange-600 uppercase block">Expiry*/}
+                                                    {/*                Date</label>*/}
+                                                    {/*            <input type="date"*/}
+                                                    {/*                   className="w-full border border-orange-100 p-1 rounded bg-white text-[9px] font-bold outline-none"*/}
+                                                    {/*                   value={item.expiry_date || ""}*/}
+                                                    {/*                   onChange={(e) => handleExpiryDateChange(index, "expiry_date", e.target.value)}/>*/}
+                                                    {/*        </div>*/}
+                                                    {/*        <div className="space-y-0.5">*/}
+                                                    {/*            <label*/}
+                                                    {/*                className="text-[7px] font-black text-orange-600 uppercase block">Shelf*/}
+                                                    {/*                Life (Days)</label>*/}
+                                                    {/*            <input type="number"*/}
+                                                    {/*                   className="w-full border border-orange-100 p-1 rounded bg-white text-[9px] font-mono outline-none"*/}
+                                                    {/*                   placeholder="Days"*/}
+                                                    {/*                   value={item.shelf_life_days || ""}*/}
+                                                    {/*                   onFocus={(e) => e.target.select()}*/}
+                                                    {/*                   onChange={(e) => handleExpiryDateChange(index, "shelf_life_days", e.target.value)}/>*/}
+                                                    {/*        </div>*/}
+                                                    {/*        <div className="space-y-0.5">*/}
+                                                    {/*            <label*/}
+                                                    {/*                className="text-[7px] font-black text-orange-600 uppercase block">Batch*/}
+                                                    {/*                No</label>*/}
+                                                    {/*            <input type="text"*/}
+                                                    {/*                   className="w-full border border-orange-100 p-1 rounded bg-white text-[9px] outline-none"*/}
+                                                    {/*                   placeholder="Batch #"*/}
+                                                    {/*                   value={item.batch_no || ""}*/}
+                                                    {/*                   onChange={(e) => updateItem(index, {batch_no: e.target.value})}/>*/}
+                                                    {/*        </div>*/}
+                                                    {/*    </div>*/}
+                                                    {/*)}*/}
+
+
+                                                    {item.has_expiry && item.show_expiry_calc && (
+                                                        <div
+                                                            className="grid grid-cols-2 sm:grid-cols-5 gap-2 p-2 bg-orange-50/50 border border-orange-100 rounded-xl">
+                                                            <div className="space-y-0.5">
+                                                                <label
+                                                                    className="text-[7px] font-black text-orange-600 uppercase block">Mfg
+                                                                    Date</label>
+                                                                <div
+                                                                    className="text-[9px] font-bold text-gray-800 bg-white border border-orange-200 p-1 rounded">
+                                                                    {item.manufacturing_date || "N/A"}
+                                                                </div>
+                                                            </div>
+                                                            <div className="space-y-0.5">
+                                                                <label
+                                                                    className="text-[7px] font-black text-orange-600 uppercase block">Expiry
+                                                                    Date</label>
+                                                                <div
+                                                                    className="text-[9px] font-bold text-gray-800 bg-white border border-orange-200 p-1 rounded">
+                                                                    {item.expiry_date || "N/A"}
+                                                                </div>
+                                                            </div>
+                                                            <div className="space-y-0.5">
+                                                                <label
+                                                                    className="text-[7px] font-black text-orange-600 uppercase block">Shelf
+                                                                    Life (Days)</label>
+                                                                <div
+                                                                    className="text-[9px] font-bold text-gray-800 bg-white border border-orange-200 p-1 rounded">
+                                                                    {item.shelf_life_days || "N/A"}
+                                                                </div>
+                                                            </div>
+
+                                                            {/* ✅ নতুন: Remaining Days */}
+                                                            <div className="space-y-0.5">
+                                                                <label
+                                                                    className="text-[7px] font-black text-orange-600 uppercase block">Remaining
+                                                                    Days</label>
+                                                                <div
+                                                                    className={`text-[9px] font-bold p-1 rounded border ${
+                                                                        (() => {
+                                                                            const remaining = calculateRemainingDays(item.expiry_date);
+                                                                            if (remaining === null) return "bg-gray-100 border-gray-200 text-gray-500";
+                                                                            if (remaining < 0) return "bg-red-100 border-red-300 text-red-700";
+                                                                            if (remaining <= 30) return "bg-yellow-100 border-yellow-300 text-yellow-800";
+                                                                            return "bg-green-100 border-green-300 text-green-700";
+                                                                        })()
+                                                                    }`}>
+                                                                    {(() => {
+                                                                        const remaining = calculateRemainingDays(item.expiry_date);
+                                                                        if (remaining === null) return "N/A";
+                                                                        if (remaining < 0) return "⚠️ Expired";
+                                                                        if (remaining === 0) return "⚠️ Today";
+                                                                        return `${remaining} days`;
+                                                                    })()}
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="space-y-0.5">
+                                                                <label
+                                                                    className="text-[7px] font-black text-orange-600 uppercase block">Batch
+                                                                    No</label>
+                                                                <div
+                                                                    className="text-[9px] font-bold text-gray-800 bg-white border border-orange-200 p-1 rounded">
+                                                                    {item.batch_no || "N/A"}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Same Specification Products Panel */}
+                                                    {item.show_spec_products && (
+                                                        <div
+                                                            className="p-2 bg-purple-50 border border-purple-100 rounded-xl space-y-1">
+                                                            <div
+                                                                className="flex justify-between items-center border-b border-purple-200 pb-1 mb-1">
+                                                                <p className="text-[7px] font-black text-purple-800 uppercase tracking-wider">Same
+                                                                    Specification Stock (Alternative Brands)</p>
+                                                                <span
+                                                                    className="text-[7px] font-mono text-purple-600 italic">
+                                                                    Spec: {item.spec_products_list?.[0]?.specification_name || "Loading..."}
+                                                                </span>
+                                                            </div>
+                                                            {item.spec_products_list && item.spec_products_list.length > 0 ? (
+                                                                <div className="overflow-x-auto">
+                                                                    <table
+                                                                        className="w-full text-[8px] font-medium text-left text-purple-900">
+                                                                        <thead>
+                                                                        <tr className="border-b border-purple-100 text-[7px] text-purple-700 uppercase font-extrabold">
+                                                                            <th className="pb-0.5">Product Name</th>
+                                                                            <th className="pb-0.5 text-center">Brand</th>
+                                                                            <th className="pb-0.5 text-right">Sale
+                                                                                Price
+                                                                            </th>
+                                                                            <th className="pb-0.5 text-right">Stock</th>
+                                                                            <th className="pb-0.5 text-center">Action</th>
+                                                                        </tr>
+                                                                        </thead>
+                                                                        <tbody
+                                                                            className="divide-y divide-purple-100/50">
+                                                                        {item.spec_products_list.map((p) => (
+                                                                            <tr key={p.id}
+                                                                                className={`hover:bg-purple-100/40 ${p.id === item.product ? 'bg-purple-100/70 font-bold' : ''}`}>
+                                                                                <td className="py-1 pr-1 truncate"
+                                                                                    title={p.name}>
+                                                                                    {p.name} {p.id === item.product &&
+                                                                                    <span
+                                                                                        className="text-[6px] bg-purple-600 text-white px-1 rounded ml-1">Selected</span>}
+                                                                                </td>
+                                                                                <td className="py-1 text-center text-gray-600">{p.brand_name || "N/A"}</td>
+                                                                                <td className="py-1 text-right font-mono text-gray-700">৳{Number(p.selling_price || p.sale_price || 0).toFixed(2)}</td>
+                                                                                <td className={`py-1 text-right font-mono font-bold ${p.stock <= 0 ? 'text-red-600' : 'text-green-700'}`}>{p.stock} {p.unit_name || "Pcs"}</td>
+                                                                                <td className="py-1 text-center">
+                                                                                    {p.id !== item.product && Number(p.stock) > 0 && (
+                                                                                        <button type="button"
+                                                                                                onClick={() => updateItem(index, {
+                                                                                                    product: p.id,
+                                                                                                    product_name: p.name,
+                                                                                                    unit_price: Number(p.selling_price || p.sale_price || 0),
+                                                                                                    stock: p.stock,
+                                                                                                    specification: p.specification || p.specification_id || null,
+                                                                                                    category_name: p.category_name || "",
+                                                                                                    show_spec_products: false
+                                                                                                })}
+                                                                                                className="text-[7px] font-bold bg-purple-600 text-white px-1.5 py-0.5 rounded hover:bg-purple-700 transition-colors">
+                                                                                            Switch
+                                                                                        </button>
+                                                                                    )}
+                                                                                </td>
+                                                                            </tr>
+                                                                        ))}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            ) : (
+                                                                <p className="text-[8px] text-center text-purple-500 py-1 font-semibold">No
+                                                                    products found or loading...</p>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </React.Fragment>
                             ))}
                             </tbody>
                         </table>
@@ -1619,52 +2625,72 @@ const PosSalePage = () => {
 
                     {/* Cart Summary, Customer & Actions Footer inside the Cart Column */}
                     <div className="border-t border-gray-100 pt-1.5 flex flex-col gap-1.5 shrink-0 bg-white">
-                        <div>
+                        {/*<div>*/}
 
-                            {/* Overall Invoice Discount Selector */}
-                            <div
-                                className="bg-white border border-gray-200 rounded-lg p-2 flex flex-col justify-between shadow-sm">
-                                <label
-                                    className="block text-[8px] font-black uppercase text-green-700 tracking-wider mb-0.5">
-                                    Overall Invoice Discount
-                                </label>
-                                <div className="flex gap-1.5 items-center">
-                                    <select
-                                        className="border py-0.5 px-1 rounded bg-white outline-none text-[9px] font-bold flex-1 h-7"
-                                        value={globalDiscountType}
-                                        onChange={(e) => setGlobalDiscountType(e.target.value)}>
-                                        <option value="fixed">Fixed Amount (৳)</option>
-                                        <option value="percent">% Discount</option>
+                        {/*    /!* Overall Invoice Discount Selector *!/*/}
+                        {/*    <div*/}
+                        {/*        className="bg-white border border-gray-200 rounded-lg p-2 flex flex-col justify-between shadow-sm">*/}
+                        {/*        <label*/}
+                        {/*            className="block text-[8px] font-black uppercase text-green-700 tracking-wider mb-0.5">*/}
+                        {/*            Overall Invoice Discount*/}
+                        {/*        </label>*/}
+                        {/*        <div className="flex gap-1.5 items-center">*/}
+                        {/*            <select*/}
+                        {/*                className="border py-0.5 px-1 rounded bg-white outline-none text-[9px] font-bold flex-1 h-7"*/}
+                        {/*                value={globalDiscountType}*/}
+                        {/*                onChange={(e) => setGlobalDiscountType(e.target.value)}>*/}
+                        {/*                <option value="fixed">Fixed Amount (৳)</option>*/}
+                        {/*                <option value="percent">% Discount</option>*/}
+                        {/*            </select>*/}
+                        {/*            <input type="number"*/}
+                        {/*                   className="w-full border py-0.5 px-1 rounded outline-none font-bold text-xs bg-white font-mono focus:border-green-500 flex-1 h-7"*/}
+                        {/*                   placeholder="0.00" value={globalDiscountValue || ""}*/}
+                        {/*                   onChange={(e) => setGlobalDiscountValue(Number(e.target.value))}/>*/}
+                        {/*        </div>*/}
+                        {/*    </div>*/}
+                        {/*</div>*/}
+
+
+                        <div
+                            className="flex justify-between items-center text-[10px] text-gray-550 font-bold border-t border-gray-200 pt-1">
+
+                            {/*overall Discount*/}
+                            <div className="flex gap-2 items-center">
+                                <label className="text-[8px] font-black uppercase text-green-700 tracking-wider">Overall
+                                    Discount</label>
+                                <div className="flex gap-1 items-center flex-1">
+                                    <select className="border p-0.5 rounded bg-white outline-none text-[9px] h-6"
+                                            value={globalDiscountType}
+                                            onChange={(e) => setGlobalDiscountType(e.target.value)}>
+                                        <option value="fixed">Fixed (৳)</option>
+                                        <option value="percent">% Ratio</option>
                                     </select>
                                     <input type="number"
-                                           className="w-full border py-0.5 px-1 rounded outline-none font-bold text-xs bg-white font-mono focus:border-green-500 flex-1 h-7"
+                                           className="w-full border p-0.5 rounded outline-none font-mono font-bold text-xs bg-white focus:border-green-500 h-6"
                                            placeholder="0.00" value={globalDiscountValue || ""}
                                            onChange={(e) => setGlobalDiscountValue(Number(e.target.value))}/>
                                 </div>
                             </div>
+
+                            <span>Items Subtotal: <span
+                                className="font-mono text-gray-800 font-black">৳{subtotal.toFixed(0)}</span></span>
+                            {globalDiscountAmount > 0 && (
+                                <span className="text-green-600">Discount: <span
+                                    className="font-mono font-black">- ৳{globalDiscountAmount.toFixed(0)}</span></span>
+                            )}
+                            <div className="text-gray-900 font-black text-xs">
+                                Net Payable: <span
+                                className="font-mono text-blue-700 text-sm">৳{netTotal.toFixed(0)}</span>
+                            </div>
                         </div>
 
-                        {/* Invoice Summary and Actions */}
-                        <div
-                            className="bg-gray-900 text-white py-1.5 px-2.5 rounded-lg flex items-center justify-between gap-3 shadow-md">
-                            <div className="flex items-center gap-3.5 text-[10px]">
-                                <div className="text-gray-400">
-                                    Subtotal:<span
-                                    className="font-mono font-bold text-white ml-0.5">৳{subtotal.toFixed(0)}</span>
-                                </div>
-                                {globalDiscountAmount > 0 && (
-                                    <div className="text-green-400">
-                                        Disc:<span
-                                        className="font-mono font-bold ml-0.5">-৳{globalDiscountAmount.toFixed(0)}</span>
-                                    </div>
-                                )}
-                                <div className="text-emerald-400 font-bold text-[11px]">
-                                    Net:<span
-                                    className="font-mono font-black text-xs sm:text-sm ml-0.5">৳{netTotal.toFixed(0)}</span>
-                                </div>
-                            </div>
 
-                            <div className="flex gap-1.5 shrink-0">
+                        {/* Invoice Summary and Actions */}
+                        <div className="bg-gray-900 text-white py-1.5 px-2.5 rounded-lg flex items-center justify-between gap-3 shadow-md">
+
+
+                            <div className="flex gap-1.5 shrink-0 items-center">
+
                                 <button type="button"
                                         onClick={() => {
                                             if (window.confirm("Are you sure you want to clear the POS cart?")) {
@@ -1690,6 +2716,97 @@ const PosSalePage = () => {
                                         className="px-3 py-1 font-black rounded-md text-[10px] uppercase tracking-wider text-white shadow-lg bg-blue-600 hover:bg-blue-700 shadow-blue-500/20 transition-all active:scale-98">
                                     Make Payment
                                 </button>
+
+
+                                {/* Quick Actions Dropdown */}
+                                <div className="relative inline-block text-left">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsActionsDropdownOpen(prev => !prev)}
+                                        className="px-2.5 py-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 font-black rounded-md text-[9px] uppercase tracking-wider text-white shadow-md transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
+                                    >
+                                        <span>⚡ Quick Actions</span>
+                                        <ChevronRight size={10}
+                                                      className={`transform transition-transform ${isActionsDropdownOpen ? '-rotate-90' : 'rotate-90'}`}/>
+                                    </button>
+
+                                    {isActionsDropdownOpen && (
+                                        <>
+                                            <div className="fixed inset-0 z-40"
+                                                 onClick={() => setIsActionsDropdownOpen(false)}/>
+                                            <div
+                                                className="absolute bottom-full mb-1 right-0 w-48 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 py-1 font-sans">
+                                                <div className="px-3 py-1.5 border-b border-gray-100 bg-gray-50">
+                                                    <p className="text-[9px] font-black text-gray-500 uppercase tracking-wider">Transaction
+                                                        Actions</p>
+                                                </div>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setIsActionsDropdownOpen(false);
+                                                        handleHoldSale();
+                                                    }}
+                                                    disabled={holdQuotationLoading}
+                                                    className="w-full text-left px-3 py-2 text-[10px] font-bold text-amber-700 hover:bg-amber-50 flex items-center gap-2 transition-colors border-b border-gray-50"
+                                                >
+                                                    <PauseCircle size={14} className="text-amber-500 shrink-0"/>
+                                                    <div>
+                                                        <span className="block font-black">Hold Current Cart</span>
+                                                        <span className="text-[8px] text-gray-400 font-medium">Pause & save sale</span>
+                                                    </div>
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setIsActionsDropdownOpen(false);
+                                                        setIsHoldModalOpen(true);
+                                                    }}
+                                                    className="w-full text-left px-3 py-2 text-[10px] font-bold text-gray-700 hover:bg-gray-100 flex items-center gap-2 transition-colors border-b border-gray-50"
+                                                >
+                                                    <Clock size={14} className="text-amber-500 shrink-0"/>
+                                                    <div>
+                                                        <span className="block font-black">View On-Hold List</span>
+                                                        <span className="text-[8px] text-gray-400 font-medium">Restore saved held carts</span>
+                                                    </div>
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setIsActionsDropdownOpen(false);
+                                                        const validItems = items.filter(i => i.product);
+                                                        if (validItems.length === 0) return alert("Please add products to create quotation");
+                                                        setIsCreateQuotationOpen(true);
+                                                    }}
+                                                    className="w-full text-left px-3 py-2 text-[10px] font-bold text-cyan-700 hover:bg-cyan-50 flex items-center gap-2 transition-colors border-b border-gray-50"
+                                                >
+                                                    <FileText size={14} className="text-cyan-600 shrink-0"/>
+                                                    <div>
+                                                        <span className="block font-black">Create Sales Quotation</span>
+                                                        <span className="text-[8px] text-gray-400 font-medium">Save & print price quote</span>
+                                                    </div>
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setIsActionsDropdownOpen(false);
+                                                        setIsQuotationModalOpen(true);
+                                                    }}
+                                                    className="w-full text-left px-3 py-2 text-[10px] font-bold text-gray-700 hover:bg-gray-100 flex items-center gap-2 transition-colors"
+                                                >
+                                                    <FileText size={14} className="text-cyan-600 shrink-0"/>
+                                                    <div>
+                                                        <span className="block font-black">View Quotations List</span>
+                                                        <span className="text-[8px] text-gray-400 font-medium">Load or print saved quotes</span>
+                                                    </div>
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2140,6 +3257,29 @@ const PosSalePage = () => {
                     </div>
                 </div>
             </BaseModal>
+
+            {/* Hold & Quotation Modals */}
+            <HoldListModal
+                isOpen={isHoldModalOpen}
+                onClose={() => setIsHoldModalOpen(false)}
+                transactionType="sale"
+                onRestoreHold={handleRestoreHoldOrQuotation}
+            />
+
+            <CreateQuotationModal
+                isOpen={isCreateQuotationOpen}
+                onClose={() => setIsCreateQuotationOpen(false)}
+                transactionType="sale"
+                onSave={handleSaveQuotation}
+                isLoading={holdQuotationLoading}
+            />
+
+            <QuotationListModal
+                isOpen={isQuotationModalOpen}
+                onClose={() => setIsQuotationModalOpen(false)}
+                transactionType="sale"
+                onRestoreQuotation={handleRestoreHoldOrQuotation}
+            />
         </>
     );
 };

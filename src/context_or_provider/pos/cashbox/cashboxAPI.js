@@ -50,4 +50,10 @@ export const posCashboxAPI = {
     getDailyBalance: (params) => api.get("/api/cashbox/daily-balance/", { params }),
     // Trigger full recalculation of all DailyBalance records from CashBox
     recalculateAllDailyBalances: () => api.get("/api/cashbox/daily-balance/recalculate_all/"),
+
+
+    getBalances: () => api.get("/api/cashbox/cashbox/balances/"),
+    // ===== FUND TRANSFERS =====
+    getFundTransfers: (params) => api.get("/api/cashbox/fund-transfers/", { params }),
+    createFundTransfer: (data) => api.post("/api/cashbox/fund-transfers/", data),
 };

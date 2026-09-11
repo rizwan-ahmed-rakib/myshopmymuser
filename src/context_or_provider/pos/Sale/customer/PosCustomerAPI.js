@@ -65,4 +65,10 @@ export const posCustomerAPI = {
 
     // Delete employee
     delete: (id) => api.delete(`/api/sale/customers/${id}/`),
+
+    getTransactions: async (customerId, params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        const response = await api.get(`/api/sale/customer-transactions/${customerId}/transactions/?${query}`);
+        return response;
+    },
 };

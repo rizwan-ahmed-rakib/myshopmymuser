@@ -8,11 +8,12 @@ const AddExpense = ({ onSuccess }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState(null);
 
-    // Inline Category Modal states
     const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
     const [newCatName, setNewCatName] = useState('');
     const [newCatDesc, setNewCatDesc] = useState('');
+    const [newCatIsWithdraw, setNewCatIsWithdraw] = useState(false); // ✅ নতুন
     const [modalLoading, setModalLoading] = useState(false);
     const [modalError, setModalError] = useState('');
 
@@ -24,6 +25,8 @@ const AddExpense = ({ onSuccess }) => {
         paid_bank: '',
         mobile_operator: '',
         description: '',
+        is_withdraw: false,
+        is_withdraw_overridden: false,
     });
 
     useEffect(() => {
@@ -39,6 +42,7 @@ const AddExpense = ({ onSuccess }) => {
         }
     };
 
+    // ✅ Modal থেকে Category Create
     const handleCreateCategory = async () => {
         if (!newCatName.trim()) {
             setModalError('Category নাম দিন।');
@@ -49,18 +53,15 @@ const AddExpense = ({ onSuccess }) => {
         try {
             const res = await posCashboxAPI.createExpenseCategory({
                 name: newCatName.trim(),
-                description: newCatDesc.trim() || null
+                description: newCatDesc.trim() || null,
+                is_withdraw: newCatIsWithdraw, // ✅ Withdraw flag পাঠান
             });
-            // Reload categories
             const catListRes = await posCashboxAPI.getAllExpenseCategories();
             setCategories(catListRes.data);
-            
-            // Set newly created category as selected in form
             setForm(prev => ({ ...prev, category: res.data.id }));
-            
-            // Reset modal states
             setNewCatName('');
             setNewCatDesc('');
+            setNewCatIsWithdraw(false);
             setShowAddCategoryModal(false);
         } catch (err) {
             const errData = err.response?.data;
@@ -74,9 +75,50 @@ const AddExpense = ({ onSuccess }) => {
         }
     };
 
+    // ✅ ক্যাটাগরি নির্বাচন করলে অটো-সেট
+    const handleCategoryChange = (e) => {
+        const categoryId = e.target.value;
+        const cat = categories.find(c => c.id === parseInt(categoryId));
+
+        setSelectedCategory(cat);
+
+        if (cat && cat.is_withdraw) {
+            setForm(prev => ({
+                ...prev,
+                category: categoryId,
+                is_withdraw: true,
+                is_withdraw_overridden: false,
+            }));
+        } else {
+            setForm(prev => ({
+                ...prev,
+                category: categoryId,
+                is_withdraw: false,
+                is_withdraw_overridden: false,
+            }));
+        }
+    };
+
+    // ✅ ইউজার ম্যানুয়ালি টগল করলে
+    const handleWithdrawToggle = (e) => {
+        const checked = e.target.checked;
+        setForm(prev => ({
+            ...prev,
+            is_withdraw: checked,
+            is_withdraw_overridden: true,
+        }));
+    };
+
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setForm(prev => ({ ...prev, [name]: value }));
+        const { name, value, type, checked } = e.target;
+        if (name === 'is_withdraw') {
+            handleWithdrawToggle(e);
+            return;
+        }
+        setForm(prev => ({
+            ...prev,
+            [name]: type === 'checkbox' ? checked : value
+        }));
     };
 
     const getFormTotal = () => {
@@ -92,7 +134,11 @@ const AddExpense = ({ onSuccess }) => {
         setError('');
         setSuccess('');
 
-        // Validate
+        let finalWithdraw = form.is_withdraw;
+        if (!form.is_withdraw_overridden && selectedCategory) {
+            finalWithdraw = selectedCategory.is_withdraw;
+        }
+
         if (!form.title.trim()) {
             setError('Title দিন।');
             setLoading(false);
@@ -116,7 +162,6 @@ const AddExpense = ({ onSuccess }) => {
             return;
         }
 
-        // Determine Payment Method
         let paymentMethod = 'cash';
         const activeChannelsCount = [cashVal > 0, mobileVal > 0, bankVal > 0].filter(Boolean).length;
 
@@ -138,6 +183,7 @@ const AddExpense = ({ onSuccess }) => {
             paid_bank: bankVal,
             mobile_operator: mobileVal > 0 ? form.mobile_operator : null,
             description: form.description.trim() || null,
+            is_withdraw: finalWithdraw,
         };
 
         try {
@@ -151,7 +197,10 @@ const AddExpense = ({ onSuccess }) => {
                 paid_bank: '',
                 mobile_operator: '',
                 description: '',
+                is_withdraw: false,
+                is_withdraw_overridden: false,
             });
+            setSelectedCategory(null);
             setTimeout(() => {
                 setSuccess('');
                 if (onSuccess) onSuccess();
@@ -171,10 +220,19 @@ const AddExpense = ({ onSuccess }) => {
     const totalAmount = getFormTotal();
     const showOperatorSelect = parseFloat(form.paid_mobile || 0) > 0;
 
+    const getWithdrawCheckboxClass = () => {
+        if (selectedCategory?.is_withdraw && !form.is_withdraw_overridden) {
+            return 'bg-amber-50 border-amber-300';
+        }
+        if (form.is_withdraw_overridden && form.is_withdraw) {
+            return 'bg-orange-50 border-orange-300';
+        }
+        return 'bg-gray-50 border-gray-200';
+    };
+
     return (
         <div className="max-w-xl mx-auto">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                {/* Card Header */}
                 <div className="bg-gradient-to-r from-rose-500 to-red-600 px-6 py-5">
                     <h2 className="text-white font-bold text-lg flex items-center gap-2">
                         💸 Add New Expense
@@ -183,13 +241,11 @@ const AddExpense = ({ onSuccess }) => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    {/* Success */}
                     {success && (
                         <div className="p-3 bg-green-50 text-green-700 rounded-xl border border-green-200 text-sm font-medium">
                             {success}
                         </div>
                     )}
-                    {/* Error */}
                     {error && (
                         <div className="p-3 bg-red-50 text-red-700 rounded-xl border border-red-200 text-sm">
                             {error}
@@ -217,7 +273,10 @@ const AddExpense = ({ onSuccess }) => {
                             <span>Category <span className="text-gray-400">(Optional)</span></span>
                             <button
                                 type="button"
-                                onClick={() => setShowAddCategoryModal(true)}
+                                onClick={() => {
+                                    setShowAddCategoryModal(true);
+                                    setNewCatIsWithdraw(false);
+                                }}
                                 className="text-rose-600 hover:text-rose-800 text-xs font-bold flex items-center gap-0.5"
                             >
                                 ➕ New Category
@@ -226,12 +285,14 @@ const AddExpense = ({ onSuccess }) => {
                         <select
                             name="category"
                             value={form.category}
-                            onChange={handleChange}
+                            onChange={handleCategoryChange}
                             className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-300 text-sm bg-white"
                         >
                             <option value="">-- Select Category --</option>
                             {categories.map(cat => (
-                                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                <option key={cat.id} value={cat.id}>
+                                    {cat.name} {cat.is_withdraw && '🏦 (Withdraw)'}
+                                </option>
                             ))}
                         </select>
                         {categories.length === 0 && (
@@ -239,10 +300,58 @@ const AddExpense = ({ onSuccess }) => {
                         )}
                     </div>
 
+                    {/* ✅ Withdraw Checkbox */}
+                    <div className={`flex items-center gap-3 p-3 rounded-xl border ${getWithdrawCheckboxClass()}`}>
+                        <input
+                            type="checkbox"
+                            name="is_withdraw"
+                            checked={form.is_withdraw}
+                            onChange={handleChange}
+                            className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500"
+                            disabled={selectedCategory?.is_withdraw && !form.is_withdraw_overridden}
+                        />
+                        <label className="text-sm font-medium">
+                            {selectedCategory?.is_withdraw && !form.is_withdraw_overridden ? (
+                                <>
+                                    🔒 <span className="text-amber-700">Category Default: Withdraw</span>
+                                    <span className="block text-xs text-amber-600 font-normal">
+                                        ক্যাটাগরি অনুযায়ী অটো-সেট। চাইলে টগল করে পরিবর্তন করতে পারেন।
+                                    </span>
+                                </>
+                            ) : form.is_withdraw_overridden && form.is_withdraw ? (
+                                <>
+                                    ✏️ <span className="text-orange-700">Manual Override: Withdraw</span>
+                                    <span className="block text-xs text-orange-600 font-normal">
+                                        আপনি ম্যানুয়ালি উইথড্র হিসেবে চিহ্নিত করেছেন।
+                                    </span>
+                                </>
+                            ) : (
+                                <>
+                                    🏦 <span className="text-gray-700">Mark as Withdraw</span>
+                                    <span className="block text-xs text-gray-500 font-normal">
+                                        চেক করলে এটি Expense হিসেবে গণ্য হবে না, শুধু ক্যাশবক্সে আউট হবে
+                                    </span>
+                                </>
+                            )}
+                        </label>
+                    </div>
+
+                    {/* ✅ Override সতর্কতা */}
+                    {form.is_withdraw_overridden && selectedCategory && selectedCategory.is_withdraw !== form.is_withdraw && (
+                        <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                            <p className="text-xs text-amber-700">
+                                ⚠️ আপনি ক্যাটাগরির ডিফল্ট সেটিং ওভাররাইড করেছেন।
+                                {selectedCategory.is_withdraw ?
+                                    ' (ক্যাটাগরি: Withdraw → আপনি: Normal Expense)' :
+                                    ' (ক্যাটাগরি: Normal → আপনি: Withdraw)'}
+                            </p>
+                        </div>
+                    )}
+
                     {/* Payment Channels Block */}
                     <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-3">
                         <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide">Payment Channels (পেমেন্ট চ্যানেলসমূহ)</label>
-                        
+
                         <div className="grid grid-cols-3 gap-3">
                             <div>
                                 <label className="block text-[10px] font-semibold text-slate-500 uppercase mb-1">💵 Cash (৳)</label>
@@ -285,7 +394,6 @@ const AddExpense = ({ onSuccess }) => {
                             </div>
                         </div>
 
-                        {/* Mobile operator details */}
                         {showOperatorSelect && (
                             <div className="p-3 bg-orange-50/70 rounded-xl border border-orange-100 animate-in fade-in duration-200">
                                 <label className="block text-[10px] uppercase font-black text-orange-800 mb-1.5">Select Mobile Operator (অপারেটর নির্বাচন করুন) *</label>
@@ -308,7 +416,6 @@ const AddExpense = ({ onSuccess }) => {
                             </div>
                         )}
 
-                        {/* Net Total Indicator */}
                         <div className="flex justify-between items-center text-xs font-bold border-t border-gray-200 pt-2.5">
                             <span className="text-gray-500">Total Expense Amount:</span>
                             <span className="text-sm font-black font-mono text-rose-600">৳{totalAmount.toLocaleString()}</span>
@@ -330,7 +437,6 @@ const AddExpense = ({ onSuccess }) => {
                         />
                     </div>
 
-                    {/* Submit */}
                     <button
                         type="submit"
                         disabled={loading}
@@ -349,7 +455,7 @@ const AddExpense = ({ onSuccess }) => {
                 </form>
             </div>
 
-            {/* Add Category Modal */}
+            {/* ✅ Add Category Modal - Updated with Withdraw Checkbox */}
             {showAddCategoryModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4 border border-gray-150 animate-in fade-in duration-200">
@@ -378,6 +484,22 @@ const AddExpense = ({ onSuccess }) => {
                                     onChange={e => setNewCatDesc(e.target.value)}
                                 />
                             </div>
+
+                            {/* ✅ Withdraw Checkbox in Modal */}
+                            <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl border border-amber-200">
+                                <input
+                                    type="checkbox"
+                                    checked={newCatIsWithdraw}
+                                    onChange={e => setNewCatIsWithdraw(e.target.checked)}
+                                    className="w-4 h-4 text-amber-600 rounded focus:ring-amber-500"
+                                />
+                                <label className="text-sm font-medium text-amber-800">
+                                    🏦 Withdraw Category?
+                                    <span className="block text-xs text-amber-600 font-normal">
+                                        চেক করলে এই ক্যাটাগরির সব এক্সপেন্স ডিফল্টভাবে উইথড্র হিসেবে গণ্য হবে
+                                    </span>
+                                </label>
+                            </div>
                         </div>
                         <div className="flex gap-3 mt-5">
                             <button
@@ -387,6 +509,7 @@ const AddExpense = ({ onSuccess }) => {
                                     setModalError('');
                                     setNewCatName('');
                                     setNewCatDesc('');
+                                    setNewCatIsWithdraw(false);
                                 }}
                                 className="flex-1 px-4 py-2 border border-gray-200 rounded-xl text-gray-700 text-sm font-medium hover:bg-gray-50"
                             >

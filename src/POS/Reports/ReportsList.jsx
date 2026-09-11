@@ -1,9 +1,19 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, Truck, Package, Wallet, ArrowRight, BarChart2 } from 'lucide-react';
+import { ShoppingCart, Truck, Package, Wallet, ArrowRight, BarChart2, TrendingUp } from 'lucide-react';
 
 const categories = [
+  {
+    id: 'accounting',
+    title: 'Accounting & Profit Reports',
+    icon: TrendingUp,
+    color: '#0ea5e9',
+    bg: '#f0f9ff',
+    border: '#bae6fd',
+    desc: 'Daily, Monthly, Yearly & All-Time Profit, Growth & Business Notes',
+    stats: 'Profit, Growth & Valuation',
+  },
   {
     id: 'sales',
     title: 'Sales Reports',
@@ -26,13 +36,13 @@ const categories = [
   },
   {
     id: 'inventory',
-    title: 'Inventory & Stock',
+    title: 'Inventory & Decision Intelligence',
     icon: Package,
     color: '#8b5cf6',
     bg: '#f5f3ff',
     border: '#ddd6fe',
-    desc: 'Current Stock, Low Stock, Damage, Stock Value',
-    stats: 'Stock & Products',
+    desc: 'Current Stock, Low Stock Alert, Dead Stock, Valuation & Insights',
+    stats: 'Stock & Actionable Insights',
   },
   {
     id: 'financial',

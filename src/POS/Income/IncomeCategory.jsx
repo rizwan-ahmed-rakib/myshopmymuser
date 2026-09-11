@@ -10,6 +10,7 @@ const IncomeCategory = () => {
     const [showAddForm, setShowAddForm] = useState(false);
     const [newName, setNewName] = useState('');
     const [newDesc, setNewDesc] = useState('');
+    const [newIsInvestment, setNewIsInvestment] = useState(false); // ✅ নতুন ফিল্ড
     const [addLoading, setAddLoading] = useState(false);
     const [addError, setAddError] = useState('');
 
@@ -45,9 +46,14 @@ const IncomeCategory = () => {
         setAddLoading(true);
         setAddError('');
         try {
-            await posCashboxAPI.createIncomeCategory({ name: newName.trim(), description: newDesc.trim() || null });
+            await posCashboxAPI.createIncomeCategory({
+                name: newName.trim(),
+                description: newDesc.trim() || null,
+                is_investment: newIsInvestment, // ✅ Investment flag পাঠান
+            });
             setNewName('');
             setNewDesc('');
+            setNewIsInvestment(false);
             setShowAddForm(false);
             fetchCategories();
         } catch (err) {
@@ -70,6 +76,7 @@ const IncomeCategory = () => {
             await posCashboxAPI.updateIncomeCategory(editItem.id, {
                 name: editItem.name.trim(),
                 description: editItem.description?.trim() || null,
+                is_investment: editItem.is_investment, // ✅ Investment flag পাঠান
             });
             setEditItem(null);
             fetchCategories();
@@ -109,7 +116,11 @@ const IncomeCategory = () => {
                     <p className="text-sm text-gray-500">আয়ের category পরিচালনা করুন</p>
                 </div>
                 <button
-                    onClick={() => { setShowAddForm(!showAddForm); setAddError(''); }}
+                    onClick={() => {
+                        setShowAddForm(!showAddForm);
+                        setAddError('');
+                        setNewIsInvestment(false); // Reset on cancel
+                    }}
                     className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                         showAddForm
                             ? 'bg-gray-100 text-gray-600'
@@ -152,6 +163,23 @@ const IncomeCategory = () => {
                                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-300 text-sm"
                             />
                         </div>
+
+                        {/* ✅ Investment Checkbox */}
+                        <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl border border-blue-200">
+                            <input
+                                type="checkbox"
+                                checked={newIsInvestment}
+                                onChange={e => setNewIsInvestment(e.target.checked)}
+                                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                            />
+                            <label className="text-sm font-medium text-blue-800">
+                                💰 এটি Investment Category?
+                                <span className="block text-xs text-blue-600 font-normal">
+                                    চেক করলে এই ক্যাটাগরির সব ইনকাম ডিফল্টভাবে ইনভেস্টমেন্ট হিসেবে গণ্য হবে
+                                </span>
+                            </label>
+                        </div>
+
                         <button
                             type="submit"
                             disabled={addLoading}
@@ -187,7 +215,14 @@ const IncomeCategory = () => {
                                 {idx + 1}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-gray-800 text-sm">{cat.name}</p>
+                                <p className="font-semibold text-gray-800 text-sm flex items-center gap-2">
+                                    {cat.name}
+                                    {cat.is_investment && (
+                                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-[10px] font-bold">
+                                            💰 Investment
+                                        </span>
+                                    )}
+                                </p>
                                 {cat.description && (
                                     <p className="text-xs text-gray-400 mt-0.5 truncate">{cat.description}</p>
                                 )}
@@ -237,6 +272,22 @@ const IncomeCategory = () => {
                                     value={editItem.description || ''}
                                     onChange={e => setEditItem({ ...editItem, description: e.target.value })}
                                 />
+                            </div>
+
+                            {/* ✅ Edit Modal-এ Investment Checkbox */}
+                            <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-xl border border-blue-200">
+                                <input
+                                    type="checkbox"
+                                    checked={editItem.is_investment || false}
+                                    onChange={e => setEditItem({ ...editItem, is_investment: e.target.checked })}
+                                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                />
+                                <label className="text-sm font-medium text-blue-800">
+                                    💰 Investment Category?
+                                    <span className="block text-xs text-blue-600 font-normal">
+                                        চেক করলে এই ক্যাটাগরির সব ইনকাম ডিফল্টভাবে ইনভেস্টমেন্ট হিসেবে গণ্য হবে
+                                    </span>
+                                </label>
                             </div>
                         </div>
                         <div className="flex gap-3 mt-5">

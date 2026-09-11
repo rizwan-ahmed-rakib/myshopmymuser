@@ -308,6 +308,7 @@
 //
 // export default StatCards;
 
+/////////////////////////////////////
 
 import React from 'react';
 import PropTypes from 'prop-types';
@@ -352,6 +353,13 @@ const StatCards = ({stats}) => {
                                 <h3 className="text-sm lg:text-2xl font-black text-gray-900 tracking-tight truncate">
                                     {stat.count}
                                 </h3>
+
+                                {/* ✅ SubInfo (if provided) */}
+                                {stat.subInfo && (
+                                    <p className="text-[9px] lg:text-xs font-semibold text-gray-500 mt-0.5 truncate">
+                                        {stat.subInfo}
+                                    </p>
+                                )}
                             </div>
 
                             {/* Icon Block — মোবাইলে একদম মিনিমাল (w-6 h-6) এবং আইকন সাইজ ছোট করা হয়েছে */}
@@ -373,7 +381,8 @@ StatCards.propTypes = {
             title: PropTypes.string.isRequired,
             count: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
             bgColor: PropTypes.string,
-            icon: PropTypes.node
+            icon: PropTypes.node,
+            subInfo: PropTypes.string, // ✅ new optional prop
         })
     ).isRequired
 };
@@ -384,45 +393,92 @@ export default StatCards;
 ///////////////////////////////////////////////////////
 
 
+// src/components/StatCards.jsx
+
 // import React from 'react';
 // import PropTypes from 'prop-types';
 //
-// /**
-//  * StatCards - Standardized statistics display for module summaries.
-//  * Updated to match the modern corporate micro-card design.
-//  */
 // const StatCards = ({ stats }) => {
 //     if (!stats || stats.length === 0) return null;
 //
 //     return (
-//         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
+//         <div
+//             className="flex overflow-x-auto md:grid md:grid-cols-3 lg:grid-cols-4 gap-2.5 lg:gap-6 mb-5 scrollbar-none max-w-full pb-2 -mb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+//         >
 //             {stats.map((stat, index) => {
-//                 //bgColor না থাকলে সেফটি ফলব্যাক হিসেবে bg-blue-600 সেট করা
 //                 const currentBg = stat.bgColor || 'bg-blue-600';
+//                 const isSplit = stat.columns && stat.columns.length === 2;
 //
 //                 return (
 //                     <div
 //                         key={index}
-//                         className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 relative overflow-hidden group"
+//                         className="bg-white rounded-xl lg:rounded-2xl p-2.5 lg:p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 relative overflow-hidden group w-[140px] xs:w-[160px] md:w-auto shrink-0"
 //                     >
-//                         {/* Decorative Corner Background Element */}
-//                         <div className={`absolute top-0 right-0 w-24 h-24 ${currentBg} opacity-[0.03] rounded-bl-full transition-transform duration-500 group-hover:scale-110`}></div>
+//                         {/* Decorative curve */}
+//                         <div
+//                             className={`absolute -top-6 -right-6 w-16 lg:w-28 h-16 lg:h-28 ${currentBg} opacity-[0.03] rounded-bl-[4rem] transition-transform duration-500 group-hover:scale-110`}
+//                         ></div>
 //
-//                         <div className="flex items-start justify-between relative z-10">
-//                             <div className="flex-1 pr-2">
-//                                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 leading-none">
-//                                     {stat.title}
-//                                 </p>
-//                                 <h3 className="text-2xl font-black text-gray-900 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
-//                                     {stat.count}
-//                                 </h3>
-//                             </div>
+//                         {isSplit ? (
+//                             // ✅ Split Layout: Two columns side by side (NO ICON)
+//                             <div className="relative z-10">
+//                                 <div className="flex items-start justify-between gap-2">
+//                                     {/* Left Column */}
+//                                     <div className="flex-1 min-w-0">
+//                                         <p className="text-[8px] lg:text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 leading-none truncate">
+//                                             {stat.columns[0].label}
+//                                         </p>
+//                                         <h3 className="text-sm lg:text-2xl font-black text-gray-900 tracking-tight truncate">
+//                                             {stat.columns[0].value}
+//                                         </h3>
+//                                     </div>
 //
-//                             {/* Icon Wrapper with dynamically controlled shadow tint */}
-//                             <div className={`${currentBg} text-white w-10 h-10 rounded-xl flex items-center justify-center shadow-lg shadow-gray-200/50 text-base flex-shrink-0 group-hover:scale-105 transition-transform duration-300`}>
-//                                 {stat.icon}
+//                                     {/* Vertical Divider */}
+//                                     <div className="w-px h-10 lg:h-14 bg-gray-200 self-center flex-shrink-0"></div>
+//
+//                                     {/* Right Column — Aligned Right */}
+//                                     <div className="flex-1 min-w-0 text-right">
+//                                         <p className="text-[8px] lg:text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 leading-none truncate">
+//                                             {stat.columns[1].label}
+//                                         </p>
+//                                         <h3 className="text-sm lg:text-2xl font-black text-gray-900 tracking-tight truncate">
+//                                             {stat.columns[1].value}
+//                                         </h3>
+//                                     </div>
+//                                 </div>
+//
+//                                 {/* Optional help text */}
+//                                 {stat.help && (
+//                                     <p className="text-[8px] lg:text-[10px] text-gray-400 mt-1 text-center truncate">
+//                                         {stat.help}
+//                                     </p>
+//                                 )}
 //                             </div>
-//                         </div>
+//                         ) : (
+//                             // ✅ Normal Layout (Single column with icon)
+//                             <div className="flex items-start justify-between gap-1 relative z-10">
+//                                 <div className="flex-1 min-w-0">
+//                                     <p className="text-[8px] lg:text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 leading-none truncate">
+//                                         {stat.title}
+//                                     </p>
+//                                     <h3 className="text-sm lg:text-2xl font-black text-gray-900 tracking-tight truncate">
+//                                         {stat.count}
+//                                     </h3>
+//                                     {stat.subInfo && (
+//                                         <p className="text-[9px] lg:text-xs font-semibold text-gray-500 mt-0.5 truncate">
+//                                             {stat.subInfo}
+//                                         </p>
+//                                     )}
+//                                 </div>
+//
+//                                 {/* Icon — Only for single-column cards */}
+//                                 <div
+//                                     className={`${currentBg} text-white w-6 h-6 lg:w-10 lg:h-10 rounded-md lg:rounded-xl flex items-center justify-center shadow-sm text-[10px] lg:text-base flex-shrink-0 group-hover:scale-105 transition-transform duration-300`}
+//                                 >
+//                                     <span className="scale-90 lg:scale-100">{stat.icon}</span>
+//                                 </div>
+//                             </div>
+//                         )}
 //                     </div>
 //                 );
 //             })}
@@ -433,12 +489,20 @@ export default StatCards;
 // StatCards.propTypes = {
 //     stats: PropTypes.arrayOf(
 //         PropTypes.shape({
-//             title: PropTypes.string.isRequired,
-//             count: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+//             title: PropTypes.string,
+//             count: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 //             bgColor: PropTypes.string,
-//             icon: PropTypes.node
+//             icon: PropTypes.node,
+//             subInfo: PropTypes.string,
+//             help: PropTypes.string,
+//             columns: PropTypes.arrayOf(
+//                 PropTypes.shape({
+//                     label: PropTypes.string.isRequired,
+//                     value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+//                 })
+//             ),
 //         })
-//     ).isRequired
+//     ).isRequired,
 // };
 //
 // export default StatCards;

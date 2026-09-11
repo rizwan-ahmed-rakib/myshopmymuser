@@ -29,6 +29,7 @@ const menuSections = [
             {path: '/reports', name: 'Reports', icon: '📈'},
             {path: '/Settings', name: 'Settings', icon: '⚙️'},
             {path: '/user-role', name: 'User Role', icon: '⚙️'},
+            {path: '/master-product-catelog', name: 'MasterCatalog(All Product)', icon: '📋'},
         ],
     },
 ];

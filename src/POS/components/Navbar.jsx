@@ -4,7 +4,7 @@ import AddNewDropdown from "./AddNewDropdown";
 import {useUserWithProfile} from "../../context_or_provider/pos/profile/userWithProfile";
 import {usePosAuth} from "../../context_or_provider/pos/PosAuth/PosAuthContext";
 import CalculatorModal from "../components/CalculatorModal"; // 🌟 Step 1 er modal import korun
-
+import { Pill } from "lucide-react";
 // 'onMenuClick' প্রপ্সটি এখানে রিসিভ করা হয়েছে
 const Navbar = ({pageTitle = "POS", breadcrumb = null, onMenuClick}) => {
     const [open, setOpen] = useState(false);
@@ -399,6 +399,19 @@ const Navbar = ({pageTitle = "POS", breadcrumb = null, onMenuClick}) => {
                 {/*        <path d="M2 5V2h3M11 2h3v3M14 11v3h-3M5 14H2v-3"/>*/}
                 {/*    </svg>*/}
                 {/*</button>*/}
+
+                 {/* 🆕 STANDALONE DOSAGE CHART PRINT BUTTON */}
+                <button
+                    onClick={() => navigate("/dosage-chart")}
+                    className={`relative w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${
+                        location.pathname === "/dosage-chart"
+                            ? "text-emerald-600 bg-emerald-50 hover:bg-emerald-100"
+                            : "text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
+                    }`}
+                    title="ঔষধ সেবনের নিয়ম প্রিন্ট (Dosage Chart)"
+                >
+                    <Pill size={15} strokeWidth={1.8} />
+                </button>
 
 
                 <button

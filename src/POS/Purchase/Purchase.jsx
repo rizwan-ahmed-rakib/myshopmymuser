@@ -13,7 +13,7 @@ import SupplierTransactionTab from "./SupplierTransactionTab";
  */
 const Purchase = () => {
     const [activeTab, setActiveTab] = useState('posPurchase-list');
-    const [viewType, setViewType] = useState('grid');
+    const [viewType, setViewType] = useState('list');
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [stats, setStats] = useState([]);
     

@@ -1,138 +1,9 @@
-// // src/pages/sale/customer/SaleTransactionFilters.jsx
-//
-// import React, { useState, useEffect } from 'react';
-// import { FaSearch, FaCalendarAlt, FaFilter } from 'react-icons/fa';
-//
-// const SaleTransactionFilters = ({ filters, onFilterChange, totalCount }) => {
-//     const [localFilters, setLocalFilters] = useState(filters);
-//
-//     useEffect(() => {
-//         setLocalFilters(filters);
-//     }, [filters]);
-//
-//     const handleInputChange = (e) => {
-//         const { name, value } = e.target;
-//         setLocalFilters(prev => ({ ...prev, [name]: value }));
-//     };
-//
-//     const handleApplyFilters = () => {
-//         onFilterChange({ ...localFilters, offset: 0 });
-//     };
-//
-//     const handleReset = () => {
-//         const resetFilters = {
-//             start_date: '',
-//             end_date: '',
-//             transaction_type: '',
-//             search: '',
-//             order_by: 'date_desc',
-//             offset: 0,
-//             limit: 50
-//         };
-//         setLocalFilters(resetFilters);
-//         onFilterChange(resetFilters);
-//     };
-//
-//     const handleKeyPress = (e) => {
-//         if (e.key === 'Enter') {
-//             handleApplyFilters();
-//         }
-//     };
-//
-//     return (
-//         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6">
-//             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-//                 <div>
-//                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-//                         <FaCalendarAlt className="inline mr-1" /> From
-//                     </label>
-//                     <input
-//                         type="date"
-//                         name="start_date"
-//                         value={localFilters.start_date || ''}
-//                         onChange={handleInputChange}
-//                         onKeyPress={handleKeyPress}
-//                         className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-//                     />
-//                 </div>
-//                 <div>
-//                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-//                         <FaCalendarAlt className="inline mr-1" /> To
-//                     </label>
-//                     <input
-//                         type="date"
-//                         name="end_date"
-//                         value={localFilters.end_date || ''}
-//                         onChange={handleInputChange}
-//                         onKeyPress={handleKeyPress}
-//                         className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-//                     />
-//                 </div>
-//                 <div>
-//                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-//                         <FaFilter className="inline mr-1" /> Transaction Type
-//                     </label>
-//                     <select
-//                         name="transaction_type"
-//                         value={localFilters.transaction_type || ''}
-//                         onChange={handleInputChange}
-//                         className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-//                     >
-//                         <option value="">All Types</option>
-//                         <option value="sale">Sale Invoice</option>
-//                         <option value="sale_return">Sale Return</option>
-//                         <option value="due_collection">Due Collection</option>
-//                     </select>
-//                 </div>
-//                 <div>
-//                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">
-//                         <FaSearch className="inline mr-1" /> Search
-//                     </label>
-//                     <div className="flex gap-2">
-//                         <input
-//                             type="text"
-//                             name="search"
-//                             placeholder="Invoice or Note..."
-//                             value={localFilters.search || ''}
-//                             onChange={handleInputChange}
-//                             onKeyPress={handleKeyPress}
-//                             className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-//                         />
-//                     </div>
-//                 </div>
-//             </div>
-//             <div className="flex flex-wrap justify-end gap-3 mt-4">
-//                 <span className="text-xs text-gray-400 self-center font-medium">
-//                     {totalCount || 0} records found
-//                 </span>
-//                 <button
-//                     onClick={handleReset}
-//                     className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-//                 >
-//                     Reset
-//                 </button>
-//                 <button
-//                     onClick={handleApplyFilters}
-//                     className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-//                 >
-//                     Apply Filters
-//                 </button>
-//             </div>
-//         </div>
-//     );
-// };
-//
-// export default SaleTransactionFilters;
-
-
-
-
 // src/pages/sale/customer/SaleTransactionFilters.jsx
 
-import React, { useState, useEffect } from 'react';
-import { FaSearch, FaCalendarAlt, FaFilter, FaTimes } from 'react-icons/fa';
+import React, {useState, useEffect} from 'react';
+import {FaSearch, FaCalendarAlt, FaFilter, FaTimes} from 'react-icons/fa';
 
-const SaleTransactionFilters = ({ filters, onFilterChange, totalCount }) => {
+const SaleTransactionFilters = ({filters, onFilterChange, totalCount, showTypeFilter = true}) => {
     const [localFilters, setLocalFilters] = useState(filters);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
 
@@ -141,12 +12,12 @@ const SaleTransactionFilters = ({ filters, onFilterChange, totalCount }) => {
     }, [filters]);
 
     const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setLocalFilters(prev => ({ ...prev, [name]: value }));
+        const {name, value} = e.target;
+        setLocalFilters(prev => ({...prev, [name]: value}));
     };
 
     const handleApplyFilters = () => {
-        onFilterChange({ ...localFilters, offset: 0 });
+        onFilterChange({...localFilters, offset: 0});
         setIsFilterOpen(false);
     };
 
@@ -178,7 +49,7 @@ const SaleTransactionFilters = ({ filters, onFilterChange, totalCount }) => {
             <div className="flex items-center gap-2 flex-nowrap">
                 <div className="min-w-[130px]">
                     <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">
-                        <FaCalendarAlt className="inline mr-1 text-xs" /> From
+                        <FaCalendarAlt className="inline mr-1 text-xs"/> From
                     </label>
                     <input
                         type="date"
@@ -191,7 +62,7 @@ const SaleTransactionFilters = ({ filters, onFilterChange, totalCount }) => {
                 </div>
                 <div className="min-w-[130px]">
                     <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">
-                        <FaCalendarAlt className="inline mr-1 text-xs" /> To
+                        <FaCalendarAlt className="inline mr-1 text-xs"/> To
                     </label>
                     <input
                         type="date"
@@ -205,27 +76,29 @@ const SaleTransactionFilters = ({ filters, onFilterChange, totalCount }) => {
             </div>
 
             {/* টাইপ সিলেক্ট – সেলের জন্য */}
-            <div className="min-w-[150px]">
-                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">
-                    <FaFilter className="inline mr-1 text-xs" /> Type
-                </label>
-                <select
-                    name="transaction_type"
-                    value={localFilters.transaction_type || ''}
-                    onChange={handleInputChange}
-                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                >
-                    <option value="">All Types</option>
-                    <option value="sale">Sale Invoice</option>
-                    <option value="sale_return">Sale Return</option>
-                    <option value="due_collection">Due Collection</option>
-                </select>
-            </div>
+            {showTypeFilter && (
+                <div className="min-w-[150px]">
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">
+                        <FaFilter className="inline mr-1 text-xs"/> Type
+                    </label>
+                    <select
+                        name="transaction_type"
+                        value={localFilters.transaction_type || ''}
+                        onChange={handleInputChange}
+                        className="w-full px-2 py-1.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    >
+                        <option value="">All Types</option>
+                        <option value="sale">Sale Invoice</option>
+                        <option value="sale_return">Sale Return</option>
+                        <option value="due_collection">Due Collection</option>
+                    </select>
+                </div>
+            )}
 
             {/* সার্চ ইনপুট – বাকি জায়গা নেয় */}
             <div className="flex-1 min-w-[160px]">
                 <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">
-                    <FaSearch className="inline mr-1 text-xs" /> Search
+                    <FaSearch className="inline mr-1 text-xs"/> Search
                 </label>
                 <input
                     type="text"
@@ -262,12 +135,14 @@ const SaleTransactionFilters = ({ filters, onFilterChange, totalCount }) => {
     return (
         <>
             {/* ---------- বড় স্ক্রিন (md+) : সবকিছু এক লাইনে ---------- */}
-            <div className="hidden md:flex items-end gap-3 bg-white p-3 rounded-2xl shadow-sm border border-gray-100 mb-6 overflow-x-auto">
+            <div
+                className="hidden md:flex items-end gap-3 bg-white p-3 rounded-2xl shadow-sm border border-gray-100 mb-6 overflow-x-auto">
                 {filterFields}
             </div>
 
             {/* ---------- ছোট স্ক্রিন : শুধু কাউন্ট + ফিল্টার আইকন (নন-ফ্লোটিং) ---------- */}
-            <div className="flex md:hidden items-center justify-between bg-white p-3 rounded-2xl shadow-sm border border-gray-100 mb-4">
+            <div
+                className="flex md:hidden items-center justify-between bg-white p-3 rounded-2xl shadow-sm border border-gray-100 mb-4">
                 <span className="text-xs text-gray-400 font-medium">
                     {totalCount || 0} records found
                 </span>
@@ -275,7 +150,7 @@ const SaleTransactionFilters = ({ filters, onFilterChange, totalCount }) => {
                     onClick={() => setIsFilterOpen(true)}
                     className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium"
                 >
-                    <FaFilter /> Filter
+                    <FaFilter/> Filter
                 </button>
             </div>
 
@@ -285,7 +160,7 @@ const SaleTransactionFilters = ({ filters, onFilterChange, totalCount }) => {
                     onClick={() => setIsFilterOpen(true)}
                     className="flex items-center justify-center w-14 h-14 bg-blue-600 text-white rounded-full shadow-2xl hover:bg-blue-700 transition-all duration-200 hover:scale-105"
                 >
-                    <FaFilter size={24} />
+                    <FaFilter size={24}/>
                 </button>
             </div>
 
@@ -303,7 +178,7 @@ const SaleTransactionFilters = ({ filters, onFilterChange, totalCount }) => {
                                 onClick={() => setIsFilterOpen(false)}
                                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                             >
-                                <FaTimes className="text-gray-500" />
+                                <FaTimes className="text-gray-500"/>
                             </button>
                         </div>
                         {/* মডালের ভেতর ফিল্ডগুলো ভার্টিক্যালি সাজানো */}

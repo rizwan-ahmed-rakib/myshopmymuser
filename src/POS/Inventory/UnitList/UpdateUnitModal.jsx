@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { Scale, Camera, Image as ImageIcon, Settings } from 'lucide-react';
-import { posUnitAPI } from "../../../context_or_provider/pos/units/unitAPI";
+import React, {useState, useEffect} from "react";
+import {Scale, Camera, Image as ImageIcon, Settings} from 'lucide-react';
+import {posUnitAPI} from "../../../context_or_provider/pos/units/unitAPI";
 import BaseModal from "../../components/BaseModal";
-import { useForm } from "../../../hooks/profile";
+import {useForm} from "../../../hooks/profile";
+import ImagePicker from "../../components/imagecapture/ImagePicker";
 
 /**
  * UpdateUnitModal - Refactored to use BaseModal and match Backbone pattern.
  */
-const UpdateUnitModal = ({ isOpen, onClose, onSuccess, productData }) => {
+const UpdateUnitModal = ({isOpen, onClose, onSuccess, productData}) => {
     const [loading, setLoading] = useState(false);
     const [previewImage, setPreviewImage] = useState(null);
     const [imageFile, setImageFile] = useState(null);
@@ -37,14 +38,23 @@ const UpdateUnitModal = ({ isOpen, onClose, onSuccess, productData }) => {
         }
     }, [productData, isOpen, setFormData]);
 
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
+    const handleImageChange = (fileOrEvent) => {
+        const file = fileOrEvent?.target?.files?.[0] || fileOrEvent;
         if (file) {
-            setImageFile(file);
+            // setFormField("image", file);       // Add modal
+            // OR
+            setImageFile(file);                // Update modal
             const reader = new FileReader();
             reader.onloadend = () => setPreviewImage(reader.result);
             reader.readAsDataURL(file);
         }
+    };
+
+    const handleImageClear = () => {
+        // setFormField("image", null);           // Add modal
+        // OR
+        setImageFile(null);                    // Update modal
+        setPreviewImage(null);
     };
 
     const handleSubmit = async (e) => {
@@ -53,7 +63,7 @@ const UpdateUnitModal = ({ isOpen, onClose, onSuccess, productData }) => {
 
         setLoading(true);
         try {
-            const dataToSend = { ...form };
+            const dataToSend = {...form};
             if (imageFile) {
                 dataToSend.image = imageFile;
             }
@@ -76,7 +86,7 @@ const UpdateUnitModal = ({ isOpen, onClose, onSuccess, productData }) => {
             title="Update Unit"
             subtitle={`Ref: #UNT-${productData?.id}`}
             size="md"
-            icon={<Settings />}
+            icon={<Settings/>}
             showFooter={true}
             onSubmit={handleSubmit}
             submitText="Save Changes"
@@ -84,40 +94,35 @@ const UpdateUnitModal = ({ isOpen, onClose, onSuccess, productData }) => {
         >
             <div className="space-y-8">
                 {/* Image Upload Area */}
-                <div className="bg-gray-50 p-8 rounded-[2rem] border-2 border-dashed border-gray-200 flex flex-col items-center text-center shadow-inner relative group hover:border-blue-400 transition-colors">
-                    <div className="relative">
-                        <div className="w-32 h-32 rounded-[2rem] bg-white border-4 border-white shadow-xl overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105 duration-300">
-                            {previewImage ? (
-                                <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
-                            ) : (
-                                <ImageIcon size={48} className="text-gray-200" />
-                            )}
-                        </div>
-                        <label className="absolute -bottom-2 -right-2 bg-blue-600 text-white p-3 rounded-2xl shadow-lg cursor-pointer hover:bg-blue-700 active:scale-90 transition-all border-4 border-white">
-                            <Camera size={18} />
-                            <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
-                        </label>
-                    </div>
-                    <div className="mt-4">
-                        <h4 className="text-sm font-black text-gray-800 uppercase tracking-tight">{form.title || "Unit Logo"}</h4>
-                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Click camera to update photo</p>
-                    </div>
+                <div
+                    className="bg-gray-50 p-8 rounded-[2rem] border-2 border-dashed border-gray-200 flex flex-col items-center text-center shadow-inner hover:border-blue-400 transition-colors">
+                    <ImagePicker
+                        value={previewImage}
+                        onChange={handleImageChange}
+                        onClear={handleImageClear}
+                        shape="square"
+                        size="lg"
+                        placeholder={<ImageIcon size={48} className="text-gray-200"/>}
+                        label="Unit Icon"
+                    />
                 </div>
 
                 {/* Title Input */}
                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Unit Title *</label>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Unit Title
+                        *</label>
                     <div className="relative">
-                        <Scale size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input 
-                            name="title" 
-                            value={form.title} 
-                            onChange={handleChange} 
-                            className="w-full bg-gray-50 border-2 border-gray-100 p-4 pl-12 rounded-2xl font-bold text-gray-900 focus:bg-white focus:border-blue-500 outline-none transition-all" 
-                            placeholder="e.g. Piece (pcs), Kilogram (kg), etc." 
+                        <Scale size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"/>
+                        <input
+                            name="title"
+                            value={form.title}
+                            onChange={handleChange}
+                            className="w-full bg-gray-50 border-2 border-gray-100 p-4 pl-12 rounded-2xl font-bold text-gray-900 focus:bg-white focus:border-blue-500 outline-none transition-all"
+                            placeholder="e.g. Piece (pcs), Kilogram (kg), etc."
                         />
                     </div>
-                    {errors.title && <p className="text-rose-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.title}</p>}
+                    {errors.title &&
+                        <p className="text-rose-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.title}</p>}
                 </div>
             </div>
         </BaseModal>

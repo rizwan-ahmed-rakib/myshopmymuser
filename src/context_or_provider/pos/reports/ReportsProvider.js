@@ -40,6 +40,11 @@ export const ReportsProvider = ({ children }) => {
     // Product Profit — cumulative, paginated
     const [productProfits, setProductProfits] = useState(null);
 
+    // 🆕 Supplier, Brand, Customer Profits (cumulative/all-time with dynamic range)
+    const [supplierProfits, setSupplierProfits] = useState(null);
+    const [brandProfits, setBrandProfits] = useState(null);
+    const [customerProfits, setCustomerProfits] = useState(null);
+
     // Inventory Valuation — monthly / yearly series
     const [inventoryValuation, setInventoryValuation] = useState({
         monthly: null,
@@ -239,6 +244,87 @@ export const ReportsProvider = ({ children }) => {
             return res.data;
         } catch (err) {
             console.error('loadProductProfits error:', err);
+            setError(err);
+            return null;
+        } finally {
+            setLoading(false);
+        }
+    }, [buildParams, getCacheKey, readCache, writeCache]);
+
+    // Supplier Profits
+    const loadSupplierProfits = useCallback(async (paramsOverride = {}) => {
+        const params = buildParams(paramsOverride);
+        const key = getCacheKey('supplier-profit', params);
+
+        const cached = readCache(key);
+        if (cached) {
+            setSupplierProfits(cached);
+            return cached;
+        }
+
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await posReportsAPI.getSupplierProfits(params);
+            writeCache(key, res.data);
+            setSupplierProfits(res.data);
+            return res.data;
+        } catch (err) {
+            console.error('loadSupplierProfits error:', err);
+            setError(err);
+            return null;
+        } finally {
+            setLoading(false);
+        }
+    }, [buildParams, getCacheKey, readCache, writeCache]);
+
+    // Brand Profits
+    const loadBrandProfits = useCallback(async (paramsOverride = {}) => {
+        const params = buildParams(paramsOverride);
+        const key = getCacheKey('brand-profit', params);
+
+        const cached = readCache(key);
+        if (cached) {
+            setBrandProfits(cached);
+            return cached;
+        }
+
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await posReportsAPI.getBrandProfits(params);
+            writeCache(key, res.data);
+            setBrandProfits(res.data);
+            return res.data;
+        } catch (err) {
+            console.error('loadBrandProfits error:', err);
+            setError(err);
+            return null;
+        } finally {
+            setLoading(false);
+        }
+    }, [buildParams, getCacheKey, readCache, writeCache]);
+
+    // Customer Profits
+    const loadCustomerProfits = useCallback(async (paramsOverride = {}) => {
+        const params = buildParams(paramsOverride);
+        const key = getCacheKey('customer-profit', params);
+
+        const cached = readCache(key);
+        if (cached) {
+            setCustomerProfits(cached);
+            return cached;
+        }
+
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await posReportsAPI.getCustomerProfits(params);
+            writeCache(key, res.data);
+            setCustomerProfits(res.data);
+            return res.data;
+        } catch (err) {
+            console.error('loadCustomerProfits error:', err);
             setError(err);
             return null;
         } finally {
@@ -447,6 +533,9 @@ export const ReportsProvider = ({ children }) => {
         // Data
         profitSummary,
         productProfits,
+        supplierProfits,
+        brandProfits,
+        customerProfits,
         inventoryValuation,
         businessGrowth,
         supportData,
@@ -469,6 +558,9 @@ export const ReportsProvider = ({ children }) => {
         // Loaders
         loadProfitSummary,
         loadProductProfits,
+        loadSupplierProfits,
+        loadBrandProfits,
+        loadCustomerProfits,
         loadInventoryValuation,
         loadBusinessGrowth,
         loadSupportData,
@@ -488,6 +580,9 @@ export const ReportsProvider = ({ children }) => {
     }), [
         profitSummary,
         productProfits,
+        supplierProfits,
+        brandProfits,
+        customerProfits,
         inventoryValuation,
         businessGrowth,
         supportData,
@@ -501,6 +596,9 @@ export const ReportsProvider = ({ children }) => {
         setColumnPrefs,
         loadProfitSummary,
         loadProductProfits,
+        loadSupplierProfits,
+        loadBrandProfits,
+        loadCustomerProfits,
         loadInventoryValuation,
         loadBusinessGrowth,
         loadSupportData,

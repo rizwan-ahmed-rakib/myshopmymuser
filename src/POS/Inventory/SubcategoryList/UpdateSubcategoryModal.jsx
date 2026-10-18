@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { Layers, Camera, Image as ImageIcon, Settings, Search } from 'lucide-react';
-import { posSubCategoryAPI } from "../../../context_or_provider/pos/subcategories/subCategoryApi";
-import { posCategoryAPI } from "../../../context_or_provider/pos/categories/categoryAPI";
+import React, {useState, useEffect, useCallback} from "react";
+import {Layers, Camera, Image as ImageIcon, Settings, Search} from 'lucide-react';
+import {posSubCategoryAPI} from "../../../context_or_provider/pos/subcategories/subCategoryApi";
+import {posCategoryAPI} from "../../../context_or_provider/pos/categories/categoryAPI";
 import BaseModal from "../../components/BaseModal";
-import { useForm } from "../../../hooks/profile";
+import {useForm} from "../../../hooks/profile";
+import ImagePicker from "../../components/imagecapture/ImagePicker";
 
 /**
  * UpdateSubcategoryModal - Refactored to use BaseModal and match Backbone pattern.
  */
-const UpdateSubcategoryModal = ({ isOpen, onClose, onSuccess, productData }) => {
+const UpdateSubcategoryModal = ({isOpen, onClose, onSuccess, productData}) => {
     const [loading, setLoading] = useState(false);
     const [categories, setCategories] = useState([]);
     const [categoriesLoading, setCategoriesLoading] = useState(false);
@@ -58,14 +59,23 @@ const UpdateSubcategoryModal = ({ isOpen, onClose, onSuccess, productData }) => 
         }
     }, [productData, isOpen, setFormData, fetchCategories]);
 
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
+    const handleImageChange = (fileOrEvent) => {
+        const file = fileOrEvent?.target?.files?.[0] || fileOrEvent;
         if (file) {
-            setImageFile(file);
+            // setFormField("image", file);       // Add modal
+            // OR
+            setImageFile(file);                // Update modal
             const reader = new FileReader();
             reader.onloadend = () => setPreviewImage(reader.result);
             reader.readAsDataURL(file);
         }
+    };
+
+    const handleImageClear = () => {
+        // setFormField("image", null);           // Add modal
+        // OR
+        setImageFile(null);                    // Update modal
+        setPreviewImage(null);
     };
 
     const handleSubmit = async (e) => {
@@ -74,7 +84,7 @@ const UpdateSubcategoryModal = ({ isOpen, onClose, onSuccess, productData }) => 
 
         setLoading(true);
         try {
-            const dataToSend = { ...form };
+            const dataToSend = {...form};
             if (imageFile) {
                 dataToSend.image = imageFile;
             }
@@ -97,7 +107,7 @@ const UpdateSubcategoryModal = ({ isOpen, onClose, onSuccess, productData }) => 
             title="Update Subcategory"
             subtitle={`Ref: #SUB-${productData?.id}`}
             size="md"
-            icon={<Settings />}
+            icon={<Settings/>}
             showFooter={true}
             onSubmit={handleSubmit}
             submitText="Save Changes"
@@ -105,31 +115,28 @@ const UpdateSubcategoryModal = ({ isOpen, onClose, onSuccess, productData }) => 
         >
             <div className="space-y-6">
                 {/* Image Upload Area */}
-                <div className="bg-gray-50 p-6 rounded-[2rem] border-2 border-dashed border-gray-200 flex flex-col items-center text-center shadow-inner relative group hover:border-blue-400 transition-colors">
-                    <div className="relative">
-                        <div className="w-24 h-24 rounded-[1.5rem] bg-white border-4 border-white shadow-lg overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105 duration-300">
-                            {previewImage ? (
-                                <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
-                            ) : (
-                                <ImageIcon size={32} className="text-gray-200" />
-                            )}
-                        </div>
-                        <label className="absolute -bottom-2 -right-2 bg-blue-600 text-white p-2 rounded-xl shadow-lg cursor-pointer hover:bg-blue-700 active:scale-90 transition-all border-4 border-white">
-                            <Camera size={14} />
-                            <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
-                        </label>
-                    </div>
+                <div
+                    className="bg-gray-50 p-8 rounded-[2rem] border-2 border-dashed border-gray-200 flex flex-col items-center text-center shadow-inner hover:border-blue-400 transition-colors">
+                    <ImagePicker
+                        value={previewImage}
+                        onChange={handleImageChange}
+                        onClear={handleImageClear}
+                        shape="square"
+                        size="lg"
+                        placeholder={<ImageIcon size={48} className="text-gray-200"/>}
+                        label="Subcategory Icon"
+                    />
                 </div>
-
                 {/* Parent Category Selector */}
                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Parent Category *</label>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Parent
+                        Category *</label>
                     <div className="relative">
-                        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <select 
-                            name="category" 
-                            value={form.category} 
-                            onChange={handleChange} 
+                        <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"/>
+                        <select
+                            name="category"
+                            value={form.category}
+                            onChange={handleChange}
                             disabled={categoriesLoading}
                             className="w-full bg-gray-50 border-2 border-gray-100 p-4 pl-12 rounded-2xl font-bold text-gray-900 focus:bg-white focus:border-blue-500 outline-none appearance-none transition-all"
                         >
@@ -139,23 +146,26 @@ const UpdateSubcategoryModal = ({ isOpen, onClose, onSuccess, productData }) => 
                             ))}
                         </select>
                     </div>
-                    {errors.category && <p className="text-rose-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.category}</p>}
+                    {errors.category &&
+                        <p className="text-rose-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.category}</p>}
                 </div>
 
                 {/* Title Input */}
                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Subcategory Title *</label>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Subcategory
+                        Title *</label>
                     <div className="relative">
-                        <Layers size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input 
-                            name="title" 
-                            value={form.title} 
-                            onChange={handleChange} 
-                            className="w-full bg-gray-50 border-2 border-gray-100 p-4 pl-12 rounded-2xl font-bold text-gray-900 focus:bg-white focus:border-blue-500 outline-none transition-all" 
-                            placeholder="e.g. Smart Phones, Menswear, etc." 
+                        <Layers size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"/>
+                        <input
+                            name="title"
+                            value={form.title}
+                            onChange={handleChange}
+                            className="w-full bg-gray-50 border-2 border-gray-100 p-4 pl-12 rounded-2xl font-bold text-gray-900 focus:bg-white focus:border-blue-500 outline-none transition-all"
+                            placeholder="e.g. Smart Phones, Menswear, etc."
                         />
                     </div>
-                    {errors.title && <p className="text-rose-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.title}</p>}
+                    {errors.title &&
+                        <p className="text-rose-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.title}</p>}
                 </div>
             </div>
         </BaseModal>

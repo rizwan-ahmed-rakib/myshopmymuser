@@ -15,9 +15,9 @@ const Cashbox = () => {
         {id: 'transactions', name: 'Cashbox'},
         {id: 'transfer', name: 'Fund Transfer'},
 
-        {id: 'income', name: 'Income'},
-        {id: 'expense', name: 'Expense'},
-        {id: 'add', name: 'Add Entry'},
+        // {id: 'income', name: 'Income'},
+        // {id: 'expense', name: 'Expense'},
+        // {id: 'add', name: 'Add Entry'},
         {id: 'report', name: 'Report'},
     ];
 

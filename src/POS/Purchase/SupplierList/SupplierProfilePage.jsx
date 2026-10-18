@@ -12,6 +12,7 @@ import DetailsInfoCard from "../../components/DetailsInfoCard";
 import UpdateEmployeeProfileModal from "./UpdateProfileModal";
 import SuccessModal from "../../components/SuccessModal";
 import {posSupplierAPI} from "../../../context_or_provider/pos/Purchase/suppliers/supplierAPI";
+import SupplierProfitStatsCard from "./SupplierProfitStatsCard";
 
 /**
  * SupplierProfilePage - Refactored to use GenericModuleDetails and DetailsInfoCard.
@@ -186,6 +187,10 @@ const SupplierProfilePage = () => {
                 </div>
             </div>
 
+
+            <div className="mt-8">
+                <SupplierProfitStatsCard supplierId={id}/>
+            </div>
 
             <div className="mt-8">
                 <SupplierTransactionHistory/>

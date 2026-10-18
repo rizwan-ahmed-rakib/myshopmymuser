@@ -29,7 +29,9 @@ const menuSections = [
             {path: '/reports', name: 'Reports', icon: '📈'},
             {path: '/Settings', name: 'Settings', icon: '⚙️'},
             {path: '/user-role', name: 'User Role', icon: '⚙️'},
-            {path: '/master-product-catelog', name: 'MasterCatalog(All Product)', icon: '📋'},
+            // {path: '/master-product-catelog', name: 'MasterCatalog(All Product)', icon: '📋'},
+            {path: '/dosage-chart', name: 'Dosage Chart Print', icon: '💊'},   
+
         ],
     },
 ];
@@ -138,28 +140,29 @@ const Sidebar = ({isOpen, setIsOpen}) => {
                 </nav>
 
                 {/* User footer */}
-                <div className="px-2.5 py-3 border-t border-white/[0.08]">
-                    <div
-                        className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-white/[0.06] cursor-pointer transition-colors group">
-                        <div
-                            className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-400 to-indigo-500 flex items-center justify-center text-xs font-medium text-white shrink-0 overflow-hidden ring-1 ring-white/10 group-hover:ring-white/20 transition-all">
-                            {userWith_profile?.profile_picture ? (
-                                <img src={userWith_profile.profile_picture} alt="Avatar"
-                                     className="w-full h-full object-cover"/>
-                            ) : (
-                                userWith_profile?.name?.substring(0, 2).toUpperCase() || "US"
-                            )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-xs text-slate-200 font-medium leading-none truncate">
-                                {userWith_profile?.name || "User"}
-                            </p>
-                            <p className="text-[10px] text-slate-500 mt-1 truncate capitalize">
-                                {userWith_profile?.role || "Member"}
-                            </p>
-                        </div>
-                    </div>
-                </div>
+
+                {/*<div className="px-2.5 py-3 border-t border-white/[0.08]">*/}
+                {/*    <div*/}
+                {/*        className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-white/[0.06] cursor-pointer transition-colors group">*/}
+                {/*        <div*/}
+                {/*            className="w-8 h-8 rounded-full bg-gradient-to-br from-sky-400 to-indigo-500 flex items-center justify-center text-xs font-medium text-white shrink-0 overflow-hidden ring-1 ring-white/10 group-hover:ring-white/20 transition-all">*/}
+                {/*            {userWith_profile?.profile_picture ? (*/}
+                {/*                <img src={userWith_profile.profile_picture} alt="Avatar"*/}
+                {/*                     className="w-full h-full object-cover"/>*/}
+                {/*            ) : (*/}
+                {/*                userWith_profile?.name?.substring(0, 2).toUpperCase() || "US"*/}
+                {/*            )}*/}
+                {/*        </div>*/}
+                {/*        <div className="flex-1 min-w-0">*/}
+                {/*            <p className="text-xs text-slate-200 font-medium leading-none truncate">*/}
+                {/*                {userWith_profile?.name || "User"}*/}
+                {/*            </p>*/}
+                {/*            <p className="text-[10px] text-slate-500 mt-1 truncate capitalize">*/}
+                {/*                {userWith_profile?.role || "Member"}*/}
+                {/*            </p>*/}
+                {/*        </div>*/}
+                {/*    </div>*/}
+                {/*</div>*/}
 
             </div>
         </>

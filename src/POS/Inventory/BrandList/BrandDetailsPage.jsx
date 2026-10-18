@@ -8,6 +8,7 @@ import GenericModuleDetails from "../../components/GenericModuleDetails";
 import DetailsInfoCard from "../../components/DetailsInfoCard";
 import { posBrandAPI } from "../../../context_or_provider/pos/brands/brandAPI";
 import SuccessModal from "../../components/SuccessModal";
+import BrandProfitStatsCard from "./BrandProfitStatsCard";
 
 /**
  * BrandDetailsPage - Refactored to use GenericModuleDetails and Backbone branding.
@@ -127,6 +128,10 @@ const BrandDetailsPage = () => {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div className="mt-8">
+                <BrandProfitStatsCard brandId={id} />
             </div>
 
             {editOpen && (

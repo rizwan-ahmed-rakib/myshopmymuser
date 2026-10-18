@@ -66,9 +66,25 @@ export const posSupplierAPI = {
     // Delete employee
     delete: (id) => api.delete(`/api/purchase/suppliers/${id}/`),
 
-     getTransactions: async (supplierId, params = {}) => {
+    getTransactions: async (supplierId, params = {}) => {
         const query = new URLSearchParams(params).toString();
         const response = await api.get(`/api/purchase/supplier-transactions/${supplierId}/transactions/?${query}`);
         return response;
+    },
+
+
+    getTopProducts: async (supplierId, params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return await api.get(`/api/purchase/supplier-transactions/${supplierId}/top-products/?${query}`);
+    },
+
+    getStarProducts: async (supplierId, params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return await api.get(`/api/purchase/supplier-transactions/${supplierId}/star-products/?${query}`);
+    },
+
+    getRiskProducts: async (supplierId, params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return await api.get(`/api/purchase/supplier-transactions/${supplierId}/risk-products/?${query}`);
     },
 };

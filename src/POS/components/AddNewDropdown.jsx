@@ -174,10 +174,9 @@
 // export default AddNewDropdown;
 
 
-
-import React, { useState } from "react";
-import { usePosCategory } from "../../context_or_provider/pos/categories/CategoryProvider";
-
+import React, {useState} from "react";
+import {usePosCategory} from "../../context_or_provider/pos/categories/CategoryProvider";
+import {useNavigate} from "react-router-dom";
 // 🔹 Modals
 import AddCategoryModal from "../Inventory/CategoryList/AddCategoryModal";
 import AddSubCategoryModal from "../Inventory/SubcategoryList/AddSubCategoryModal";
@@ -194,23 +193,25 @@ import AddSaleReturnModal from "../Sales/SaleReturn/AddSaleReturnModal";
 import SuccessModal from "./SuccessModal";
 
 const items = [
-    { name: "Category", icon: "📦", key: "category" },
-    { name: "Sub Category", icon: "🗂️", key: "subcategory" },
-    { name: "Product", icon: "➕", key: "product" },
-    { name: "Brand", icon: "🏷️", key: "brand" },
-    { name: "Size", icon: "📏", key: "size" },
-    { name: "Unit", icon: "⚖️", key: "unit" },
-    { name: "Supplier", icon: "✅", key: "supplier" },
-    { name: "Purchase", icon: "🛍️", key: "purchase" },
-    { name: "Purchase Return", icon: "↩️", key: "purchaseReturn" },
-    { name: "Customer", icon: "👥", key: "customer" },
-    { name: "Sale", icon: "🛒", key: "sale" },
-    { name: "Sale Return", icon: "📑", key: "saleReturn" },
+    {name: "Category", icon: "📦", key: "category"},
+    {name: "Sub Category", icon: "🗂️", key: "subcategory"},
+    {name: "Product", icon: "➕", key: "product"},
+    {name: "Brand", icon: "🏷️", key: "brand"},
+    {name: "Size", icon: "📏", key: "size"},
+    {name: "Unit", icon: "⚖️", key: "unit"},
+    {name: "Supplier", icon: "✅", key: "supplier"},
+    {name: "Purchase", icon: "🛍️", key: "purchase"},
+    {name: "Purchase Return", icon: "↩️", key: "purchaseReturn"},
+    {name: "Customer", icon: "👥", key: "customer"},
+    {name: "Sale", icon: "🛒", key: "sale"},
+    {name: "Sale Return", icon: "📑", key: "saleReturn"},
+    {name: "Dosage Chart", icon: "💊", key: "dosageChart", isLink: true, path: "/dosage-chart"},
+
 ];
 
-const AddNewDropdown = ({ onClose }) => {
-    const { setSuccessData } = usePosCategory();
-
+const AddNewDropdown = ({onClose}) => {
+    const {setSuccessData} = usePosCategory();
+    const navigate = useNavigate();
     const [activeModal, setActiveModal] = useState(null);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
@@ -259,10 +260,22 @@ const AddNewDropdown = ({ onClose }) => {
                     {items.map((item) => (
                         <button
                             key={item.key}
-                            onClick={() => setActiveModal(item.key)}
+                            // onClick={() => setActiveModal(item.key)}
+
+                            onClick={() => {
+                                if (item.isLink) {
+                                    // 🆕 Direct navigation — modal খুলবে না
+                                    navigate(item.path);
+                                    onClose?.();
+                                } else {
+                                    setActiveModal(item.key);
+                                }
+                            }}
+
                             className="flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-xl hover:bg-indigo-50/50 border border-slate-100 hover:border-indigo-100 transition-all duration-200 active:scale-95 group shadow-sm bg-slate-50/30"
                         >
-                            <span className="text-xl sm:text-2xl transition-transform duration-200 group-hover:scale-110">
+                            <span
+                                className="text-xl sm:text-2xl transition-transform duration-200 group-hover:scale-110">
                                 {item.icon}
                             </span>
                             <p className="mt-1.5 text-[10px] sm:text-xs font-semibold text-gray-600 text-center leading-tight whitespace-normal break-words w-full group-hover:text-indigo-600">

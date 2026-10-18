@@ -1,22 +1,99 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, {useState, useEffect, useCallback} from "react";
 import Select from "react-select";
+import axios from "axios";
 import {
-    Plus, X, Loader2, Package, Tag, Layers, GitCommit,
+    Plus, Package, Tag, Layers, GitCommit,
     Scale, Maximize, ShieldCheck, Calendar, Info,
-    Camera, Image as ImageIcon, DollarSign, Target, Activity, FileClock, Boxes
+    Image as ImageIcon, DollarSign, Target, Activity, FileClock, Boxes,
+    FlaskConical, Check, Bell, Boxes as BoxesIcon,
 } from 'lucide-react';
-import { posProductAPI } from "../../../context_or_provider/pos/products/productAPI";
-import { posCategoryAPI } from "../../../context_or_provider/pos/categories/categoryAPI";
-import { posSubCategoryAPI } from "../../../context_or_provider/pos/subcategories/subCategoryApi";
-import { posBrandAPI } from "../../../context_or_provider/pos/brands/brandAPI";
-import { posUnitAPI } from "../../../context_or_provider/pos/units/unitAPI";
-import { posSizeAPI } from "../../../context_or_provider/pos/sizes/sizeAPI";
-import { posWarrantyPeriodAPI } from "../../../context_or_provider/pos/warrantyPeriod/WarrantyPeriodAPI";
+import ImagePicker from "../../components/imagecapture/ImagePicker";
+import {posProductAPI} from "../../../context_or_provider/pos/products/productAPI";
+import {posCategoryAPI} from "../../../context_or_provider/pos/categories/categoryAPI";
+import {posSubCategoryAPI} from "../../../context_or_provider/pos/subcategories/subCategoryApi";
+import {posBrandAPI} from "../../../context_or_provider/pos/brands/brandAPI";
+import {posUnitAPI} from "../../../context_or_provider/pos/units/unitAPI";
+import {posSizeAPI} from "../../../context_or_provider/pos/sizes/sizeAPI";
+import {posWarrantyPeriodAPI} from "../../../context_or_provider/pos/warrantyPeriod/WarrantyPeriodAPI";
+import BASE_URL_of_POS from "../../../posConfig";
 import BaseModal from "../../components/BaseModal";
-import { useForm } from "../../../hooks/profile";
+import {useForm} from "../../../hooks/profile";
 
-// --- Quick Add Modal Component ---
-const QuickAddModal = ({ isOpen, onClose, onSave, title, hasImage = false, existingOptions = [] }) => {
+/* 🆕 Specification API — inline */
+const specificationAPI = {
+    getAll: () => axios.get(`${BASE_URL_of_POS}/api/products/specification/`),
+    create: (data) => axios.post(`${BASE_URL_of_POS}/api/products/specification/`, data),
+};
+
+/* ═══════════════════════════════════════════════
+   🎯 MODULE-LEVEL HELPERS (focus preservation)
+   ═══════════════════════════════════════════════ */
+const SmallLabel = ({children, onAdd}) => (
+    <div className="flex justify-between items-center ml-1 mb-1">
+        <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1">
+            {children}
+        </label>
+        {onAdd && (
+            <button
+                type="button"
+                onClick={onAdd}
+                className="p-1 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all active:scale-90"
+                title="Quick add"
+            >
+                <Plus size={11} strokeWidth={4}/>
+            </button>
+        )}
+    </div>
+);
+
+const InputField = ({name, value, onChange, placeholder, type = "text", icon = null, extra = ""}) => (
+    <div className="relative">
+        {icon && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">{icon}</span>}
+        <input
+            name={name}
+            type={type}
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder}
+            className={`w-full bg-gray-50 border-2 border-gray-100 ${icon ? 'pl-9' : 'pl-3'} pr-3 py-2 rounded-xl font-bold text-sm text-gray-900 focus:bg-white focus:border-blue-500 outline-none transition-all ${extra}`}
+        />
+    </div>
+);
+
+const SliderToggle = ({checked, onChange, color = "blue", title}) => {
+    const colorMap = {blue: "bg-blue-600", orange: "bg-orange-500"};
+    return (
+        <button
+            type="button"
+            role="switch"
+            aria-checked={checked}
+            onClick={onChange}
+            title={title}
+            className={`relative w-11 h-6 rounded-full transition-colors duration-200 shrink-0 cursor-pointer ${
+                checked ? (colorMap[color] || colorMap.blue) : 'bg-gray-300'
+            }`}
+        >
+            <span
+                className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-all duration-200 flex items-center justify-center ${
+                    checked ? 'left-[22px]' : 'left-0.5'
+                }`}
+            >
+                {checked && (
+                    <Check
+                        size={10}
+                        className={color === 'orange' ? 'text-orange-500' : 'text-blue-600'}
+                        strokeWidth={4}
+                    />
+                )}
+            </span>
+        </button>
+    );
+};
+
+/* ═══════════════════════════════════════════════
+   Quick Add Modal (compact)
+   ═══════════════════════════════════════════════ */
+const QuickAddModal = ({isOpen, onClose, onSave, title, hasImage = false, existingOptions = []}) => {
     const [name, setName] = useState("");
     const [duration, setDuration] = useState("");
     const [periodType, setPeriodType] = useState("month");
@@ -36,7 +113,7 @@ const QuickAddModal = ({ isOpen, onClose, onSave, title, hasImage = false, exist
 
     useEffect(() => {
         const trimmedName = name.trim().toLowerCase();
-        if (trimmedName && existingOptions.some(opt => opt.label.trim().toLowerCase() === trimmedName)) {
+        if (trimmedName && existingOptions.some(opt => opt.label.trim().toLowerCase().startsWith(trimmedName))) {
             setLocalError(`This ${title} already exists!`);
         } else {
             setLocalError("");
@@ -46,19 +123,23 @@ const QuickAddModal = ({ isOpen, onClose, onSave, title, hasImage = false, exist
     if (!isOpen) return null;
 
     const isWarranty = title === "Warranty Period";
+    const isSpecification = title === "Specification";
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (localError) return;
+        if (localError || !name.trim()) return;
 
         setLoading(true);
         try {
-            const data = { title: name.trim() };
+            const data = {title: name.trim()};
             if (isWarranty) {
                 data.name = name.trim();
                 data.duration = parseInt(duration);
                 data.period_type = periodType;
                 data.is_active = true;
+            }
+            if (isSpecification) {
+                data.title = name.trim();
             }
             if (hasImage && image) data.image = image;
 
@@ -66,7 +147,7 @@ const QuickAddModal = ({ isOpen, onClose, onSave, title, hasImage = false, exist
             onClose();
         } catch (err) {
             console.error("Quick add failed:", err);
-            const errorMsg = err.response?.data?.title || err.response?.data?.detail || "Something went wrong.";
+            const errorMsg = err.response?.data?.title || err.response?.data?.detail || err.response?.data?.name || "Something went wrong.";
             alert("Error: " + errorMsg);
         } finally {
             setLoading(false);
@@ -93,8 +174,10 @@ const QuickAddModal = ({ isOpen, onClose, onSave, title, hasImage = false, exist
                         onChange={(e) => setName(e.target.value)}
                         required
                         autoFocus
+                        placeholder={isSpecification ? "e.g. Paracetamol 500mg" : ""}
                     />
-                    {localError && <p className="text-rose-500 text-[10px] font-bold uppercase mt-1 ml-1">{localError}</p>}
+                    {localError &&
+                        <p className="text-rose-500 text-[10px] font-bold uppercase mt-1 ml-1">{localError}</p>}
                 </div>
 
                 {isWarranty && (
@@ -103,10 +186,12 @@ const QuickAddModal = ({ isOpen, onClose, onSave, title, hasImage = false, exist
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Duration *</label>
                             <input
                                 type="number"
+                                min="1"
                                 className="w-full p-3 border-2 border-gray-100 bg-gray-50 rounded-2xl font-bold outline-none focus:border-blue-500"
                                 value={duration}
                                 onChange={(e) => setDuration(e.target.value)}
                                 required
+                                placeholder="e.g. 12"
                             />
                         </div>
                         <div className="space-y-1.5">
@@ -140,81 +225,67 @@ const QuickAddModal = ({ isOpen, onClose, onSave, title, hasImage = false, exist
     );
 };
 
-// --- Main Add Product Modal ---
-const AddProductModal = ({ isOpen, onClose, onSuccess }) => {
+/* ═══════════════════════════════════════════════
+   Main Add Product Modal
+   ═══════════════════════════════════════════════ */
+const AddProductModal = ({isOpen, onClose, onSuccess}) => {
     const [loading, setLoading] = useState(false);
     const [previewImage, setPreviewImage] = useState(null);
 
-    // Options for dropdowns
     const [options, setOptions] = useState({
-        categories: [],
-        subCategories: [],
-        brands: [],
-        units: [],
-        sizes: [],
-        warrantyPeriods: []
+        categories: [], subCategories: [], brands: [], units: [],
+        sizes: [], warrantyPeriods: [], specifications: [],
     });
 
-    // Quick Add Modal states
-    const [quickAdd, setQuickAdd] = useState({ type: null, title: "", hasImage: false });
+    const [quickAdd, setQuickAdd] = useState({type: null, title: "", hasImage: false});
 
     const {
-        form,
-        errors,
-        handleChange,
-        resetForm,
-        validateForm,
-        setFormField,
-        setFormData
+        form, errors, handleChange, resetForm, validateForm,
+        setFormField, setFormData,
     } = useForm(
         {
-            name: "",
-            product_code: "",
-            purchase_price: "",
-            selling_price: "",
-            stock: "",
-            category: "",
-            sub_category: "",
-            brand: "",
-            size: "",
-            unit: "",
-            image: null,
+            name: "", product_code: "", purchase_price: "", selling_price: "",
+            category: "", sub_category: "", specification: "",
+            brand: "", size: "", unit: "", image: null,
             alarm_when_stock_is_lessthanOrEqualto: 0,
-            warranty_status: false,
-            warranty_period: "",
-            has_expiry: false,
-            instance_tracking_mode: "serial",
+            warranty_status: false, warranty_period: "",
+            has_expiry: false, instance_tracking_mode: "serial",
+            /* 🆕 Carton hierarchy */
+            boxes_per_carton: 0,
+            strips_per_box: 0,
+            pcs_per_strip: 0,
         },
         {
             name: (v) => !v ? "Product name is required" : null,
             category: (v) => !v ? "Category is required" : null,
-            purchase_price: (v) => !v ? "Required" : isNaN(v) ? "Number only" : null,
-            selling_price: (v) => !v ? "Required" : isNaN(v) ? "Number only" : null,
-            stock: (v) => !v && v !== 0 ? "Required" : isNaN(v) ? "Number only" : null,
         }
     );
 
     const fetchOptions = useCallback(async () => {
         try {
-            const [catRes, subCatRes, brandRes, unitRes, sizeRes, warrantyRes] = await Promise.all([
+            const [catRes, subCatRes, brandRes, unitRes, sizeRes, warrantyRes, specRes] = await Promise.all([
                 posCategoryAPI.getAll(),
                 posSubCategoryAPI.getAll(),
                 posBrandAPI.getAll(),
                 posUnitAPI.getAll(),
                 posSizeAPI.getAll(),
-                posWarrantyPeriodAPI.getAll()
+                posWarrantyPeriodAPI.getAll(),
+                specificationAPI.getAll().catch(() => ({data: []})),
             ]);
 
             setOptions({
-                categories: catRes.data.map(item => ({ value: item.id, label: item.title })),
-                subCategories: subCatRes.data.map(item => ({ value: item.id, label: item.title, categoryId: item.category })),
-                brands: brandRes.data.map(item => ({ value: item.id, label: item.title })),
-                units: unitRes.data.map(item => ({ value: item.id, label: item.title })),
-                sizes: sizeRes.data.map(item => ({ value: item.id, label: item.title })),
+                categories: catRes.data.map(item => ({value: item.id, label: item.title})),
+                subCategories: subCatRes.data.map(item => ({
+                    value: item.id, label: item.title, categoryId: item.category
+                })),
+                brands: brandRes.data.map(item => ({value: item.id, label: item.title})),
+                units: unitRes.data.map(item => ({value: item.id, label: item.title})),
+                sizes: sizeRes.data.map(item => ({value: item.id, label: item.title})),
                 warrantyPeriods: warrantyRes.data.map(item => ({
                     value: item.id,
                     label: `${item.name} (${item.duration} ${item.period_type}${item.duration > 1 ? 's' : ''})`
-                }))
+                })),
+                specifications: (specRes.data || []).map(item => ({value: item.id, label: item.title})),
             });
         } catch (err) {
             console.error("Error fetching options:", err);
@@ -222,23 +293,23 @@ const AddProductModal = ({ isOpen, onClose, onSuccess }) => {
     }, []);
 
     useEffect(() => {
-        if (isOpen) {
-            fetchOptions();
-        }
+        if (isOpen) fetchOptions();
     }, [isOpen, fetchOptions]);
 
-    const handleSelectChange = (selectedOption, actionMeta) => {
-        const { name } = actionMeta;
-        const val = selectedOption ? selectedOption.value : "";
-        setFormField(name, val);
-
-        if (name === "category") {
-            setFormField("sub_category", "");
-        }
+    const handleImageClear = () => {
+        setPreviewImage(null);
+        setFormField("image", null);
     };
 
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
+    const handleSelectChange = (selectedOption, actionMeta) => {
+        const {name} = actionMeta;
+        const val = selectedOption ? selectedOption.value : "";
+        setFormField(name, val);
+        if (name === "category") setFormField("sub_category", "");
+    };
+
+    const handleImageChange = (fileOrEvent) => {
+        const file = fileOrEvent?.target?.files?.[0] || fileOrEvent;
         if (file) {
             setFormField("image", file);
             const reader = new FileReader();
@@ -254,52 +325,65 @@ const AddProductModal = ({ isOpen, onClose, onSuccess }) => {
         let response;
         try {
             switch (quickAdd.type) {
-                case "category":
+                case "category": {
                     response = await posCategoryAPI.create(data);
-                    const newCat = { value: response.data.id, label: response.data.title };
-                    setOptions(prev => ({ ...prev, categories: [newCat, ...prev.categories] }));
+                    const newCat = {value: response.data.id, label: response.data.title};
+                    setOptions(prev => ({...prev, categories: [newCat, ...prev.categories]}));
                     setFormField("category", newCat.value);
                     break;
-                case "sub_category":
+                }
+                case "sub_category": {
                     if (!form.category) return alert("Please select a category first");
-                    response = await posSubCategoryAPI.create({ ...data, category: form.category });
-                    const newSub = { value: response.data.id, label: response.data.title, categoryId: response.data.category };
-                    setOptions(prev => ({ ...prev, subCategories: [newSub, ...prev.subCategories] }));
+                    response = await posSubCategoryAPI.create({...data, category: form.category});
+                    const newSub = {value: response.data.id, label: response.data.title, categoryId: response.data.category};
+                    setOptions(prev => ({...prev, subCategories: [newSub, ...prev.subCategories]}));
                     setFormField("sub_category", newSub.value);
                     break;
-                case "brand":
+                }
+                case "specification": {
+                    response = await specificationAPI.create(data);
+                    const newSpec = {value: response.data.id, label: response.data.title};
+                    setOptions(prev => ({...prev, specifications: [newSpec, ...prev.specifications]}));
+                    setFormField("specification", newSpec.value);
+                    break;
+                }
+                case "brand": {
                     response = await posBrandAPI.create(data);
-                    const newBrand = { value: response.data.id, label: response.data.title };
-                    setOptions(prev => ({ ...prev, brands: [newBrand, ...prev.brands] }));
+                    const newBrand = {value: response.data.id, label: response.data.title};
+                    setOptions(prev => ({...prev, brands: [newBrand, ...prev.brands]}));
                     setFormField("brand", newBrand.value);
                     break;
-                case "unit":
+                }
+                case "unit": {
                     response = await posUnitAPI.create(data);
-                    const newUnit = { value: response.data.id, label: response.data.title };
-                    setOptions(prev => ({ ...prev, units: [newUnit, ...prev.units] }));
+                    const newUnit = {value: response.data.id, label: response.data.title};
+                    setOptions(prev => ({...prev, units: [newUnit, ...prev.units]}));
                     setFormField("unit", newUnit.value);
                     break;
-                case "size":
+                }
+                case "size": {
                     response = await posSizeAPI.create(data);
-                    const newSize = { value: response.data.id, label: response.data.title };
-                    setOptions(prev => ({ ...prev, sizes: [newSize, ...prev.sizes] }));
+                    const newSize = {value: response.data.id, label: response.data.title};
+                    setOptions(prev => ({...prev, sizes: [newSize, ...prev.sizes]}));
                     setFormField("size", newSize.value);
                     break;
-                case "warranty":
-                    response = await posWarrantyPeriodAPI.create({ ...data, is_active: true });
+                }
+                case "warranty": {
+                    response = await posWarrantyPeriodAPI.create({...data, is_active: true});
                     const newWarranty = {
                         value: response.data.id,
                         label: `${response.data.name} (${response.data.duration} ${response.data.period_type}${response.data.duration > 1 ? 's' : ''})`
                     };
-                    setOptions(prev => ({ ...prev, warrantyPeriods: [newWarranty, ...prev.warrantyPeriods] }));
+                    setOptions(prev => ({...prev, warrantyPeriods: [newWarranty, ...prev.warrantyPeriods]}));
                     setFormField("warranty_period", newWarranty.value);
                     break;
+                }
                 default:
                     break;
             }
         } catch (err) {
             console.error("Quick add save failed:", err);
-            throw err; // Let QuickAddModal handle it
+            throw err;
         }
     };
 
@@ -309,21 +393,25 @@ const AddProductModal = ({ isOpen, onClose, onSuccess }) => {
 
         setLoading(true);
         try {
-            const payload = {
+            const dataToSend = {
                 ...form,
                 purchase_price: parseFloat(form.purchase_price) || 0,
                 selling_price: parseFloat(form.selling_price) || 0,
-                stock: parseInt(form.stock) || 0,
                 alarm_when_stock_is_lessthanOrEqualto: parseInt(form.alarm_when_stock_is_lessthanOrEqualto) || 0,
+                /* 🆕 Carton hierarchy */
+                boxes_per_carton: parseInt(form.boxes_per_carton) || 0,
+                strips_per_box: parseInt(form.strips_per_box) || 0,
+                pcs_per_strip: parseInt(form.pcs_per_strip) || 0,
                 category: form.category || null,
                 sub_category: form.sub_category || null,
+                specification: form.specification || null,
                 brand: form.brand || null,
                 size: form.size || null,
                 unit: form.unit || null,
                 warranty_period: form.warranty_status ? (form.warranty_period || null) : null,
             };
 
-            const res = await posProductAPI.create(payload);
+            const res = await posProductAPI.create(dataToSend);
             onSuccess?.(res.data);
             handleClose();
         } catch (err) {
@@ -337,6 +425,7 @@ const AddProductModal = ({ isOpen, onClose, onSuccess }) => {
     const handleClose = () => {
         resetForm();
         setPreviewImage(null);
+        setQuickAdd({type: null, title: "", hasImage: false});
         onClose();
     };
 
@@ -344,49 +433,11 @@ const AddProductModal = ({ isOpen, onClose, onSuccess }) => {
         sub => !form.category || sub.categoryId === form.category
     );
 
-    const customSelectStyles = {
-        control: (provided, state) => ({
-            ...provided,
-            borderRadius: '1rem',
-            padding: '4px',
-            borderColor: state.isFocused ? '#3B82F6' : '#F3F4F6',
-            borderWidth: '2px',
-            backgroundColor: '#F9FAFB',
-            boxShadow: 'none',
-            '&:hover': { borderColor: '#3B82F6' }
-        }),
-        menu: (provided) => ({ ...provided, zIndex: 9999, borderRadius: '1rem', overflow: 'hidden' }),
-        option: (provided, state) => ({
-            ...provided,
-            backgroundColor: state.isSelected ? '#3B82F6' : state.isFocused ? '#EFF6FF' : 'white',
-            color: state.isSelected ? 'white' : '#1F2937',
-            fontWeight: 'bold',
-            fontSize: '12px'
-        })
-    };
-
-    const FieldLabel = ({ label, onAdd, isRequired = false, icon }) => (
-        <div className="flex justify-between items-center mb-1.5 ml-1">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
-                {icon} {label} {isRequired && "*"}
-            </label>
-            {onAdd && (
-                <button
-                    type="button"
-                    onClick={onAdd}
-                    className="p-1 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all active:scale-90"
-                    title={`Add new ${label}`}
-                >
-                    <Plus size={12} strokeWidth={4} />
-                </button>
-            )}
-        </div>
-    );
-
     const getExistingOptions = () => {
         switch (quickAdd.type) {
             case 'category': return options.categories;
             case 'sub_category': return filteredSubCategories;
+            case 'specification': return options.specifications;
             case 'brand': return options.brands;
             case 'unit': return options.units;
             case 'size': return options.sizes;
@@ -395,6 +446,35 @@ const AddProductModal = ({ isOpen, onClose, onSuccess }) => {
         }
     };
 
+    const selectStyles = {
+        control: (provided, state) => ({
+            ...provided,
+            minHeight: '34px', height: '34px',
+            borderRadius: '0.75rem',
+            borderColor: state.isFocused ? '#3B82F6' : '#E5E7EB',
+            borderWidth: '2px',
+            backgroundColor: '#F9FAFB',
+            boxShadow: 'none', fontSize: '12px',
+            '&:hover': {borderColor: '#3B82F6'}
+        }),
+        valueContainer: (provided) => ({...provided, padding: '0 8px'}),
+        input: (provided) => ({...provided, margin: 0, padding: 0}),
+        indicatorsContainer: (provided) => ({...provided, height: '34px'}),
+        menu: (provided) => ({...provided, zIndex: 9999, borderRadius: '0.75rem', overflow: 'hidden'}),
+        option: (provided, state) => ({
+            ...provided,
+            backgroundColor: state.isSelected ? '#3B82F6' : state.isFocused ? '#EFF6FF' : 'white',
+            color: state.isSelected ? 'white' : '#1F2937',
+            fontWeight: 'bold', fontSize: '11px', padding: '6px 10px'
+        })
+    };
+
+    /* 🆕 Carton math (safe Number conversion) */
+    const cartonPcs = (Number(form.boxes_per_carton) || 0)
+        * (Number(form.strips_per_box) || 0)
+        * (Number(form.pcs_per_strip) || 0);
+    const boxPcs = (Number(form.strips_per_box) || 0) * (Number(form.pcs_per_strip) || 0);
+
     return (
         <>
             <BaseModal
@@ -402,291 +482,429 @@ const AddProductModal = ({ isOpen, onClose, onSuccess }) => {
                 onClose={handleClose}
                 title="Register New Product"
                 subtitle="Create a high-fidelity inventory entry"
-                size="xl"
-                icon={<Package />}
+                size="3xl"
+                icon={<Package/>}
                 showFooter={true}
                 onSubmit={handleSubmit}
                 submitText="Save Product"
                 isLoading={loading}
             >
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    {/* Left: Image & Secondary Info */}
-                    <div className="lg:col-span-4 space-y-6">
-                        {/* Product Image Card */}
-                        <div className="bg-gray-50 p-6 rounded-[2rem] border-2 border-gray-100 flex flex-col items-center text-center shadow-inner">
-                            <div className="relative group">
-                                <div className="w-full aspect-square min-w-[200px] rounded-[2rem] bg-white border-4 border-white shadow-xl overflow-hidden flex items-center justify-center transition-transform group-hover:scale-[1.02] duration-300">
-                                    {previewImage ? (
-                                        <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="flex flex-col items-center text-gray-200">
-                                            <ImageIcon size={64} />
-                                            <p className="text-[10px] font-black uppercase mt-2">No Image Selected</p>
-                                        </div>
-                                    )}
-                                </div>
-                                <label className="absolute -bottom-3 -right-3 bg-blue-600 text-white p-4 rounded-2xl shadow-lg cursor-pointer hover:bg-blue-700 active:scale-90 transition-all border-4 border-white z-10">
-                                    <Camera size={20} />
-                                    <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
-                                </label>
-                                {previewImage && (
-                                    <button
-                                        type="button"
-                                        onClick={() => { setPreviewImage(null); setFormField("image", null); }}
-                                        className="absolute -top-3 -right-3 bg-rose-500 text-white p-2 rounded-xl shadow-lg hover:bg-rose-600 active:scale-90 transition-all z-10"
-                                    >
-                                        <X size={14} />
-                                    </button>
-                                )}
-                            </div>
-                            <div className="mt-6">
-                                <h4 className="text-xs font-black text-gray-800 uppercase tracking-tight">Display Media</h4>
-                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">HQ Preview recommended</p>
-                            </div>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+                    {/* ═════════ LEFT PANEL ═════════ */}
+                    <div className="lg:col-span-3 space-y-3">
+                        <div className="bg-gray-50 p-3 rounded-2xl border-2 border-gray-100 flex flex-col items-center text-center">
+                            <ImagePicker
+                                value={previewImage}
+                                onChange={handleImageChange}
+                                onClear={handleImageClear}
+                                shape="square"
+                                size="md"
+                                placeholder={<ImageIcon size={32} className="text-gray-200"/>}
+                                label=""
+                            />
+                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mt-1 truncate w-full">
+                                {form.name || "Product"}
+                            </p>
                         </div>
 
-                        {/* Inventory Pulse */}
-                        <div className="bg-gray-900 p-6 rounded-[2rem] space-y-4 shadow-2xl relative overflow-hidden text-white">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
-                            <div className="relative z-10 flex items-center gap-3 mb-2">
-                                <div className="p-2 bg-white/10 rounded-xl text-blue-400"><Activity size={16}/></div>
-                                <h3 className="text-xs font-black uppercase tracking-[0.2em]">Stock Logic</h3>
+                        {/* Stock Logic card — stock read-only */}
+                        <div className="bg-gray-900 p-3 rounded-2xl text-white space-y-2.5">
+                            <div className="flex items-center gap-2">
+                                <Activity size={14} className="text-blue-400"/>
+                                <span className="text-[10px] font-black uppercase tracking-widest">Stock Logic</span>
                             </div>
 
-                            <div className="space-y-4 relative z-10">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Initial Stock Count *</label>
-                                    <input
-                                        type="number"
-                                        name="stock"
-                                        value={form.stock}
-                                        onChange={handleChange}
-                                        className="w-full bg-white/5 border border-white/10 p-3 rounded-2xl text-white font-black text-sm focus:bg-white/10 focus:border-blue-500 outline-none transition-all"
-                                        placeholder="0"
-                                    />
-                                    {errors.stock && <p className="text-rose-400 text-[10px] font-bold uppercase mt-1 ml-1">{errors.stock}</p>}
+                            <div className="bg-white/5 border border-white/10 p-2.5 rounded-xl">
+                                <div className="flex items-center justify-between mb-0.5">
+                                    <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">
+                                        Stock
+                                    </span>
+                                    <span className="text-[8px] font-black uppercase text-gray-500">🔒</span>
                                 </div>
-
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Low Stock Threshold</label>
-                                    <input
-                                        type="number"
-                                        name="alarm_when_stock_is_lessthanOrEqualto"
-                                        value={form.alarm_when_stock_is_lessthanOrEqualto}
-                                        onChange={handleChange}
-                                        className="w-full bg-white/5 border border-white/10 p-3 rounded-2xl text-rose-400 font-black text-sm focus:bg-white/10 focus:border-rose-500 outline-none transition-all"
-                                        placeholder="0"
-                                    />
-                                    <p className="text-[9px] text-gray-500 font-bold uppercase tracking-tight mt-1 ml-1">Trigger alert when stock dips below this</p>
-                                </div>
+                                <span className="text-xl font-black text-emerald-400 font-mono">0</span>
                             </div>
+
+                            <div>
+                                <label className="text-[9px] font-black text-rose-400 uppercase tracking-widest ml-1 mb-1 flex items-center gap-1">
+                                    <Bell size={9}/> Low Alert
+                                </label>
+                                <input
+                                    type="number"
+                                    name="alarm_when_stock_is_lessthanOrEqualto"
+                                    value={form.alarm_when_stock_is_lessthanOrEqualto}
+                                    onChange={handleChange}
+                                    className="w-full bg-white/5 border border-white/10 p-2 rounded-xl text-rose-400 font-black text-sm focus:bg-white/10 focus:border-rose-500 outline-none"
+                                    placeholder="0"
+                                />
+                            </div>
+
+                            <p className="text-[8px] text-gray-500 font-bold uppercase tracking-tight leading-tight">
+                                ⚠️ Stock পরিবর্তন করতে Purchase/Sale করুন
+                            </p>
                         </div>
                     </div>
 
-                    {/* Right: Core Details & Settings */}
-                    <div className="lg:col-span-8 space-y-8">
-                        {/* Essential Info */}
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-3"><div className="w-1.5 h-6 bg-blue-600 rounded-full"></div><h3 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Essential Information</h3></div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Product Name *</label>
-                                    <div className="relative">
-                                        <Package size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                                        <input name="name" value={form.name} onChange={handleChange} className="w-full bg-gray-50 border-2 border-gray-100 p-4 pl-12 rounded-2xl font-bold text-gray-900 focus:bg-white focus:border-blue-500 outline-none transition-all" placeholder="e.g. iPhone 15 Pro Max" />
-                                    </div>
-                                    {errors.name && <p className="text-rose-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.name}</p>}
-                                </div>
+                    {/* ═════════ RIGHT PANEL ═════════ */}
+                    <div className="lg:col-span-9 space-y-3">
 
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Product SKU / Code</label>
-                                    <div className="relative">
-                                        <Tag size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                                        <input name="product_code" value={form.product_code} onChange={handleChange} className="w-full bg-gray-50 border-2 border-gray-100 p-4 pl-12 rounded-2xl font-black text-gray-900 focus:bg-white focus:border-blue-500 outline-none transition-all uppercase" placeholder="AUTO-GENERATE" />
-                                    </div>
+                        {/* Row 1: Essential + Pricing */}
+                        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+                            <div className="md:col-span-3">
+                                <SmallLabel><Package size={9}/> Product Name *</SmallLabel>
+                                <InputField
+                                    name="name" value={form.name} onChange={handleChange}
+                                    placeholder="e.g. iPhone 15 Pro Max" icon={<Package size={14}/>}
+                                />
+                                {errors.name &&
+                                    <p className="text-rose-500 text-[9px] font-bold uppercase mt-0.5 ml-1">{errors.name}</p>}
+                            </div>
+                            <div className="md:col-span-3">
+                                <SmallLabel><Tag size={9}/> SKU / Code</SmallLabel>
+                                <InputField
+                                    name="product_code" value={form.product_code} onChange={handleChange}
+                                    placeholder="AUTO-GENERATE" icon={<Tag size={14}/>} extra="uppercase"
+                                />
+                            </div>
+                            <div className="md:col-span-3">
+                                <SmallLabel><DollarSign size={9}/> Cost Price</SmallLabel>
+                                <InputField
+                                    name="purchase_price" value={form.purchase_price} onChange={handleChange}
+                                    type="number" placeholder="0.00"
+                                    icon={<DollarSign size={14} className="text-emerald-500"/>}
+                                    extra="text-emerald-700 bg-emerald-50/30 border-emerald-100 focus:border-emerald-500"
+                                />
+                            </div>
+                            <div className="md:col-span-3">
+                                <SmallLabel><Target size={9}/> Selling Price</SmallLabel>
+                                <InputField
+                                    name="selling_price" value={form.selling_price} onChange={handleChange}
+                                    type="number" placeholder="0.00"
+                                    icon={<Target size={14} className="text-blue-500"/>}
+                                    extra="text-blue-700 bg-blue-50/30 border-blue-100 focus:border-blue-500"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Row 2: Organization */}
+                        <div>
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-1 h-4 bg-purple-500 rounded-full"></div>
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-400">
+                                    Organization
+                                </h3>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+                                <div className="col-span-2 md:col-span-2">
+                                    <SmallLabel
+                                        onAdd={() => setQuickAdd({type: 'category', title: 'Category', hasImage: true})}>
+                                        <Layers size={9}/> Category *
+                                    </SmallLabel>
+                                    <Select
+                                        name="category" options={options.categories}
+                                        value={options.categories.find(o => o.value === form.category)}
+                                        onChange={handleSelectChange} styles={selectStyles}
+                                        placeholder="Select..."
+                                    />
+                                    {errors.category &&
+                                        <p className="text-rose-500 text-[9px] font-bold uppercase mt-0.5 ml-1">{errors.category}</p>}
+                                </div>
+                                <div className="col-span-2 md:col-span-2">
+                                    <SmallLabel
+                                        onAdd={() => setQuickAdd({type: 'sub_category', title: 'Sub-Category', hasImage: true})}>
+                                        <GitCommit size={9}/> Sub-Category
+                                    </SmallLabel>
+                                    <Select
+                                        name="sub_category" options={filteredSubCategories}
+                                        value={options.subCategories.find(o => o.value === form.sub_category)}
+                                        onChange={handleSelectChange} styles={selectStyles}
+                                        isDisabled={!form.category} placeholder="Select..."
+                                    />
+                                </div>
+                                <div className="col-span-2 md:col-span-2">
+                                    <SmallLabel
+                                        onAdd={() => setQuickAdd({type: 'specification', title: 'Specification'})}>
+                                        <FlaskConical size={9}/> Specification
+                                    </SmallLabel>
+                                    <Select
+                                        name="specification" options={options.specifications}
+                                        value={options.specifications.find(o => o.value === form.specification)}
+                                        onChange={handleSelectChange} styles={selectStyles}
+                                        placeholder="Generic / Material"
+                                    />
+                                </div>
+                                <div className="col-span-2 md:col-span-2">
+                                    <SmallLabel
+                                        onAdd={() => setQuickAdd({type: 'brand', title: 'Brand', hasImage: true})}>
+                                        <Package size={9}/> Brand
+                                    </SmallLabel>
+                                    <Select
+                                        name="brand" options={options.brands}
+                                        value={options.brands.find(o => o.value === form.brand)}
+                                        onChange={handleSelectChange} styles={selectStyles}
+                                        placeholder="Select..."
+                                    />
+                                </div>
+                                <div className="col-span-1 md:col-span-2">
+                                    <SmallLabel onAdd={() => setQuickAdd({type: 'unit', title: 'Unit'})}>
+                                        <Scale size={9}/> Unit
+                                    </SmallLabel>
+                                    <Select
+                                        name="unit" options={options.units}
+                                        value={options.units.find(o => o.value === form.unit)}
+                                        onChange={handleSelectChange} styles={selectStyles}
+                                        placeholder="Select..."
+                                    />
+                                </div>
+                                <div className="col-span-1 md:col-span-2">
+                                    <SmallLabel onAdd={() => setQuickAdd({type: 'size', title: 'Size'})}>
+                                        <Maximize size={9}/> Size
+                                    </SmallLabel>
+                                    <Select
+                                        name="size" options={options.sizes}
+                                        value={options.sizes.find(o => o.value === form.size)}
+                                        onChange={handleSelectChange} styles={selectStyles}
+                                        placeholder="Select..."
+                                    />
                                 </div>
                             </div>
                         </div>
 
-                        {/* Pricing Logic */}
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-3"><div className="w-1.5 h-6 bg-emerald-500 rounded-full"></div><h3 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Pricing Logic</h3></div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest ml-1">Cost Price *</label>
-                                    <div className="relative">
-                                        <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500" />
-                                        <input type="number" name="purchase_price" value={form.purchase_price} onChange={handleChange} className="w-full bg-emerald-50/30 border-2 border-emerald-100 p-4 pl-12 rounded-2xl font-black text-emerald-700 focus:bg-white focus:border-emerald-500 outline-none transition-all" placeholder="0.00" />
-                                    </div>
+                        {/* Row 3: Box Config — 🆕 Carton + Box + Strip + Pcs */}
+                        <div className="bg-teal-50/50 border border-teal-100 rounded-2xl p-3">
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                <div className="w-1 h-4 bg-teal-500 rounded-full"></div>
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-teal-700">
+                                    Box Configuration
+                                </h3>
+                                {cartonPcs > 0 && (
+                                    <span className="ml-auto text-[10px] font-black text-teal-700 bg-white px-2 py-0.5 rounded-full border border-teal-200">
+                                        📦 ১ কার্টন = {cartonPcs.toLocaleString()} পিস
+                                    </span>
+                                )}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                    <SmallLabel><BoxesIcon size={9}/> Boxes per Carton</SmallLabel>
+                                    <input
+                                        type="number" name="boxes_per_carton"
+                                        value={form.boxes_per_carton} onChange={handleChange}
+                                        placeholder="0"
+                                        className="w-full bg-white border-2 border-teal-200 py-2 px-3 rounded-xl font-black text-sm text-teal-800 focus:border-teal-500 outline-none"
+                                    />
                                 </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest ml-1">Retail Price *</label>
-                                    <div className="relative">
-                                        <Target size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-500" />
-                                        <input type="number" name="selling_price" value={form.selling_price} onChange={handleChange} className="w-full bg-blue-50/30 border-2 border-blue-100 p-4 pl-12 rounded-2xl font-black text-blue-700 focus:bg-white focus:border-blue-500 outline-none transition-all" placeholder="0.00" />
-                                    </div>
+                                <div>
+                                    <SmallLabel>Strips per Box</SmallLabel>
+                                    <input
+                                        type="number" name="strips_per_box"
+                                        value={form.strips_per_box} onChange={handleChange}
+                                        placeholder="0"
+                                        className="w-full bg-white border-2 border-teal-200 py-2 px-3 rounded-xl font-black text-sm text-teal-800 focus:border-teal-500 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <SmallLabel>Pcs per Strip</SmallLabel>
+                                    <input
+                                        type="number" name="pcs_per_strip"
+                                        value={form.pcs_per_strip} onChange={handleChange}
+                                        placeholder="0"
+                                        className="w-full bg-white border-2 border-teal-200 py-2 px-3 rounded-xl font-black text-sm text-teal-800 focus:border-teal-500 outline-none"
+                                    />
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Organization Hierarchy */}
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-3"><div className="w-1.5 h-6 bg-purple-500 rounded-full"></div><h3 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Organization</h3></div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-4">
-                                    <div>
-                                        <FieldLabel label="Category" isRequired icon={<Layers size={10}/>} onAdd={() => setQuickAdd({ type: 'category', title: 'Category', hasImage: true })} />
-                                        <Select name="category" options={options.categories} value={options.categories.find(o => o.value === form.category)} onChange={handleSelectChange} styles={customSelectStyles} placeholder="Select Category" />
-                                        {errors.category && <p className="text-rose-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.category}</p>}
-                                    </div>
-                                    <div>
-                                        <FieldLabel label="Sub-Category" icon={<GitCommit size={10}/>} onAdd={() => setQuickAdd({ type: 'sub_category', title: 'Sub-Category', hasImage: true })} />
-                                        <Select name="sub_category" options={filteredSubCategories} value={options.subCategories.find(o => o.value === form.sub_category)} onChange={handleSelectChange} styles={customSelectStyles} placeholder="Select Sub-Category" isDisabled={!form.category} />
-                                    </div>
-                                </div>
-                                <div className="space-y-4">
-                                    <div>
-                                        <FieldLabel label="Brand" icon={<Package size={10}/>} onAdd={() => setQuickAdd({ type: 'brand', title: 'Brand', hasImage: true })} />
-                                        <Select name="brand" options={options.brands} value={options.brands.find(o => o.value === form.brand)} onChange={handleSelectChange} styles={customSelectStyles} placeholder="Select Brand" />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <FieldLabel label="Unit" icon={<Scale size={10}/>} onAdd={() => setQuickAdd({ type: 'unit', title: 'Unit' })} />
-                                            <Select name="unit" options={options.units} value={options.units.find(o => o.value === form.unit)} onChange={handleSelectChange} styles={customSelectStyles} placeholder="Unit" />
-                                        </div>
-                                        <div>
-                                            <FieldLabel label="Size" icon={<Maximize size={10}/>} onAdd={() => setQuickAdd({ type: 'size', title: 'Size' })} />
-                                            <Select name="size" options={options.sizes} value={options.sizes.find(o => o.value === form.size)} onChange={handleSelectChange} styles={customSelectStyles} placeholder="Size" />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Compliance & Warranty */}
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-3"><div className="w-1.5 h-6 bg-orange-500 rounded-full"></div><h3 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Compliance &amp; Warranty</h3></div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                {/* Warranty Logic */}
-                                <div className="space-y-4 p-6 bg-gray-50 rounded-[2rem] border border-gray-100">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`p-2 rounded-xl ${form.warranty_status ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-400'}`}>
-                                                <ShieldCheck size={18} />
-                                            </div>
-                                            <p className="text-[11px] font-black text-gray-800 uppercase tracking-tight">Enable Warranty</p>
-                                        </div>
-                                        <div 
-                                            className={`w-10 h-5 rounded-full relative transition-colors cursor-pointer ${form.warranty_status ? 'bg-blue-600' : 'bg-gray-300'}`}
-                                            onClick={() => setFormField("warranty_status", !form.warranty_status)}
-                                        >
-                                            <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${form.warranty_status ? 'left-6' : 'left-1'}`}></div>
-                                        </div>
-                                    </div>
-                                    {form.warranty_status && (
-                                        <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
-                                            <FieldLabel label="Select Plan" icon={<FileClock size={10}/>} onAdd={() => setQuickAdd({ type: 'warranty', title: 'Warranty Period' })} />
-                                            <Select name="warranty_period" options={options.warrantyPeriods} value={options.warrantyPeriods.find(o => o.value === form.warranty_period)} onChange={handleSelectChange} styles={customSelectStyles} placeholder="Choose Warranty..." />
-                                        </div>
+                            {/* 🆕 Hierarchy summary */}
+                            {(Number(form.boxes_per_carton) > 0 || Number(form.strips_per_box) > 0 || Number(form.pcs_per_strip) > 0) && (
+                                <div
+                                    className="mt-2 pt-2 border-t border-teal-100 flex flex-wrap gap-2 text-[9px] font-black text-teal-700">
+                                    {Number(form.boxes_per_carton) > 0 && (
+                                        <span className="bg-white px-2 py-0.5 rounded-md border border-teal-200">
+                                            ১ কার্টন = {form.boxes_per_carton} বক্স
+                                        </span>
+                                    )}
+                                    {boxPcs > 0 && (
+                                        <span className="bg-white px-2 py-0.5 rounded-md border border-teal-200">
+                                            ১ বক্স = {boxPcs} পিস
+                                        </span>
                                     )}
                                 </div>
+                            )}
+                        </div>
 
-                                {/* Expiry Logic */}
-                                <div className="space-y-4 p-6 bg-gray-50 rounded-[2rem] border border-gray-100">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`p-2 rounded-xl ${form.has_expiry ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
-                                                <Calendar size={18} />
-                                            </div>
-                                            <p className="text-[11px] font-black text-gray-800 uppercase tracking-tight">Expiry Tracking</p>
-                                        </div>
-                                        <div 
-                                            className={`w-10 h-5 rounded-full relative transition-colors cursor-pointer ${form.has_expiry ? 'bg-orange-500' : 'bg-gray-300'}`}
-                                            onClick={() => setFormField("has_expiry", !form.has_expiry)}
-                                        >
-                                            <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${form.has_expiry ? 'left-6' : 'left-1'}`}></div>
-                                        </div>
+                        {/* Row 4: Warranty + Expiry — slider toggles */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {/* Warranty Card */}
+                            <div className={`p-3 rounded-2xl border-2 transition-all ${
+                                form.warranty_status
+                                    ? "bg-blue-50/50 border-blue-200"
+                                    : "bg-gray-50 border-gray-100"
+                            }`}>
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-xl transition-all duration-200 ${
+                                        form.warranty_status
+                                            ? 'bg-blue-600 text-white shadow-md shadow-blue-500/30'
+                                            : 'bg-gray-200 text-gray-400'
+                                    }`}>
+                                        <ShieldCheck size={18} strokeWidth={2.5}/>
                                     </div>
-                                    <div className="flex items-start gap-2 mt-2">
-                                        <Info size={12} className="text-gray-400 mt-0.5 shrink-0" />
-                                        <p className="text-[9px] font-bold text-gray-400 uppercase leading-tight tracking-tight">Track batches and prevent sales of expired items.</p>
-                                    </div>
+                                    <p className="text-[11px] font-black text-gray-800 uppercase tracking-tight flex-1">
+                                        Enable Warranty
+                                    </p>
+                                    {form.warranty_status && (
+                                        <span className="text-[8px] font-black text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                            ✓ Active
+                                        </span>
+                                    )}
+                                    <SliderToggle
+                                        checked={form.warranty_status}
+                                        onChange={() => setFormField("warranty_status", !form.warranty_status)}
+                                        color="blue"
+                                        title={form.warranty_status ? "Disable Warranty" : "Enable Warranty"}
+                                    />
                                 </div>
+
+                                {form.warranty_status && (
+                                    <div className="mt-3 space-y-1.5 animate-in slide-in-from-top-2 duration-200">
+                                        <div className="flex justify-between items-center ml-1 mb-1">
+                                            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                                                <FileClock size={9}/> Select Plan
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={() => setQuickAdd({type: 'warranty', title: 'Warranty Period'})}
+                                                className="p-1 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all active:scale-90"
+                                                title="Add new warranty"
+                                            >
+                                                <Plus size={11} strokeWidth={4}/>
+                                            </button>
+                                        </div>
+                                        <Select
+                                            name="warranty_period"
+                                            options={options.warrantyPeriods}
+                                            value={options.warrantyPeriods.find(o => o.value === form.warranty_period)}
+                                            onChange={handleSelectChange}
+                                            styles={selectStyles}
+                                            placeholder="Choose Warranty..."
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Expiry Card */}
+                            <div className={`p-3 rounded-2xl border-2 transition-all ${
+                                form.has_expiry
+                                    ? "bg-orange-50/50 border-orange-200"
+                                    : "bg-gray-50 border-gray-100"
+                            }`}>
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-xl transition-all duration-200 ${
+                                        form.has_expiry
+                                            ? 'bg-orange-500 text-white shadow-md shadow-orange-500/30'
+                                            : 'bg-gray-200 text-gray-400'
+                                    }`}>
+                                        <Calendar size={18} strokeWidth={2.5}/>
+                                    </div>
+                                    <p className="text-[11px] font-black text-gray-800 uppercase tracking-tight flex-1">
+                                        Expiry Tracking
+                                    </p>
+                                    {form.has_expiry && (
+                                        <span className="text-[8px] font-black text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                            ✓ Active
+                                        </span>
+                                    )}
+                                    <SliderToggle
+                                        checked={form.has_expiry}
+                                        onChange={() => setFormField("has_expiry", !form.has_expiry)}
+                                        color="orange"
+                                        title={form.has_expiry ? "Disable Expiry" : "Enable Expiry"}
+                                    />
+                                </div>
+                                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-tight mt-2 flex items-start gap-1.5 ml-11">
+                                    <Info size={9} className="mt-0.5 shrink-0"/>
+                                    Batch validation enable করবে
+                                </p>
                             </div>
                         </div>
 
-                        {/* Instance Tracking Mode */}
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-3"><div className="w-1.5 h-6 bg-violet-500 rounded-full"></div><h3 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">Instance Tracking Mode</h3></div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Serial Mode */}
+                        {/* Row 5: Instance Tracking */}
+                        <div>
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-1 h-4 bg-violet-500 rounded-full"></div>
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-400">
+                                    Instance Tracking Mode
+                                </h3>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
                                 <button
                                     type="button"
                                     onClick={() => setFormField("instance_tracking_mode", "serial")}
-                                    className={`p-5 rounded-[2rem] border-2 text-left transition-all duration-200 active:scale-95 ${
+                                    className={`p-3 rounded-2xl border-2 text-left transition-all active:scale-[0.98] ${
                                         form.instance_tracking_mode === "serial"
-                                            ? "border-violet-500 bg-violet-50 shadow-md shadow-violet-100"
+                                            ? "border-violet-500 bg-violet-50 shadow-sm"
                                             : "border-gray-100 bg-gray-50 hover:border-violet-200"
                                     }`}
                                 >
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <div className={`p-2 rounded-xl ${
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <div className={`p-1.5 rounded-lg ${
                                             form.instance_tracking_mode === "serial"
                                                 ? "bg-violet-500 text-white"
                                                 : "bg-gray-200 text-gray-400"
                                         }`}>
-                                            <Tag size={16} />
+                                            <Tag size={12}/>
                                         </div>
-                                        <p className="text-[11px] font-black text-gray-800 uppercase tracking-tight">Serial / Unit</p>
+                                        <p className="text-[10px] font-black text-gray-800 uppercase">Serial / Unit</p>
                                         {form.instance_tracking_mode === "serial" && (
-                                            <span className="ml-auto text-[9px] font-black bg-violet-500 text-white px-2 py-0.5 rounded-full uppercase">Active</span>
+                                            <span className="ml-auto text-[8px] font-black bg-violet-500 text-white px-1.5 py-0.5 rounded-full uppercase">
+                                                Active
+                                            </span>
                                         )}
                                     </div>
-                                    <p className="text-[9px] font-bold text-gray-400 uppercase leading-relaxed">
-                                        প্রতিটি unit আলাদা instance। QR/Barcode দিয়ে track হয়।<br/>
-                                        <span className="text-violet-500">উদাহরণ: TV, Fridge, Laptop</span>
+                                    <p className="text-[8px] font-bold text-gray-400 uppercase leading-tight">
+                                        প্রতিটি unit আলাদা। QR/Barcode দিয়ে track।
+                                        <br/><span className="text-violet-500">TV, Fridge, Laptop</span>
                                     </p>
                                 </button>
 
-                                {/* Batch Mode */}
                                 <button
                                     type="button"
                                     onClick={() => setFormField("instance_tracking_mode", "batch")}
-                                    className={`p-5 rounded-[2rem] border-2 text-left transition-all duration-200 active:scale-95 ${
+                                    className={`p-3 rounded-2xl border-2 text-left transition-all active:scale-[0.98] ${
                                         form.instance_tracking_mode === "batch"
-                                            ? "border-teal-500 bg-teal-50 shadow-md shadow-teal-100"
+                                            ? "border-teal-500 bg-teal-50 shadow-sm"
                                             : "border-gray-100 bg-gray-50 hover:border-teal-200"
                                     }`}
                                 >
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <div className={`p-2 rounded-xl ${
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <div className={`p-1.5 rounded-lg ${
                                             form.instance_tracking_mode === "batch"
                                                 ? "bg-teal-500 text-white"
                                                 : "bg-gray-200 text-gray-400"
                                         }`}>
-                                            <Boxes size={16} />
+                                            <Boxes size={12}/>
                                         </div>
-                                        <p className="text-[11px] font-black text-gray-800 uppercase tracking-tight">Batch / Qty</p>
+                                        <p className="text-[10px] font-black text-gray-800 uppercase">Batch / Qty</p>
                                         {form.instance_tracking_mode === "batch" && (
-                                            <span className="ml-auto text-[9px] font-black bg-teal-500 text-white px-2 py-0.5 rounded-full uppercase">Active</span>
+                                            <span className="ml-auto text-[8px] font-black bg-teal-500 text-white px-1.5 py-0.5 rounded-full uppercase">
+                                                Active
+                                            </span>
                                         )}
                                     </div>
-                                    <p className="text-[9px] font-bold text-gray-400 uppercase leading-relaxed">
-                                        একই batch+expiry তে quantity update। FEFO দিয়ে sale হয়।<br/>
-                                        <span className="text-teal-500">উদাহরণ: Medicine, Food, Cosmetics</span>
+                                    <p className="text-[8px] font-bold text-gray-400 uppercase leading-tight">
+                                        Batch+expiry তে qty update। FEFO sale।
+                                        <br/><span className="text-teal-500">Medicine, Food, Cosmetics</span>
                                     </p>
                                 </button>
                             </div>
                             {form.has_expiry && form.instance_tracking_mode === "serial" && (
-                                <div className="flex items-start gap-2 px-1">
-                                    <Info size={12} className="text-amber-500 mt-0.5 shrink-0" />
-                                    <p className="text-[9px] font-bold text-amber-500 uppercase leading-tight tracking-tight">
-                                        Expiry tracking চালু আছে — Medicine/FMCG হলে Batch mode ব্যবহার করুন।
+                                <div className="flex items-start gap-1.5 px-1 mt-2">
+                                    <Info size={10} className="text-amber-500 mt-0.5 shrink-0"/>
+                                    <p className="text-[8px] font-bold text-amber-500 uppercase leading-tight">
+                                        Expiry tracking চালু — Medicine/FMCG হলে Batch mode ব্যবহার করুন।
                                     </p>
                                 </div>
                             )}
                         </div>
+
                     </div>
                 </div>
             </BaseModal>
@@ -694,7 +912,7 @@ const AddProductModal = ({ isOpen, onClose, onSuccess }) => {
             {/* Quick Add Sub-Modal */}
             <QuickAddModal
                 isOpen={!!quickAdd.type}
-                onClose={() => setQuickAdd({ type: null, title: "", hasImage: false })}
+                onClose={() => setQuickAdd({type: null, title: "", hasImage: false})}
                 onSave={handleQuickAddSave}
                 title={quickAdd.title}
                 hasImage={quickAdd.hasImage}

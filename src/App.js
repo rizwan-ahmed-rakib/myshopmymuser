@@ -226,6 +226,8 @@ import PosPurchase from "./POS/Purchase/PosPurchase";
 import MasterCatalog from "./POS/masterProducCatelogt_Official/masterProductOfficial";
 import CustomerTransactionHistory from "./POS/Sales/CustomerList/CustomerTransactionHistory";
 import SupplierTransactionHistory from "./POS/Purchase/SupplierList/SupplierTransactionHistory";
+import RemoteScannerPage from "./POS/components/imagecapture/RemoteScannerPage";
+import StandaloneDosagePrint from "./POS/Sales/StandaloneDosagePrint";
 
 // import {CartProvider} from "./context_or_provider/CartContext";
 
@@ -352,6 +354,7 @@ const App = () => {
                                     <Routes>
                                         <Route path="/" element={<Dashboard/>}/>
                                         <Route path="/dashboard" element={<Dashboard/>}/>
+                                        <Route path="/remote-scan" element={<RemoteScannerPage/>}/>
                                         <Route path="/user-role" element={<UserRoleManagement/>}/>
                                         <Route path="/pos-user-profile" element={<PosUserProfile/>}/>
                                         <Route path="/reports" element={<ReportsList/>}/>
@@ -361,14 +364,15 @@ const App = () => {
                                         <Route path="/branches" element={<Branches/>}/>
                                         <Route path="/users" element={<Users/>}/>
                                         <Route path="/settings" element={<SettingsPage/>}/>
+                                        <Route path="/dosage-chart" element={<StandaloneDosagePrint />} />
                                         {/*<Route path="/pos-sale" element={<PosSalePage/>}/>*/}
                                         {/*<Route path="/pos-purchase" element={<PosPurchasePage/>}/>*/}
                                         {/*<Route path="/pos-purchase" element={<PosPurchase/>}/>*/}
 
-                                         <Route path="/cashbox" element={<Cashbox/>}/>
-                                         <Route path="/income" element={<Income/>}/>
-                                         <Route path="/expense" element={<Expense/>}/>
-                                         <Route path="/master-product-catelog" element={<MasterCatalog/>}/>
+                                        <Route path="/cashbox" element={<Cashbox/>}/>
+                                        <Route path="/income" element={<Income/>}/>
+                                        <Route path="/expense" element={<Expense/>}/>
+                                        <Route path="/master-product-catelog" element={<MasterCatalog/>}/>
                                         <Route path="/sales" element={<Sales/>}>
                                             <Route path="details/:id" element={<SaleDetailsPage/>}/>
                                             <Route path="sale-return/details/:id" element={<SaleReturnDetailsPage/>}/>
@@ -376,7 +380,8 @@ const App = () => {
                                                    element={<CustomerDueCollectionDetails/>}/>
                                             <Route path="customer/profile/:id" element={<CustomerProfilePage/>}/>
                                             <Route path="Pos-Sale-Page" element={<PosSalePage/>}/>
-                                            <Route path="sale/customer/:id/transactions" element={<CustomerTransactionHistory />} />
+                                            <Route path="sale/customer/:id/transactions"
+                                                   element={<CustomerTransactionHistory/>}/>
                                         </Route>
                                         <Route path="/stock" element={<Stock/>}>
                                             <Route path="details/:id" element={<DamageStockDetailsPage/>}/>
@@ -389,7 +394,8 @@ const App = () => {
                                             <Route path="due-payment/details/:id"
                                                    element={<SupplierDuePaymentDetails/>}/>
                                             <Route path="supplier/profile/:id" element={<SupplierProfilePage/>}/>
-                                            <Route path="supplier/:id/transactions" element={<SupplierTransactionHistory />} />
+                                            <Route path="supplier/:id/transactions"
+                                                   element={<SupplierTransactionHistory/>}/>
                                         </Route>
                                         <Route path="/inventory" element={<Inventory/>}>
                                             <Route path="product/details/:id" element={<ProductDetailsPage/>}/>

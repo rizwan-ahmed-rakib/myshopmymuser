@@ -71,4 +71,20 @@ export const posCustomerAPI = {
         const response = await api.get(`/api/sale/customer-transactions/${customerId}/transactions/?${query}`);
         return response;
     },
+
+        // ✅ নতুন
+    getTopProducts: async (customerId, params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return await api.get(`/api/sale/customer-transactions/${customerId}/top-products/?${query}`);
+    },
+
+    getStarProducts: async (customerId, params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return await api.get(`/api/sale/customer-transactions/${customerId}/star-products/?${query}`);
+    },
+
+    getRiskProducts: async (customerId, params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return await api.get(`/api/sale/customer-transactions/${customerId}/risk-products/?${query}`);
+    },
 };

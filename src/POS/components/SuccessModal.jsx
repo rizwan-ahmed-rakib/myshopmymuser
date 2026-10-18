@@ -10,7 +10,8 @@ const SuccessModal = ({
                           details = [], // [{ label: "Employee", value: "Rizwan" }, { label: "Amount", value: "৳৫,০০০" }]
                           onPrint = null, // প্রিন্ট ফাংশন পাস করলে প্রিন্ট বাটন দেখাবে
                           printText = "Print Slip",
-                          variant = "primary" // primary (brand color), danger, clean
+                          variant = "primary", // primary (brand color), danger, clean
+                          children,     // 🆕
                       }) => {
     return (
         <BaseModal
@@ -42,6 +43,14 @@ const SuccessModal = ({
                                 <span className="font-bold text-gray-800">{item.value}</span>
                             </div>
                         ))}
+                    </div>
+                )}
+
+
+                {/* 🆕 Custom children area — for item-wise dosage charts */}
+                {children && (
+                    <div className="flex-1 overflow-y-auto px-6 py-4 border-t border-gray-100 bg-gray-50/40">
+                        {children}
                     </div>
                 )}
 

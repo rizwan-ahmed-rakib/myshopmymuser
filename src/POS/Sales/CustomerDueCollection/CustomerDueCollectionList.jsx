@@ -15,7 +15,8 @@ const CustomerDueCollectionList = ({ collections, onEdit, onDelete }) => {
     const [loadingId, setLoadingId] = useState(null);
 
     const handleViewDetails = (item) => {
-        navigate(`/sales/customer-due-collection/details/${item.id}`);
+        // navigate(`/sales/customer-due-collection/details/${item.id}`);
+        navigate(`/sales/due-collection/details/${item.id}`);
     };
 
     const handleDelete = async (item) => {
@@ -43,8 +44,20 @@ const CustomerDueCollectionList = ({ collections, onEdit, onDelete }) => {
             accessor: "invoice_no",
             render: (item) => (
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs shrink-0">
-                        <Receipt size={16} />
+                    <div className="w-9 h-9 rounded-full border-2 border-white shadow-xs overflow-hidden bg-gray-100 flex items-center justify-center shrink-0">
+                        {item.customer_image ? (
+                            <img
+                                src={item.customer_image}
+                                className="w-full h-full object-cover"
+                                alt={item.customer_name || "Customer"}
+                                onError={(e) => {
+                                    // ইমেজ লোড হতে ব্যর্থ হলে হাইড হয়ে যাবে এবং ইউজার আইকন ব্যাকগ্রাউন্ডে শো করবে
+                                    e.target.style.display = 'none';
+                                }}
+                            />
+                        ) : (
+                            <User size={18} className="text-gray-400" />
+                        )}
                     </div>
                     <div className="flex flex-col min-w-0">
                         <span className="font-bold text-gray-900 truncate">#{item.invoice_no}</span>

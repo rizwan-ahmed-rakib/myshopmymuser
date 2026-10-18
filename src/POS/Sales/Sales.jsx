@@ -13,7 +13,8 @@ import CustomerTransactionTab from "./CustomerTransactionTab";
  */
 const Sales = () => {
     const [activeTab, setActiveTab] = useState('sales');
-    const [viewType, setViewType] = useState('grid');
+    // const [viewType, setViewType] = useState('grid');
+    const [viewType, setViewType] = useState('list');
     const [isAddOpen, setIsAddOpen] = useState(false);
     const [stats, setStats] = useState([]);
     

@@ -39,8 +39,54 @@ export const TOP_SECTIONS = [
         description: 'ব্যবসার সম্পদ, growth, ROA',
         apiType: 'growth',
     },
+    {
+        key: 'supplier',
+        label: 'Supplier Reports',
+        icon: '🚚',
+        color: '#f97316',
+        description: 'সাপ্লায়ার অনুযায়ী কেনাকাটা ও বাকি রিপোর্ট',
+        apiType: 'supplier-profit',
+    },
+    {
+        key: 'brand',
+        label: 'Brand Reports',
+        icon: '🏷️',
+        color: '#a855f7',
+        description: 'ব্র্যান্ড অনুযায়ী বিক্রি, লাভ ও লাইভ স্টক ভ্যালু',
+        apiType: 'brand-profit',
+    },
+    {
+        key: 'customer',
+        label: 'Customer Reports',
+        icon: '👥',
+        color: '#059669',
+        description: 'কাস্টমার অনুযায়ী বিক্রয়, লাভ ও বকেয়া রিপোর্ট',
+        apiType: 'customer-profit',
+    },
 ];
+// ═══════════════════════════════════════════════════════════════════
+// 🔹 PERIOD TABS BY SECTION — কোন section-এ কোন period available
+// ═══════════════════════════════════════════════════════════════════
+export const PERIOD_TABS_BY_SECTION = {
+    profit:    ['daily', 'monthly', 'yearly', 'all_time'],
+    product:   [],                                  // period নেই
+    inventory: ['monthly', 'yearly'],               // all_time নেই
+    growth:    ['monthly', 'yearly', 'all_time'],
+    supplier:  [],
+    brand:     [],
+    customer:  [],
+};
 
+/** Section এর default period (section switch-এ auto select হবে) */
+export const DEFAULT_PERIOD_BY_SECTION = {
+    profit:    'daily',
+    product:   null,
+    inventory: 'monthly',
+    growth:    'monthly',
+    supplier:  null,
+    brand:     null,
+    customer:  null,
+};
 // ═══════════════════════════════════════════════════════════════════
 // 🔹 PERIOD TABS — Profit Summary-এর জন্য
 // ═══════════════════════════════════════════════════════════════════

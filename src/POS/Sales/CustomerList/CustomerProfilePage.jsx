@@ -13,6 +13,7 @@ import UpdateEmployeeProfileModal from "./UpdateProfileModal";
 import SuccessModal from "../../components/SuccessModal";
 import {posCustomerAPI} from "../../../context_or_provider/pos/Sale/customer/PosCustomerAPI";
 import CustomerTransactionHistory from "./CustomerTransactionHistory";
+import CustomerProfitStatsCard from "./CustomerProfitStatsCard";
 
 /**
  * CustomerProfilePage - Refactored to use GenericModuleDetails and DetailsInfoCard.
@@ -186,6 +187,10 @@ const CustomerProfilePage = () => {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div className="mt-8">
+                <CustomerProfitStatsCard customerId={id}/>
             </div>
 
             <div className="mt-8">

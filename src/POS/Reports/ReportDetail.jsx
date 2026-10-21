@@ -1,3 +1,5 @@
+
+
 // src/POS/Reports/ReportDetail.jsx
 import React, {useEffect, useMemo, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
@@ -16,7 +18,6 @@ import {
     getColumnsBySection,
 } from './config/columns';
 
-// Components
 import SectionTabs from './components/SectionTabs';
 import BusinessNotePanel from './components/BusinessNotePanel';
 import SummaryCards from './components/SummaryCards';
@@ -25,14 +26,23 @@ import ChartModal from './components/ChartModal';
 import ColumnPicker from './components/ColumnPicker';
 import PdfDownloadButton from './components/PdfDownloadButton';
 
-// Shared
 import LoadingSpinner from '../components/LoadingSpinner';
 import EmptyState from '../components/EmptyState';
 import TransposedTable from './components/TransposedTable';
 
 // ═══════════════════════════════════════════════════════════════════
-// 🎯 INNER COMPONENT
+// 🆕 Helper — section-wise default ordering (for select fallback)
 // ═══════════════════════════════════════════════════════════════════
+const DEFAULT_ORDERING_BY_SECTION = {
+    supplier: '-total_purchase_value',
+    brand: '-total_net_profit',
+    customer: '-total_net_profit',
+    product: '-total_net_profit',
+    profit: '-period_key',
+    inventory: '-period_key',
+    growth: '-period_key',
+};
+
 const ReportDetailInner = () => {
     const navigate = useNavigate();
     const {
@@ -53,15 +63,10 @@ const ReportDetailInner = () => {
         columnPrefs, setColumnPrefs,
     } = usePosReports();
 
-    // UI state
-
-    // ← নতুন
-
     const [expandedRows, setExpandedRows] = useState({});
     const [isChartOpen, setIsChartOpen] = useState(false);
     const [isColumnPickerOpen, setIsColumnPickerOpen] = useState(false);
-    const [viewMode, setViewMode] = useState('column');   // 'column' | 'row'
-    // const [viewMode, setViewMode] = useState('column');
+    const [viewMode, setViewMode] = useState('column');
     const [selectedRowKey, setSelectedRowKey] = useState(null);
     const [selectedFieldKey, setSelectedFieldKey] = useState(null);
     const [isExpandedView, setIsExpandedView] = useState(false);
@@ -71,7 +76,6 @@ const ReportDetailInner = () => {
         loadSupportData();
     }, [loadSupportData]);
 
-    // ─── Available periods ───
     const availablePeriods = PERIOD_TABS_BY_SECTION[activeSection] || [];
 
     // ─── Section change → default period ───
@@ -129,16 +133,13 @@ const ReportDetailInner = () => {
     const allColumns = getColumnsForReportType(getReportType());
     const columnMap = buildColumnMap(allColumns);
 
-    // activeColumns: user prefs → section tab → default
     const activeColumns = useMemo(() => {
-        // Product profit-এ section tab নেই
         if (activeSection === 'product') {
             const saved = columnPrefs[`product-profit`];
             const keys = saved?.length ? saved : getDefaultColumns(allColumns);
             return keys.map((k) => columnMap[k]).filter(Boolean);
         }
 
-        // Section tab specific
         if (sectionTab === 'all') {
             const saved = columnPrefs[`${activeSection}-all`];
             const keys = saved?.length ? saved : getDefaultColumns(allColumns);
@@ -150,7 +151,6 @@ const ReportDetailInner = () => {
             return pk ? [pk] : [];
         }
 
-        // Specific section-এর সব column
         const saved = columnPrefs[`${activeSection}-${sectionTab}`];
         if (saved?.length) {
             return saved.map((k) => columnMap[k]).filter(Boolean);
@@ -166,7 +166,6 @@ const ReportDetailInner = () => {
         return counts;
     }, [allColumns]);
 
-    // Custom column handling
     const columnPrefKey = activeSection === 'product'
         ? 'product-profit'
         : `${activeSection}-${sectionTab}`;
@@ -217,10 +216,19 @@ const ReportDetailInner = () => {
     };
 
     // ═══════════════════════════════════════════════════════════════
-    // 🎬 RENDER
+    // 🆕 FIX — Section change handler (resets filters)
     // ═══════════════════════════════════════════════════════════════
+    const handleSectionClick = (secKey) => {
+        if (secKey === activeSection) return;  // no-op if same
+        resetFilters();
+        setActiveSection(secKey);
+    };
+
     const showSectionTabs = ['profit', 'inventory', 'growth'].includes(activeSection);
 
+    // ═══════════════════════════════════════════════════════════════
+    // 🎬 RENDER
+    // ═══════════════════════════════════════════════════════════════
     return (
         <div style={{minHeight: '100vh', background: '#f8fafc', paddingBottom: 40}}>
 
@@ -248,17 +256,14 @@ const ReportDetailInner = () => {
                         📊 Business Reports
                     </h1>
                     <div style={{marginLeft: 'auto', display: 'flex', gap: 8}}>
-                        {/*<PdfDownloadButton onDownload={() => downloadPdf(periodType, filters)}/>*/}
                         <PdfDownloadButton
                             label={selectedRowKey ? `PDF (${selectedRowKey})` : 'PDF'}
                             onDownload={() => {
                                 if (selectedRowKey) {
-                                    // Selected row-এর জন্য — সেই একটা period-এর PDF
                                     const pt = activeSection === 'profit' ? periodType
                                         : activeSection === 'inventory' ? (periodType === 'yearly' ? 'yearly' : 'monthly')
                                             : activeSection === 'growth' ? periodType
                                                 : 'daily';
-
                                     const params = {};
                                     if (pt === 'daily') {
                                         params.start_date = selectedRowKey;
@@ -272,7 +277,6 @@ const ReportDetailInner = () => {
                                     }
                                     return downloadPdf(pt, params);
                                 }
-                                // Default — পুরো range
                                 return downloadPdf(periodType, filters);
                             }}
                         />
@@ -290,7 +294,7 @@ const ReportDetailInner = () => {
                 </div>
             </div>
 
-            {/* TOP SECTIONS */}
+            {/* TOP SECTIONS — ✅ FIX #4: resetFilters on click */}
             <div style={{maxWidth: 1400, margin: '0 auto', padding: '20px 20px 0'}}>
                 <div style={{
                     display: 'grid',
@@ -300,12 +304,16 @@ const ReportDetailInner = () => {
                     {TOP_SECTIONS.map((sec) => {
                         const isActive = activeSection === sec.key;
                         return (
-                            <button key={sec.key} onClick={() => setActiveSection(sec.key)} style={{
-                                padding: '14px 16px', borderRadius: 12,
-                                border: `2px solid ${isActive ? sec.color : '#e2e8f0'}`,
-                                background: isActive ? `${sec.color}10` : 'white',
-                                cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
-                            }}>
+                            <button
+                                key={sec.key}
+                                onClick={() => handleSectionClick(sec.key)}
+                                style={{
+                                    padding: '14px 16px', borderRadius: 12,
+                                    border: `2px solid ${isActive ? sec.color : '#e2e8f0'}`,
+                                    background: isActive ? `${sec.color}10` : 'white',
+                                    cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+                                }}
+                            >
                                 <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
                                     <span style={{fontSize: 22}}>{sec.icon}</span>
                                     <div>
@@ -396,6 +404,8 @@ const ReportDetailInner = () => {
                             ♾️ All-Time data
                         </span>
                     )}
+
+                    {/* ═══ Product Search ═══ */}
                     {activeSection === 'product' && (
                         <>
                             <FilterInput label="Search Product" type="text" value={filters.search}
@@ -405,13 +415,21 @@ const ReportDetailInner = () => {
                                     fontSize: 10, fontWeight: 700, color: '#64748b',
                                     textTransform: 'uppercase', letterSpacing: '0.03em',
                                 }}>Order By</label>
-                                <select value={filters.ordering || '-total_net_profit'}
-                                        onChange={(e) => updateFilters({ordering: e.target.value})}
-                                        style={{
-                                            padding: '6px 10px', border: '1px solid #cbd5e1',
-                                            borderRadius: 7, fontSize: 12, background: 'white',
-                                            outline: 'none', minWidth: 160,
-                                        }}>
+                                <select
+                                    value={
+                                        ['-total_net_profit', 'total_net_profit',
+                                            '-total_revenue', '-total_units_sold']
+                                            .includes(filters.ordering)
+                                            ? filters.ordering
+                                            : '-total_net_profit'
+                                    }
+                                    onChange={(e) => updateFilters({ordering: e.target.value})}
+                                    style={{
+                                        padding: '6px 10px', border: '1px solid #cbd5e1',
+                                        borderRadius: 7, fontSize: 12, background: 'white',
+                                        outline: 'none', minWidth: 160,
+                                    }}
+                                >
                                     <option value="-total_net_profit">Net Profit (High)</option>
                                     <option value="total_net_profit">Net Profit (Low)</option>
                                     <option value="-total_revenue">Revenue (High)</option>
@@ -420,6 +438,145 @@ const ReportDetailInner = () => {
                             </div>
                         </>
                     )}
+
+                    {/* ═══ Supplier Search ═══ */}
+                    {activeSection === 'supplier' && (
+                        <>
+                            <FilterInput
+                                label="Search Supplier"
+                                type="text"
+                                value={filters.search}
+                                onChange={(v) => updateFilters({search: v})}
+                                placeholder="Name or phone..."
+                            />
+                            <div style={{display: 'flex', flexDirection: 'column', gap: 3}}>
+                                <label style={{
+                                    fontSize: 10, fontWeight: 700, color: '#64748b',
+                                    textTransform: 'uppercase', letterSpacing: '0.03em',
+                                }}>Order By</label>
+                                <select
+                                    value={
+                                        ['-total_purchase_value', 'total_purchase_value',
+                                            '-total_purchase_remaining_due', '-total_purchase_count']
+                                            .includes(filters.ordering)
+                                            ? filters.ordering
+                                            : '-total_purchase_value'
+                                    }
+                                    onChange={(e) => updateFilters({ordering: e.target.value})}
+                                    style={{
+                                        padding: '6px 10px', border: '1px solid #cbd5e1',
+                                        borderRadius: 7, fontSize: 12, background: 'white',
+                                        outline: 'none', minWidth: 160,
+                                    }}
+                                >
+                                    <option value="-total_purchase_value">Purchase Value (High)</option>
+                                    <option value="total_purchase_value">Purchase Value (Low)</option>
+                                    <option value="-total_purchase_remaining_due">Due (High)</option>
+                                    <option value="-total_purchase_count">Invoices (High)</option>
+                                </select>
+                            </div>
+                        </>
+                    )}
+
+                    {/* ═══ Brand Search ═══ */}
+                    {activeSection === 'brand' && (
+                        <>
+                            <FilterInput
+                                label="Search Brand"
+                                type="text"
+                                value={filters.search}
+                                onChange={(v) => updateFilters({search: v})}
+                                placeholder="Brand title..."
+                            />
+                            <div style={{display: 'flex', flexDirection: 'column', gap: 3}}>
+                                <label style={{
+                                    fontSize: 10, fontWeight: 700, color: '#64748b',
+                                    textTransform: 'uppercase', letterSpacing: '0.03em',
+                                }}>Order By</label>
+                                <select
+                                    value={
+                                        ['-total_net_profit', '-total_revenue',
+                                            '-total_present_inventory_purchase_value',
+                                            '-estimated_profit_from_present_inventory']
+                                            .includes(filters.ordering)
+                                            ? filters.ordering
+                                            : '-total_net_profit'
+                                    }
+                                    onChange={(e) => updateFilters({ordering: e.target.value})}
+                                    style={{
+                                        padding: '6px 10px', border: '1px solid #cbd5e1',
+                                        borderRadius: 7, fontSize: 12, background: 'white',
+                                        outline: 'none', minWidth: 160,
+                                    }}
+                                >
+                                    <option value="-total_net_profit">Net Profit (High)</option>
+                                    <option value="-total_revenue">Revenue (High)</option>
+                                    <option value="-total_present_inventory_purchase_value">Stock Value (High)</option>
+                                    <option value="-estimated_profit_from_present_inventory">Potential Profit (High)
+                                    </option>
+                                </select>
+                            </div>
+                        </>
+                    )}
+
+                    {/* ═══ Customer Search + Walk-in Toggle ═══ */}
+                    {activeSection === 'customer' && (
+                        <>
+                            <FilterInput
+                                label="Search Customer"
+                                type="text"
+                                value={filters.search}
+                                onChange={(v) => updateFilters({search: v})}
+                                placeholder="Name or phone..."
+                            />
+                            <div style={{display: 'flex', flexDirection: 'column', gap: 3}}>
+                                <label style={{
+                                    fontSize: 10, fontWeight: 700, color: '#64748b',
+                                    textTransform: 'uppercase', letterSpacing: '0.03em',
+                                }}>Customer Type</label>
+                                <select
+                                    value={filters.is_walk_in || ''}
+                                    onChange={(e) => updateFilters({is_walk_in: e.target.value})}
+                                    style={{
+                                        padding: '6px 10px', border: '1px solid #cbd5e1',
+                                        borderRadius: 7, fontSize: 12, background: 'white',
+                                        outline: 'none', minWidth: 140,
+                                    }}
+                                >
+                                    <option value="">All Customers</option>
+                                    <option value="false">Registered Only</option>
+                                    <option value="true">Walk-in Only</option>
+                                </select>
+                            </div>
+                            <div style={{display: 'flex', flexDirection: 'column', gap: 3}}>
+                                <label style={{
+                                    fontSize: 10, fontWeight: 700, color: '#64748b',
+                                    textTransform: 'uppercase', letterSpacing: '0.03em',
+                                }}>Order By</label>
+                                <select
+                                    value={
+                                        ['-total_net_profit', '-total_revenue',
+                                            '-total_after_sale_remaining_due', '-total_sales_count']
+                                            .includes(filters.ordering)
+                                            ? filters.ordering
+                                            : '-total_net_profit'
+                                    }
+                                    onChange={(e) => updateFilters({ordering: e.target.value})}
+                                    style={{
+                                        padding: '6px 10px', border: '1px solid #cbd5e1',
+                                        borderRadius: 7, fontSize: 12, background: 'white',
+                                        outline: 'none', minWidth: 160,
+                                    }}
+                                >
+                                    <option value="-total_net_profit">Net Profit (High)</option>
+                                    <option value="-total_revenue">Revenue (High)</option>
+                                    <option value="-total_after_sale_remaining_due">Due (High)</option>
+                                    <option value="-total_sales_count">Orders (High)</option>
+                                </select>
+                            </div>
+                        </>
+                    )}
+
                     {['profit', 'growth'].includes(activeSection) &&
                         periodType !== 'all_time' && availablePeriods.length > 1 && (
                             <label style={{
@@ -436,30 +593,17 @@ const ReportDetailInner = () => {
                             </label>
                         )}
 
-
                     {/* View mode toggle */}
-                    <div style={{
-                        display: 'flex',
-                        gap: 2,
-                        background: '#f1f5f9',
-                        borderRadius: 8,
-                        padding: 3,
-                    }}>
+                    <div style={{display: 'flex', gap: 2, background: '#f1f5f9', borderRadius: 8, padding: 3}}>
                         <button
                             onClick={() => setViewMode('column')}
                             title="Column view"
                             style={{
-                                padding: '5px 10px',
-                                border: 'none',
-                                borderRadius: 6,
+                                padding: '5px 10px', border: 'none', borderRadius: 6,
                                 background: viewMode === 'column' ? 'white' : 'transparent',
                                 color: viewMode === 'column' ? '#0ea5e9' : '#64748b',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                fontSize: 11.5,
-                                fontWeight: 600,
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                                fontSize: 11.5, fontWeight: 600,
                                 boxShadow: viewMode === 'column' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                             }}
                         >
@@ -469,17 +613,11 @@ const ReportDetailInner = () => {
                             onClick={() => setViewMode('row')}
                             title="Row view (transposed)"
                             style={{
-                                padding: '5px 10px',
-                                border: 'none',
-                                borderRadius: 6,
+                                padding: '5px 10px', border: 'none', borderRadius: 6,
                                 background: viewMode === 'row' ? 'white' : 'transparent',
                                 color: viewMode === 'row' ? '#0ea5e9' : '#64748b',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                fontSize: 11.5,
-                                fontWeight: 600,
+                                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4,
+                                fontSize: 11.5, fontWeight: 600,
                                 boxShadow: viewMode === 'row' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                             }}
                         >
@@ -487,35 +625,26 @@ const ReportDetailInner = () => {
                         </button>
                     </div>
 
-
-                    {/* Expand toggle — আলাদা button */}
                     <button
                         onClick={() => setIsExpandedView((v) => !v)}
                         title={isExpandedView ? 'Compact view' : 'Expand view'}
                         style={{
-                            padding: '6px 12px',
-                            border: '1px solid #e2e8f0',
+                            padding: '6px 12px', border: '1px solid #e2e8f0',
                             borderRadius: 8,
                             background: isExpandedView ? '#eff6ff' : 'white',
                             color: isExpandedView ? '#0284c7' : '#475569',
-                            cursor: 'pointer',
-                            fontWeight: 600,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 5,
-                            fontSize: 11.5,
+                            cursor: 'pointer', fontWeight: 600,
+                            display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5,
                         }}
                     >
                         {isExpandedView ? <Minimize2 size={13}/> : <Maximize2 size={13}/>}
                         {isExpandedView ? 'Compact' : 'Expand'}
                     </button>
 
-                    {/* Manage Columns button */}
                     <button
                         onClick={() => setIsColumnPickerOpen(true)}
                         style={{
-                            padding: '6px 12px',
-                            border: '1px solid #e2e8f0',
+                            padding: '6px 12px', border: '1px solid #e2e8f0',
                             borderRadius: 8, background: 'white',
                             fontSize: 12, color: '#475569',
                             cursor: 'pointer', fontWeight: 600,
@@ -608,128 +737,10 @@ const ReportDetailInner = () => {
 
                 {!loading && !error && rows.length > 0 && (
                     <>
-                        {/* Summary Cards */}
                         {aggregated && (
                             <SummaryCards section={activeSection} aggregated={aggregated}/>
                         )}
 
-                        {/* Table */}
-                        {/*<div style={{background: 'white', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden',}}>*/}
-                        {/*    <div style={{*/}
-                        {/*        padding: '12px 20px', borderBottom: '1px solid #f1f5f9',*/}
-                        {/*        display: 'flex', justifyContent: 'space-between', alignItems: 'center',*/}
-                        {/*    }}>*/}
-                        {/*        <div style={{fontSize: 13, color: '#475569', fontWeight: 600}}>*/}
-                        {/*            {rows.length} rows · {activeColumns.length} columns*/}
-                        {/*            {activeSection === 'product' && activeData?.count ? ` · Total: ${activeData.count}` : ''}*/}
-                        {/*        </div>*/}
-                        {/*        <div style={{fontSize: 12, color: '#94a3b8'}}>*/}
-                        {/*            {activeData?.range*/}
-                        {/*                ? `Range: ${activeData.range.start} → ${activeData.range.end}`*/}
-                        {/*                : activeSection === 'product' ? 'Cumulative' : ''}*/}
-                        {/*        </div>*/}
-                        {/*    </div>*/}
-
-                        {/*    /!*<div style={{ overflowX: 'auto' }}>*!/*/}
-                        {/*    <div style={{*/}
-                        {/*        overflowX: 'auto',*/}
-                        {/*        overflowY: 'auto',*/}
-                        {/*        maxHeight: '65vh',       // ← টেবিল viewport-এ থাকবে*/}
-                        {/*        minHeight: 200,*/}
-                        {/*    }}>*/}
-                        {/*        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: 13}}>*/}
-                        {/*            <thead>*/}
-                        {/*            /!*<tr style={{background: '#f8fafc'}}>*!/*/}
-                        {/*            <tr style={{background: '#f8fafc', position: 'sticky', top: 0, zIndex: 5}}>*/}
-                        {/*                {activeSection !== 'product' && (*/}
-                        {/*                    <th style={{*/}
-                        {/*                        width: 30, padding: '10px 8px',*/}
-                        {/*                        borderBottom: '1px solid #e2e8f0',*/}
-                        {/*                    }}></th>*/}
-                        {/*                )}*/}
-                        {/*                {activeColumns.map((col) => (*/}
-                        {/*                    <th key={col.key} style={{*/}
-                        {/*                        padding: '10px 14px',*/}
-                        {/*                        textAlign: col.type === 'text' ? 'left' : 'right',*/}
-                        {/*                        fontWeight: 700, color: '#475569',*/}
-                        {/*                        fontSize: 11, textTransform: 'uppercase',*/}
-                        {/*                        letterSpacing: '0.03em',*/}
-                        {/*                        borderBottom: '1px solid #e2e8f0',*/}
-                        {/*                        whiteSpace: 'nowrap',*/}
-                        {/*                    }}>*/}
-                        {/*                        {col.label}*/}
-                        {/*                    </th>*/}
-                        {/*                ))}*/}
-                        {/*            </tr>*/}
-                        {/*            </thead>*/}
-                        {/*            <tbody>*/}
-                        {/*            {rows.map((row, ri) => {*/}
-                        {/*                const rowKey = row.period_key || row.id || ri;*/}
-                        {/*                const isExpanded = !!expandedRows[rowKey];*/}
-                        {/*                const notesCount = (row.business_notes || []).length;*/}
-
-                        {/*                return (*/}
-                        {/*                    <React.Fragment key={rowKey}>*/}
-                        {/*                        <tr style={{*/}
-                        {/*                            borderBottom: isExpanded ? 'none' : '1px solid #f1f5f9',*/}
-                        {/*                            transition: 'background 0.1s',*/}
-                        {/*                        }}*/}
-                        {/*                            onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}*/}
-                        {/*                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}*/}
-                        {/*                        >*/}
-                        {/*                            {activeSection !== 'product' && (*/}
-                        {/*                                <td style={{*/}
-                        {/*                                    padding: '10px 8px', textAlign: 'center',*/}
-                        {/*                                    cursor: 'pointer', width: 30,*/}
-                        {/*                                }}*/}
-                        {/*                                    onClick={() => toggleRow(rowKey)}*/}
-                        {/*                                >*/}
-                        {/*                                    {isExpanded*/}
-                        {/*                                        ? <ChevronDown size={14} color="#0ea5e9"/>*/}
-                        {/*                                        : <ChevronRight size={14}*/}
-                        {/*                                                        color={notesCount > 0 ? '#0ea5e9' : '#94a3b8'}/>}*/}
-                        {/*                                    {!isExpanded && notesCount > 0 && (*/}
-                        {/*                                        <div style={{*/}
-                        {/*                                            fontSize: 9, color: '#0ea5e9',*/}
-                        {/*                                            fontWeight: 700, marginTop: 2,*/}
-                        {/*                                        }}>*/}
-                        {/*                                            {notesCount}*/}
-                        {/*                                        </div>*/}
-                        {/*                                    )}*/}
-                        {/*                                </td>*/}
-                        {/*                            )}*/}
-                        {/*                            {activeColumns.map((col) => (*/}
-                        {/*                                <td key={col.key} style={{*/}
-                        {/*                                    padding: '10px 14px',*/}
-                        {/*                                    textAlign: col.type === 'text' ? 'left' : 'right',*/}
-                        {/*                                    color: '#1e293b', whiteSpace: 'nowrap',*/}
-                        {/*                                }}>*/}
-                        {/*                                    {renderCell(row, col)}*/}
-                        {/*                                </td>*/}
-                        {/*                            ))}*/}
-                        {/*                        </tr>*/}
-
-                        {/*                        {isExpanded && activeSection !== 'product' && (*/}
-                        {/*                            <tr>*/}
-                        {/*                                <td colSpan={activeColumns.length + 1} style={{padding: 0}}>*/}
-                        {/*                                    <BusinessNotePanel*/}
-                        {/*                                        notes={row.business_notes || []}*/}
-                        {/*                                        onAddNote={(text) => handleAddNote(row, text)}*/}
-                        {/*                                        canEdit={true}*/}
-                        {/*                                    />*/}
-                        {/*                                </td>*/}
-                        {/*                            </tr>*/}
-                        {/*                        )}*/}
-                        {/*                    </React.Fragment>*/}
-                        {/*                );*/}
-                        {/*            })}*/}
-                        {/*            </tbody>*/}
-                        {/*        </table>*/}
-                        {/*    </div>*/}
-                        {/*</div>*/}
-
-
-                        {/* Table */}
                         <div style={{
                             background: 'white',
                             borderRadius: 12,
@@ -748,168 +759,55 @@ const ReportDetailInner = () => {
                                     {rows.length} rows · {activeColumns.length} columns
                                     {viewMode === 'row' && ' · transposed'}
                                 </div>
-                                <div style={{fontSize: 12, color: '#94a3b8'}}>
-                                    {activeData?.range
-                                        ? `Range: ${activeData.range.start} → ${activeData.range.end}`
-                                        : activeSection === 'product' ? 'Cumulative' : ''}
+
+                                <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+                                    {['supplier', 'brand', 'customer'].includes(activeSection) && (
+                                        <span style={{
+                                            fontSize: 10, fontWeight: 800,
+                                            padding: '3px 8px', borderRadius: 6,
+                                            background: filters.start_date ? '#fef3c7' : '#dcfce7',
+                                            color: filters.start_date ? '#92400e' : '#166534',
+                                            textTransform: 'uppercase', letterSpacing: '0.05em',
+                                            border: `1px solid ${filters.start_date ? '#fde68a' : '#bbf7d0'}`,
+                                        }}>
+                                            {filters.start_date && filters.end_date
+                                                ? `📅 ${filters.start_date} → ${filters.end_date}`
+                                                : '♾️ All-Time'}
+                                        </span>
+                                    )}
+                                    <span style={{fontSize: 12, color: '#94a3b8'}}>
+                                        {activeData?.range
+                                            ? `Range: ${activeData.range.start} → ${activeData.range.end}`
+                                            : activeSection === 'product' ? 'Cumulative' : ''}
+                                    </span>
                                 </div>
                             </div>
 
-                            {/* ─── Column View (Default) ─── */}
-                            {/*{viewMode === 'column' && (*/}
-                            {/*    <div style={{overflowX: 'auto', overflowY: 'auto', maxHeight: '65vh', minHeight: 200,}}>*/}
-                            {/*        <table style={{width: '100%', borderCollapse: 'collapse', fontSize: 13}}>*/}
-                            {/*            <thead>*/}
-                            {/*            <tr style={{*/}
-                            {/*                background: '#f8fafc',*/}
-                            {/*                position: 'sticky',*/}
-                            {/*                top: 0,*/}
-                            {/*                zIndex: 5,*/}
-                            {/*            }}>*/}
-                            {/*                {activeSection !== 'product' && (*/}
-                            {/*                    <th style={{*/}
-                            {/*                        width: 30,*/}
-                            {/*                        padding: '10px 8px',*/}
-                            {/*                        borderBottom: '1px solid #e2e8f0',*/}
-                            {/*                        background: '#f8fafc',*/}
-                            {/*                    }}></th>*/}
-                            {/*                )}*/}
-                            {/*                {activeColumns.map((col) => (*/}
-                            {/*                    <th key={col.key} style={{*/}
-                            {/*                        padding: '10px 14px',*/}
-                            {/*                        textAlign: col.type === 'text' ? 'left' : 'right',*/}
-                            {/*                        fontWeight: 700,*/}
-                            {/*                        color: '#475569',*/}
-                            {/*                        fontSize: 11,*/}
-                            {/*                        textTransform: 'uppercase',*/}
-                            {/*                        letterSpacing: '0.03em',*/}
-                            {/*                        borderBottom: '1px solid #e2e8f0',*/}
-                            {/*                        whiteSpace: 'nowrap',*/}
-                            {/*                        background: '#f8fafc',*/}
-                            {/*                    }}>*/}
-                            {/*                        {col.label}*/}
-                            {/*                    </th>*/}
-                            {/*                ))}*/}
-                            {/*            </tr>*/}
-                            {/*            </thead>*/}
-                            {/*            <tbody>*/}
-                            {/*            {rows.map((row, ri) => {*/}
-                            {/*                const rowKey = row.period_key || row.id || ri;*/}
-                            {/*                const isExpanded = !!expandedRows[rowKey];*/}
-                            {/*                const notesCount = (row.business_notes || []).length;*/}
-
-                            {/*                return (*/}
-                            {/*                    <React.Fragment key={rowKey}>*/}
-                            {/*                        <tr style={{*/}
-                            {/*                            borderBottom: isExpanded ? 'none' : '1px solid #f1f5f9',*/}
-                            {/*                        }}*/}
-                            {/*                            onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}*/}
-                            {/*                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}*/}
-                            {/*                        >*/}
-                            {/*                            {activeSection !== 'product' && (*/}
-                            {/*                                <td style={{*/}
-                            {/*                                    padding: '10px 8px',*/}
-                            {/*                                    textAlign: 'center',*/}
-                            {/*                                    cursor: 'pointer',*/}
-                            {/*                                    width: 30,*/}
-                            {/*                                }}*/}
-                            {/*                                    onClick={() => toggleRow(rowKey)}*/}
-                            {/*                                >*/}
-                            {/*                                    {isExpanded*/}
-                            {/*                                        ? <ChevronDown size={14} color="#0ea5e9"/>*/}
-                            {/*                                        : <ChevronRight size={14}*/}
-                            {/*                                                        color={notesCount > 0 ? '#0ea5e9' : '#94a3b8'}/>}*/}
-                            {/*                                    {!isExpanded && notesCount > 0 && (*/}
-                            {/*                                        <div style={{*/}
-                            {/*                                            fontSize: 9,*/}
-                            {/*                                            color: '#0ea5e9',*/}
-                            {/*                                            fontWeight: 700,*/}
-                            {/*                                            marginTop: 2,*/}
-                            {/*                                        }}>*/}
-                            {/*                                            {notesCount}*/}
-                            {/*                                        </div>*/}
-                            {/*                                    )}*/}
-                            {/*                                </td>*/}
-                            {/*                            )}*/}
-                            {/*                            {activeColumns.map((col) => (*/}
-                            {/*                                <td key={col.key} style={{*/}
-                            {/*                                    padding: '10px 14px',*/}
-                            {/*                                    textAlign: col.type === 'text' ? 'left' : 'right',*/}
-                            {/*                                    color: '#1e293b',*/}
-                            {/*                                    whiteSpace: 'nowrap',*/}
-                            {/*                                }}>*/}
-                            {/*                                    {renderCell(row, col)}*/}
-                            {/*                                </td>*/}
-                            {/*                            ))}*/}
-                            {/*                        </tr>*/}
-
-                            {/*                        {isExpanded && activeSection !== 'product' && (*/}
-                            {/*                            <tr>*/}
-                            {/*                                <td colSpan={activeColumns.length + 1} style={{padding: 0}}>*/}
-                            {/*                                    <BusinessNotePanel*/}
-                            {/*                                        notes={row.business_notes || []}*/}
-                            {/*                                        onAddNote={(text) => handleAddNote(row, text)}*/}
-                            {/*                                        canEdit={true}*/}
-                            {/*                                    />*/}
-                            {/*                                </td>*/}
-                            {/*                            </tr>*/}
-                            {/*                        )}*/}
-                            {/*                    </React.Fragment>*/}
-                            {/*                );*/}
-                            {/*            })}*/}
-                            {/*            </tbody>*/}
-                            {/*        </table>*/}
-                            {/*    </div>*/}
-                            {/*)}*/}
-
+                            {/* Column View */}
                             {viewMode === 'column' && (
                                 <div style={{
                                     overflowX: 'auto',
                                     overflowY: 'auto',
-                                    // maxHeight: '65vh',
-                                    maxHeight: isExpandedView ? 'none' : '65vh',   // ← নতুন
-                                    // maxHeight: isExpandedView ? 'none' : '120px',   // ← নতুন
+                                    maxHeight: isExpandedView ? 'none' : '65vh',
                                     minHeight: 200,
                                 }}>
                                     <table style={{width: '100%', borderCollapse: 'collapse', fontSize: 13}}>
                                         <thead>
-                                        <tr style={{
-                                            background: '#f8fafc',
-                                            position: 'sticky',
-                                            top: 0,
-                                            zIndex: 5,
-                                        }}>
-                                            {/*{activeSection !== 'product' && (*/}
-                                            {/*    <th style={{*/}
-                                            {/*        width: 30,*/}
-                                            {/*        padding: '10px 8px',*/}
-                                            {/*        borderBottom: '1px solid #e2e8f0',*/}
-                                            {/*        background: '#f8fafc',*/}
-                                            {/*    }}></th>*/}
-                                            {/*)}*/}
-
+                                        <tr style={{background: '#f8fafc', position: 'sticky', top: 0, zIndex: 5}}>
                                             {activeSection !== 'product' && (
                                                 <th style={{
-                                                    width: 30,
-                                                    padding: '10px 8px',
+                                                    width: 30, padding: '10px 8px',
                                                     borderBottom: '1px solid #e2e8f0',
                                                     background: '#f8fafc',
-                                                    // ✅ Sticky left: 0
-                                                    position: 'sticky',
-                                                    left: 0,
-                                                    top: 0,
-                                                    zIndex: 8,
-                                                    borderRight: '1px solid #e2e8f0',
+                                                    position: 'sticky', left: 0, top: 0,
+                                                    zIndex: 8, borderRight: '1px solid #e2e8f0',
                                                 }}></th>
                                             )}
-
-
                                             {activeColumns.map((col, ci) => {
                                                 const isFieldSelected = selectedFieldKey === col.key;
                                                 const isPeriodCol = col.key === 'period_key';
                                                 const isFirstCol = ci === 0;
                                                 const stickyLeft = activeSection === 'product' ? 0 : 30;
-
                                                 return (
                                                     <th
                                                         key={col.key}
@@ -926,9 +824,7 @@ const ReportDetailInner = () => {
                                                             whiteSpace: 'nowrap',
                                                             background: isFieldSelected ? '#eff6ff' : '#f8fafc',
                                                             cursor: 'pointer',
-                                                            position: 'sticky',
-                                                            top: 0,
-                                                            // ✅ Period column → also sticky left
+                                                            position: 'sticky', top: 0,
                                                             ...(isPeriodCol && isFirstCol && {
                                                                 left: stickyLeft,
                                                                 zIndex: 7,
@@ -942,7 +838,6 @@ const ReportDetailInner = () => {
                                                     </th>
                                                 );
                                             })}
-
                                         </tr>
                                         </thead>
                                         <tbody>
@@ -952,8 +847,6 @@ const ReportDetailInner = () => {
                                             const isSelected = selectedRowKey === rowKey;
                                             const notesCount = (row.business_notes || []).length;
                                             const isZebraDark = ri % 2 === 1;
-
-                                            // Default background — select থাকলে অগ্রাধিকার
                                             const rowBg = isSelected
                                                 ? '#eff6ff'
                                                 : isZebraDark ? '#fafbfc' : 'white';
@@ -978,10 +871,7 @@ const ReportDetailInner = () => {
                                                                 textAlign: 'center',
                                                                 width: 30,
                                                                 background: rowBg,
-                                                                // ✅ Sticky left: 0
-                                                                position: 'sticky',
-                                                                left: 0,
-                                                                zIndex: 4,
+                                                                position: 'sticky', left: 0, zIndex: 4,
                                                                 borderRight: '1px solid #e2e8f0',
                                                             }}>
                                                                 <div
@@ -997,10 +887,8 @@ const ReportDetailInner = () => {
                                                                                         color={notesCount > 0 ? '#0ea5e9' : '#94a3b8'}/>}
                                                                     {!isExpanded && notesCount > 0 && (
                                                                         <div style={{
-                                                                            fontSize: 9,
-                                                                            color: '#0ea5e9',
-                                                                            fontWeight: 700,
-                                                                            marginTop: 2,
+                                                                            fontSize: 9, color: '#0ea5e9',
+                                                                            fontWeight: 700, marginTop: 2,
                                                                         }}>
                                                                             {notesCount}
                                                                         </div>
@@ -1008,19 +896,6 @@ const ReportDetailInner = () => {
                                                                 </div>
                                                             </td>
                                                         )}
-                                                        {/*{activeColumns.map((col) => (*/}
-                                                        {/*    <td key={col.key} style={{*/}
-                                                        {/*        padding: '10px 14px',*/}
-                                                        {/*        textAlign: col.type === 'text' ? 'left' : 'right',*/}
-                                                        {/*        color: '#1e293b',*/}
-                                                        {/*        whiteSpace: 'nowrap',*/}
-                                                        {/*        background: rowBg,*/}
-                                                        {/*    }}>*/}
-                                                        {/*        {renderCell(row, col)}*/}
-                                                        {/*    </td>*/}
-                                                        {/*))}*/}
-
-
                                                         {activeColumns.map((col, ci) => {
                                                             const isFieldSelected = selectedFieldKey === col.key;
                                                             const isRowSelected = selectedRowKey === rowKey;
@@ -1028,13 +903,11 @@ const ReportDetailInner = () => {
                                                             const isPeriodCol = col.key === 'period_key';
                                                             const isFirstCol = ci === 0;
                                                             const stickyLeft = activeSection === 'product' ? 0 : 30;
-
                                                             const cellBg = isIntersection
                                                                 ? '#bae6fd'
                                                                 : isRowSelected ? '#f0f9ff'
                                                                     : isFieldSelected ? '#f0f9ff'
                                                                         : rowBg;
-
                                                             return (
                                                                 <td key={col.key} style={{
                                                                     padding: '10px 14px',
@@ -1042,7 +915,6 @@ const ReportDetailInner = () => {
                                                                     color: '#1e293b',
                                                                     whiteSpace: 'nowrap',
                                                                     background: cellBg,
-                                                                    // ✅ Period cell → sticky left
                                                                     ...(isPeriodCol && isFirstCol && {
                                                                         position: 'sticky',
                                                                         left: stickyLeft,
@@ -1057,8 +929,6 @@ const ReportDetailInner = () => {
                                                                 </td>
                                                             );
                                                         })}
-
-
                                                     </tr>
 
                                                     {isExpanded && activeSection !== 'product' && (
@@ -1076,50 +946,36 @@ const ReportDetailInner = () => {
                                             );
                                         })}
 
-                                        {/* ════════ TOTAL ROW ════════ */}
+                                        {/* TOTAL ROW */}
                                         {aggregated && (
                                             <tr style={{
                                                 background: '#fef3c7',
-                                                position: 'sticky',
-                                                bottom: 0,
-                                                zIndex: 4,
+                                                position: 'sticky', bottom: 0, zIndex: 4,
                                                 boxShadow: '0 -2px 6px rgba(0,0,0,0.06)',
                                             }}>
                                                 {activeSection !== 'product' && (
                                                     <td style={{
                                                         padding: '12px 8px',
                                                         background: '#fef3c7',
-                                                        // ✅ Sticky left: 0
-                                                        position: 'sticky',
-                                                        left: 0,
-                                                        zIndex: 6,
+                                                        position: 'sticky', left: 0, zIndex: 6,
                                                         borderRight: '1px solid #e2e8f0',
                                                     }}></td>
                                                 )}
                                                 {activeColumns.map((col, ci) => {
                                                     const isSummable = ['currency', 'int', 'number'].includes(col.type);
                                                     const showTotal = isSummable && aggregated[col.key] !== undefined;
-                                                    const isFieldSelected = selectedFieldKey === col.key;   // ← যোগ করো
-
+                                                    const isFieldSelected = selectedFieldKey === col.key;
                                                     return (
                                                         <td key={col.key} style={{
                                                             padding: '12px 14px',
                                                             textAlign: col.type === 'text' ? 'left' : 'right',
                                                             color: '#0f172a',
-                                                            // color: isFieldSelected ? 'white' : '#0f172a',              // ← পরিবর্তন
                                                             fontWeight: 800,
                                                             fontSize: 13,
                                                             whiteSpace: 'nowrap',
-                                                            // background: '#fef3c7',
-                                                            // background: isFieldSelected ? '#0284c7' : '#fef3c7',   // ← highlight
-                                                            // background: isFieldSelected ? '#0ea5e1' : '#fef3c7',   // ← highlight
-                                                            // background: isFieldSelected ? '#f0f9ff' : '#fef3c7',   // ← highlight
-                                                            // background: isFieldSelected ? '#E9F4FB' : '#fef3c7',   // ← highlight
-                                                            background: isFieldSelected ? '#bae6fd' : '#fef3c7',   // ← highlight
+                                                            background: isFieldSelected ? '#bae6fd' : '#fef3c7',
                                                             borderTop: '2px solid #0f172a',
-                                                            transition: 'background 0.15s, color 0.15s',                 // ← smooth
-
-                                                            // ✅ NEW: Period cell sticky
+                                                            transition: 'background 0.15s, color 0.15s',
                                                             ...(col.key === 'period_key' && ci === 0 && {
                                                                 position: 'sticky',
                                                                 left: activeSection === 'product' ? 0 : 30,
@@ -1127,7 +983,6 @@ const ReportDetailInner = () => {
                                                                 borderRight: '1px solid #e2e8f0',
                                                                 boxShadow: '2px 0 4px -2px rgba(0,0,0,0.06)',
                                                             }),
-
                                                         }}>
                                                             {ci === 0 && col.type === 'text' && col.key === 'period_key' ? (
                                                                 <span style={{
@@ -1135,8 +990,8 @@ const ReportDetailInner = () => {
                                                                     textTransform: 'uppercase',
                                                                     letterSpacing: '0.04em',
                                                                 }}>
-                                            ⊕ TOTAL
-                                        </span>
+                                                                    ⊕ TOTAL
+                                                                </span>
                                                             ) : showTotal ? (
                                                                 formatValue(aggregated[col.key], col.type)
                                                             ) : (
@@ -1153,32 +1008,21 @@ const ReportDetailInner = () => {
                                 </div>
                             )}
 
-                            {/* ─── Row View (Transposed) ─── */}
-                            {/*{viewMode === 'row' && (*/}
-                            {/*    <TransposedTable*/}
-                            {/*        rows={rows}*/}
-                            {/*        columns={activeColumns}*/}
-                            {/*        renderCell={renderCell}*/}
-                            {/*        rowLabelKey="period_key"*/}
-                            {/*    />*/}
-                            {/*)}*/}
-
-
+                            {/* Row View */}
                             {viewMode === 'row' && (
                                 <TransposedTable
                                     rows={rows}
                                     columns={activeColumns}
                                     renderCell={renderCell}
-                                    aggregated={aggregated}                    // ← নতুন
-                                    onAddNote={handleAddNote}                  // ← নতুন
-                                    selectedRowKey={selectedRowKey}            // ← নতুন
-                                    onRowSelect={setSelectedRowKey}            // ← নতুন
-                                    selectedFieldKey={selectedFieldKey}         //{/* ← নতুন */}
-                                    onFieldSelect={setSelectedFieldKey}         //{/* ← নতুন */}
+                                    aggregated={aggregated}
+                                    onAddNote={handleAddNote}
+                                    selectedRowKey={selectedRowKey}
+                                    onRowSelect={setSelectedRowKey}
+                                    selectedFieldKey={selectedFieldKey}
+                                    onFieldSelect={setSelectedFieldKey}
                                     rowLabelKey="period_key"
                                 />
                             )}
-
                         </div>
                     </>
                 )}
@@ -1189,7 +1033,6 @@ const ReportDetailInner = () => {
                 <FloatingChartButton onClick={() => setIsChartOpen(true)}/>
             )}
 
-            {/* Chart Modal */}
             <ChartModal
                 isOpen={isChartOpen}
                 onClose={() => setIsChartOpen(false)}
@@ -1199,7 +1042,6 @@ const ReportDetailInner = () => {
                 }
             />
 
-            {/* Column Picker */}
             <ColumnPicker
                 isOpen={isColumnPickerOpen}
                 onClose={() => setIsColumnPickerOpen(false)}
@@ -1210,7 +1052,6 @@ const ReportDetailInner = () => {
         </div>
     );
 };
-
 
 // Helper
 const FilterInput = ({label, type, value, onChange, placeholder}) => (
@@ -1233,7 +1074,6 @@ const FilterInput = ({label, type, value, onChange, placeholder}) => (
         />
     </div>
 );
-
 
 const ReportDetail = () => (
     <ReportsProvider>

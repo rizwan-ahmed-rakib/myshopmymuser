@@ -56,4 +56,7 @@ export const posCashboxAPI = {
     // ===== FUND TRANSFERS =====
     getFundTransfers: (params) => api.get("/api/cashbox/fund-transfers/", { params }),
     createFundTransfer: (data) => api.post("/api/cashbox/fund-transfers/", data),
+
+    getCalendarDays: (params) => api.get("/api/cashbox/cashbox/calendar_days/", { params }),
+    getBusinessDays: (params) => api.get("/api/cashbox/cashbox/business_days/", { params }),
 };

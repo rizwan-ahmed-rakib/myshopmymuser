@@ -298,4 +298,23 @@ export const posReportsAPI = {
     // ═══ 🆕 Dashboard KPIs Overview ═══
     getDashboardKPIs: () =>
         api.get("/api/reports/dashboard-kpis/"),
+
+    // ═══ 🆕 Product Analysis (product-profit এর মধ্যে) ═══
+    getProductVelocity: (id, params = {}) =>
+        api.get(`/api/reports/product-profit/${id}/velocity/`, {params}),
+
+    getProductTimeline: (id, params = {}) =>
+        api.get(`/api/reports/product-profit/${id}/performance-timeline/`, {params}),
+
+    getProductDailySales: (id, params = {}) =>
+        api.get(`/api/reports/product-profit/${id}/daily-sales/`, {params}),
+
+    getProductByDate: (id, params = {}) =>
+        api.get(`/api/reports/product-profit/${id}/by-date/`, {params}),
+
+    getProductTopBuyers: (id, params = {}) =>
+        api.get(`/api/reports/product-profit/${id}/top-buyers/`, {params}),
+
+    getProductByEntity: (id, params = {}) =>
+        api.get(`/api/reports/product-profit/${id}/by-entity/`, {params}),
 };

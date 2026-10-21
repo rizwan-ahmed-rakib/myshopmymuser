@@ -16,6 +16,12 @@ const CARD_CONFIGS = {
         { key: 'received_net_sale_value', label: 'Cash Received', icon: DollarSign, color: '#0ea5e9', type: 'currency' },
         { key: 'net_sale_value_dues', label: 'Outstanding Due', icon: AlertTriangle, color: '#f59e0b', type: 'currency' },
         { key: 'total_units_sold', label: 'Units Sold', icon: Package, color: '#8b5cf6', type: 'int' },
+        // 🆕 Per-Invoice Averages
+        { key: 'average_net_sale_value_per_invoice', label: 'Sale Value / Invoice', icon: DollarSign, color: '#0ea5e9', type: 'currency' },
+        // { key: 'average_net_sale_value_per_invoice', label: 'Sale Value / Invoice (AOV)', icon: DollarSign, color: '#0ea5e9', type: 'currency' },
+        { key: 'average_gross_profit_per_invoice', label: 'Gross Profit / Invoice', icon: TrendingUp, color: '#10b981', type: 'currency' },
+        { key: 'average_net_profit_per_invoice', label: 'Net Profit / Invoice', icon: Wallet, color: '#059669', type: 'currency' },
+        { key: 'average_units_sold_per_invoice', label: 'Units / Invoice', icon: Package, color: '#8b5cf6', type: 'number' },
     ],
     inventory: [
         { key: 'total_present_unitsOrQuantity_in_inventory', label: 'Units in Stock', icon: Package, color: '#8b5cf6', type: 'int' },

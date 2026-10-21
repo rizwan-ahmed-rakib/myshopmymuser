@@ -83,6 +83,12 @@ export const PROFIT_SUMMARY_COLUMNS = [
     { key: 'total_discount', label: 'Total Discount', section: 'sale', type: 'currency', default: true },
     { key: 'accrual_net_sale_value', label: 'Net Sale Value', section: 'sale', type: 'currency', default: true },
 
+        // ─── Per-Invoice Averages (AOV) ───────────────────────────────
+    { key: 'average_net_sale_value_per_invoice', label: 'Avg Sale / Invoice (AOV)', section: 'sale', type: 'currency', default: true },
+    { key: 'average_gross_profit_per_invoice', label: 'Avg Gross Profit / Invoice', section: 'sale', type: 'currency', default: true },
+    { key: 'average_net_profit_per_invoice', label: 'Avg Net Profit / Invoice', section: 'sale', type: 'currency', default: true },
+    { key: 'average_units_sold_per_invoice', label: 'Avg Units / Invoice', section: 'sale', type: 'number', default: true },
+
     // ─── Profit ───────────────────────────────────────────────────
     { key: 'gross_profit', label: 'Gross Profit', section: 'profit', type: 'currency', default: true },
     { key: 'average_profit_percentage_on_accrual_net_sale_value', label: 'Margin %', section: 'profit', type: 'percent', default: true },

@@ -24,6 +24,10 @@ const METRIC_LABELS = {
     total_revenue: 'Revenue',
     received_net_sale_value: 'Cash Received',
     total_operational_expense: 'Operational Expense',
+
+     // 🆕
+    average_net_sale_value_per_invoice: 'Avg Sale / Invoice',
+    average_gross_profit_per_invoice: 'Avg Gross Profit / Invoice',
 };
 
 const METRIC_COLORS = {
@@ -32,6 +36,10 @@ const METRIC_COLORS = {
     total_revenue: '#3b82f6',
     received_net_sale_value: '#8b5cf6',
     total_operational_expense: '#ef4444',
+
+    // 🆕
+    average_net_sale_value_per_invoice: '#f59e0b',
+    average_gross_profit_per_invoice: '#ec4899',
 };
 
 const ChartModal = ({ isOpen, onClose, chartData, sectionLabel }) => {
